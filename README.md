@@ -31,7 +31,7 @@ It combines:
    ```
 3. Clone or pull this repo into that folder:
    ```bash
-   git clone <your-repo-url> SpoTUI
+   git clone https://github.com/SkenSMasteR/SpoTUI SpoTUI
    ```
    If you already have it locally, update it instead:
    ```bash
@@ -59,7 +59,7 @@ It combines:
    ```
 3. Clone or pull this repo into that folder:
    ```powershell
-   git clone <your-repo-url> SpoTUI
+   git clone https://github.com/SkenSMasteR/SpoTUI SpoTUI
    ```
    If you already have it locally, update it instead:
    ```powershell
