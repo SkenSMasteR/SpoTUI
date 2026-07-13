@@ -2,8 +2,11 @@
     "name": "SpoTUI",
     "description": "Terminal interface for Spotify...",
     "preview": "preview.png",
+    "usercss": "user.css",
+    "schemes": "color.ini",
+    "include": ["https://cdn.jsdelivr.net/gh/SkenSMasteR/SpoTUI@master/theme.js"],
     "readme": "README.md",
-    "branch": "release",
+    "branch": "master",
     "authors": [
         { "name": "SkenS", "url": "https://github.com/SkenSMasteR" }
     ],
