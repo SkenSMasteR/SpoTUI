@@ -1,0 +1,11 @@
+{
+    "name": "SpoTUI",
+    "description": "Terminal interface for Spotify...",
+    "preview": "preview.png",
+    "readme": "README.md",
+    "branch": "release",
+    "authors": [
+        { "name": "SkenS", "url": "https://github.com/SkenSMasteR" }
+    ],
+    "tags": ["tui", "beta", "dev", "commands", "terminal", "cli"]
+}
