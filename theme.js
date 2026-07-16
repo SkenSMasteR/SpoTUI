@@ -975,7 +975,6 @@ let popup = null;
 let popupMode = "list";
 let playlists = [];
 let popupSelected = 0;
-let popupTarget = null;
 let popupTracks = [];
 let popupTrackSelected = 0;
 let popupTrackTitle = "";
@@ -1186,7 +1185,7 @@ function renderPopup() {
     popup.tabIndex = 0;
 
     if (popupMode === "list") {
-        popup.innerHTML = `<div class="popup-title">Playlists &mdash; &uarr;/&darr; move &middot; Enter play &middot; n new &middot; r rename &middot; Esc close</div><div id="popup-list"></div>`;
+        popup.innerHTML = `<div class="popup-title">Playlists &mdash; &uarr;/&darr; move &middot; Enter play &middot; n new &middot; Esc close</div><div id="popup-list"></div>`;
         document.body.appendChild(popup);
         const listEl = popup.querySelector("#popup-list");
         if (!playlists.length) {
@@ -1210,14 +1209,6 @@ function renderPopup() {
         const inputEl = popup.querySelector("#popup-input");
         inputEl.focus();
         inputEl.addEventListener("keydown", handleNewKeydown);
-    } else if (popupMode === "rename") {
-        const target = playlists[popupTarget];
-        popup.innerHTML = `<div class="popup-title">Rename "${target.name}" &mdash; Enter confirm &middot; Esc cancel</div><input id="popup-input" class="popup-input" value="${target.name}">`;
-        document.body.appendChild(popup);
-        const inputEl = popup.querySelector("#popup-input");
-        inputEl.focus();
-        inputEl.select();
-        inputEl.addEventListener("keydown", handleRenameKeydown);
     } else if (popupMode === "tracks") {
         popup.innerHTML = `<div class="popup-title">${popupTrackTitle} &mdash; &uarr;/&darr; move &middot; Enter play &middot; Esc close</div><div id="popup-list"></div>`;
         document.body.appendChild(popup);
@@ -1301,13 +1292,6 @@ function handleListKeydown(e) {
         e.preventDefault();
         popupMode = "new";
         renderPopup();
-    } else if (e.key === "r" || e.key === "R") {
-        e.preventDefault();
-        if (playlists.length) {
-            popupTarget = popupSelected;
-            popupMode = "rename";
-            renderPopup();
-        }
     } else if (e.key === "Escape") {
         e.preventDefault();
         closePopup();
@@ -1371,34 +1355,6 @@ async function handleNewKeydown(e) {
         renderPopup();
     }
 }
-
-async function handleRenameKeydown(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const name = e.target.value.trim();
-        const target = playlists[popupTarget];
-        if (!name || !target) return;
-        try {
-            const playlistId = getPlaylistId(target.uri);
-            await Spicetify.CosmosAsync.put(`https://api.spotify.com/v1/playlists/${playlistId}`, {
-                name,
-            });
-            print("Renamed to: " + name);
-        } catch (err) {
-            print("Rename failed: " + err.message + " (check console)");
-            console.error("Rename playlist error:", err);
-        }
-        playlists = await getPlaylists();
-        popupSelected = 0;
-        popupMode = "list";
-        renderPopup();
-    } else if (e.key === "Escape") {
-        e.preventDefault();
-        popupMode = "list";
-        renderPopup();
-    }
-}
-
 
 injectStyle();
 setTimeout(createCopyButton, 500);
