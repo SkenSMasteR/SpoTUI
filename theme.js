@@ -1186,7 +1186,7 @@ function renderPopup() {
     popup.tabIndex = 0;
 
     if (popupMode === "list") {
-        popup.innerHTML = `<div class="popup-title">Playlists &mdash; &uarr;/&darr; move &middot; Enter play &middot; n new &middot; r rename &middot; d delete &middot; Esc close</div><div id="popup-list"></div>`;
+        popup.innerHTML = `<div class="popup-title">Playlists &mdash; &uarr;/&darr; move &middot; Enter play &middot; n new &middot; r rename &middot; Esc close</div><div id="popup-list"></div>`;
         document.body.appendChild(popup);
         const listEl = popup.querySelector("#popup-list");
         if (!playlists.length) {
@@ -1218,12 +1218,6 @@ function renderPopup() {
         inputEl.focus();
         inputEl.select();
         inputEl.addEventListener("keydown", handleRenameKeydown);
-    } else if (popupMode === "delete-confirm") {
-        const target = playlists[popupTarget];
-        popup.innerHTML = `<div class="popup-title">Delete "${target.name}"? &mdash; y confirm &middot; n/Esc cancel</div>`;
-        document.body.appendChild(popup);
-        popup.addEventListener("keydown", handleDeleteKeydown);
-        popup.focus();
     } else if (popupMode === "tracks") {
         popup.innerHTML = `<div class="popup-title">${popupTrackTitle} &mdash; &uarr;/&darr; move &middot; Enter play &middot; Esc close</div><div id="popup-list"></div>`;
         document.body.appendChild(popup);
@@ -1312,13 +1306,6 @@ function handleListKeydown(e) {
         if (playlists.length) {
             popupTarget = popupSelected;
             popupMode = "rename";
-            renderPopup();
-        }
-    } else if (e.key === "d" || e.key === "D") {
-        e.preventDefault();
-        if (playlists.length) {
-            popupTarget = popupSelected;
-            popupMode = "delete-confirm";
             renderPopup();
         }
     } else if (e.key === "Escape") {
@@ -1412,28 +1399,6 @@ async function handleRenameKeydown(e) {
     }
 }
 
-async function handleDeleteKeydown(e) {
-    if (e.key === "y" || e.key === "Y") {
-        e.preventDefault();
-        const target = playlists[popupTarget];
-        try {
-            const playlistId = getPlaylistId(target.uri);
-            await Spicetify.CosmosAsync.del(`https://api.spotify.com/v1/playlists/${playlistId}/followers`);
-            print("Deleted playlist: " + target.name);
-        } catch (err) {
-            print("Delete failed: " + err.message + " (check console)");
-            console.error("Delete playlist error:", err);
-        }
-        playlists = await getPlaylists();
-        popupSelected = 0;
-        popupMode = "list";
-        renderPopup();
-    } else if (e.key === "n" || e.key === "N" || e.key === "Escape") {
-        e.preventDefault();
-        popupMode = "list";
-        renderPopup();
-    }
-}
 
 injectStyle();
 setTimeout(createCopyButton, 500);
