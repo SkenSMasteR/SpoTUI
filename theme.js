@@ -22,91 +22,6 @@ const style = `
     cursor: text;
 }
 
-#spotui-visualizer {
-    position: absolute;
-    inset: 0;
-    display: none;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 2;
-    background:
-        radial-gradient(circle at 50% 65%, rgba(255, 140, 0, 0.12), rgba(0, 0, 0, 0) 42%),
-        linear-gradient(180deg, rgba(255, 69, 0, 0.08), rgba(0, 0, 0, 0));
-}
-
-#spotui-visualizer::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(rgba(255, 140, 0, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px);
-    background-size: 100% 28px, 28px 100%;
-    opacity: 0.28;
-}
-
-#spotui-visualizer-fall {
-    position: absolute;
-    inset: 0 0 90px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    color: #ff8c00;
-    white-space: pre;
-    text-align: center;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 24px;
-    line-height: 1;
-    opacity: 0.92;
-    letter-spacing: 0;
-}
-
-.spotui-viz-line {
-    display: flex;
-    justify-content: center;
-    will-change: transform, opacity, filter;
-    text-shadow: 0 0 12px rgba(255, 140, 0, 0.28);
-}
-
-.spotui-viz-char {
-    display: inline-block;
-    will-change: transform, opacity, filter;
-}
-
-#spotui-visualizer-bars {
-    position: absolute;
-    left: 50%;
-    bottom: 114px;
-    transform: translateX(-50%);
-    width: min(92vw, 1280px);
-    height: 34vh;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 6px;
-    opacity: 0;
-    transition: opacity 220ms ease;
-}
-
-.spotui-viz-bar {
-    flex: 1 1 0;
-    min-width: 4px;
-    max-width: 14px;
-    border-radius: 999px 999px 0 0;
-    background: linear-gradient(180deg, #ffa500 0%, #ff8c00 55%, #ff4500 100%);
-    box-shadow:
-        0 0 12px rgba(255, 140, 0, 0.36),
-        inset 0 0 0 1px rgba(255, 220, 160, 0.1);
-    transform-origin: bottom;
-    min-height: 8px;
-}
-
-#spotui-tui.spotui-has-visualizer #spotui-visualizer {
-    display: block;
-}
-
 #spotui-logo {
     position: absolute;
     left: 50%;
@@ -210,32 +125,6 @@ body.spotui-tui-hidden #spotui-popup {
     display: none !important;
 }
 
-body.spotui-visualizer-active #spotui-output {
-    opacity: 0;
-    transform: translateY(0);
-}
-
-body.spotui-visualizer-active #spotui-footer {
-    opacity: 0;
-    transform: translateY(0);
-}
-
-body.spotui-visualizer-active #spotui-logo {
-    opacity: 0;
-}
-
-body.spotui-visualizer-active #spotui-controls {
-    opacity: 0;
-}
-
-body.spotui-visualizer-active #spotui-visualizer-bars {
-    opacity: 1;
-}
-
-body.spotui-visualizer-active #spotui-input {
-    color: rgba(255, 140, 66, 0.58);
-}
-
 #spotui-popup {
     position: fixed;
     top: 50%;
@@ -303,26 +192,7 @@ const SPOTUI_ASCII_ART = [
 
 
 
-let idleTimer = null;
-let animeReady = null;
-let visualizerRoot = null;
-let visualizerFall = null;
-let visualizerBars = null;
-let visualizerBarEls = [];
-let visualizerBarFrame = null;
-let visualizerFallAnim = null;
-let visualizerLineAnims = [];
-let visualizerBarsTimer = null;
-let visualizerActive = false;
-let visualizerRequested = false;
-let playbackWatcher = null;
-let playbackIsPlaying = false;
 let tuiMode = "command";
-let visualizerAudioContext = null;
-let visualizerAudioSource = null;
-let visualizerAnalyser = null;
-let visualizerAudioData = null;
-let visualizerAudioElement = null;
 
 let results = [];
 let selected = 0;
@@ -338,282 +208,6 @@ function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
     document.body.classList.toggle("spotui-command-mode", tuiMode !== "cli");
-}
-
-function loadAnime() {
-    if (window.anime) return Promise.resolve(window.anime);
-    if (animeReady) return animeReady;
-
-    animeReady = new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-spotui-anime="1"]');
-        if (existing) {
-            existing.addEventListener("load", () => resolve(window.anime), { once: true });
-            existing.addEventListener("error", () => reject(new Error("anime.js failed to load")), { once: true });
-            return;
-        }
-
-        const script = document.createElement("script");
-        script.src = VISUALIZER_ANIME_SRC;
-        script.async = true;
-        script.dataset.spotuiAnime = "1";
-        script.onload = () => resolve(window.anime);
-        script.onerror = () => reject(new Error("anime.js failed to load"));
-        document.head.appendChild(script);
-    });
-
-    return animeReady;
-}
-
-function stopVisualizerAnimations() {
-    try {
-        visualizerFallAnim?.pause?.();
-        visualizerLineAnims.forEach((anim) => anim?.pause?.());
-    } catch {
-    }
-
-    visualizerFallAnim = null;
-    visualizerLineAnims = [];
-    if (visualizerBarsTimer) {
-        clearTimeout(visualizerBarsTimer);
-        visualizerBarsTimer = null;
-    }
-    if (visualizerBarFrame) {
-        cancelAnimationFrame(visualizerBarFrame);
-        visualizerBarFrame = null;
-    }
-    if (visualizerAudioContext?.state === "running") {
-        visualizerAudioContext.suspend().catch(() => {});
-    }
-}
-
-function ensureVisualizer() {
-    if (visualizerRoot) return;
-
-    visualizerRoot = document.createElement("div");
-    visualizerRoot.id = "spotui-visualizer";
-
-    visualizerFall = document.createElement("div");
-    visualizerFall.id = "spotui-visualizer-fall";
-
-    visualizerBars = document.createElement("div");
-    visualizerBars.id = "spotui-visualizer-bars";
-
-    visualizerBarEls = [];
-    for (let i = 0; i < VISUALIZER_BAR_COUNT; i += 1) {
-        const bar = document.createElement("div");
-        bar.className = "spotui-viz-bar";
-        bar.style.height = `${8 + (i % 6)}%`;
-        visualizerBars.appendChild(bar);
-        visualizerBarEls.push(bar);
-    }
-
-    visualizerRoot.appendChild(visualizerFall);
-    visualizerRoot.appendChild(visualizerBars);
-    document.body.appendChild(visualizerRoot);
-}
-
-function buildVisualizerText() {
-    visualizerFall.innerHTML = "";
-    SPOTUI_ASCII_ART.forEach((line, index) => {
-        const el = document.createElement("div");
-        el.className = "spotui-viz-line";
-        for (const ch of line) {
-            const span = document.createElement("span");
-            span.className = "spotui-viz-char";
-            span.textContent = ch === " " ? "\u00A0" : ch;
-            span.dataset.char = ch;
-            el.appendChild(span);
-        }
-        el.dataset.index = String(index);
-        visualizerFall.appendChild(el);
-    });
-    return Array.from(visualizerFall.children);
-}
-
-function animateVisualizerBars() {
-    if (visualizerBarFrame) cancelAnimationFrame(visualizerBarFrame);
-    visualizerBars.style.opacity = "1";
-
-    const seeds = visualizerBarEls.map((_, index) => ({
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.0012 + (index % 7) * 0.00012,
-        swing: 0.38 + (index % 5) * 0.08,
-    }));
-
-    const tryAttachAudio = () => {
-        const AudioCtor = window.AudioContext || window.webkitAudioContext;
-        const audioEl = document.querySelector("audio");
-        if (!AudioCtor || !audioEl) return false;
-
-        try {
-            if (visualizerAudioElement !== audioEl) {
-                if (visualizerAudioSource) {
-                    try {
-                        visualizerAudioSource.disconnect();
-                    } catch {
-                    }
-                }
-                visualizerAudioContext ||= new AudioCtor();
-                visualizerAudioSource = visualizerAudioContext.createMediaElementSource(audioEl);
-                visualizerAnalyser = visualizerAudioContext.createAnalyser();
-                visualizerAnalyser.fftSize = 128;
-                visualizerAnalyser.smoothingTimeConstant = 0.78;
-                visualizerAudioData = new Uint8Array(visualizerAnalyser.frequencyBinCount);
-                visualizerAudioSource.connect(visualizerAnalyser);
-                visualizerAnalyser.connect(visualizerAudioContext.destination);
-                visualizerAudioElement = audioEl;
-            }
-
-            if (visualizerAudioContext.state === "suspended") {
-                visualizerAudioContext.resume().catch(() => {});
-            }
-            return Boolean(visualizerAnalyser);
-        } catch {
-            visualizerAnalyser = null;
-            visualizerAudioData = null;
-            return false;
-        }
-    };
-
-    const tick = () => {
-        if (!visualizerActive || !isPlaybackRunning()) {
-            visualizerBarFrame = null;
-            return;
-        }
-
-        const now = performance.now();
-        const progress = Number(Spicetify?.Player?.getProgress?.() ?? 0);
-        const volume = Number(Spicetify?.Player?.getVolume?.() ?? 0.72);
-        const energyBase = 0.55 + Math.min(0.35, volume * 0.25);
-        const hasAudio = tryAttachAudio();
-
-        if (hasAudio && visualizerAnalyser && visualizerAudioData) {
-            visualizerAnalyser.getByteFrequencyData(visualizerAudioData);
-            const bucketSize = Math.max(1, Math.floor(visualizerAudioData.length / visualizerBarEls.length));
-            visualizerBarEls.forEach((bar, index) => {
-                let sum = 0;
-                let peak = 0;
-                const start = index * bucketSize;
-                const end = Math.min(visualizerAudioData.length, start + bucketSize);
-                for (let i = start; i < end; i += 1) {
-                    const value = visualizerAudioData[i] || 0;
-                    sum += value;
-                    if (value > peak) peak = value;
-                }
-                const avg = sum / Math.max(1, end - start);
-                const height = 10 + (avg * 0.72 + peak * 0.28) * 0.32;
-                bar.style.height = `${Math.max(8, Math.min(100, height))}%`;
-            });
-        } else {
-            visualizerBarEls.forEach((bar, index) => {
-                const seed = seeds[index];
-                const pulse = Math.sin(now * seed.speed + seed.phase) * 0.5 + 0.5;
-                const trackWave = Math.sin(progress / 140 + index * 0.42 + seed.phase * 0.7) * 0.5 + 0.5;
-                const jitter = (Math.sin(now * 0.0025 + index * 0.18) * 0.5 + 0.5) * 0.18;
-                const height = 10 + (pulse * 0.48 + trackWave * 0.34 + jitter) * (56 + (index % 8) * 2) * energyBase * seed.swing;
-                bar.style.height = `${Math.max(8, Math.min(100, height))}%`;
-            });
-        }
-
-        visualizerBarFrame = requestAnimationFrame(tick);
-    };
-
-    visualizerBarFrame = requestAnimationFrame(tick);
-}
-
-async function enterVisualizerMode() {
-    if (visualizerActive || visualizerRequested || popup || document.body.classList.contains("spotui-search-mode") || !isPlaybackRunning()) {
-        return;
-    }
-
-    visualizerRequested = true;
-    ensureVisualizer();
-    visualizerActive = true;
-    document.body.classList.add("spotui-visualizer-active");
-    document.getElementById("spotui-tui")?.classList.add("spotui-has-visualizer");
-    visualizerBars.style.opacity = "0";
-
-    const lineEls = buildVisualizerText();
-    const charEls = lineEls.flatMap((line) => Array.from(line.children));
-
-    try {
-        const anime = await loadAnime();
-        if (!visualizerActive) {
-            visualizerRequested = false;
-            return;
-        }
-
-        stopVisualizerAnimations();
-
-        visualizerLineAnims = charEls.map((charEl, index) => {
-            const lineIndex = Number(charEl.parentElement?.dataset.index || 0);
-            const columnIndex = Array.from(charEl.parentElement?.children || []).indexOf(charEl);
-            const dropDistance = 240 + lineIndex * 22 + Math.random() * 160;
-            const spread = (columnIndex - 24) * 2.1 + (Math.random() - 0.5) * 34;
-            const drift = (Math.random() - 0.5) * 10;
-            return anime({
-                targets: charEl,
-                translateY: [0, dropDistance],
-                translateX: [0, spread + drift],
-                rotate: [0, (Math.random() - 0.5) * 58],
-                scale: [1, 0.9],
-                opacity: [0.92, 0],
-                duration: 1200 + lineIndex * 140 + (index % 6) * 45,
-                delay: lineIndex * 130 + columnIndex * 20,
-                easing: "easeInCubic",
-            });
-        });
-
-        visualizerFallAnim = anime({
-            targets: visualizerFall,
-            opacity: [0, 1],
-            duration: 240,
-            easing: "linear",
-        });
-
-        visualizerBarsTimer = setTimeout(() => {
-            if (!visualizerActive || !isPlaybackRunning()) return;
-            visualizerBars.style.opacity = "1";
-            animateVisualizerBars();
-        }, 2100);
-    } catch {
-        visualizerBars.style.opacity = "1";
-        visualizerBarEls.forEach((bar, index) => {
-            bar.style.height = `${24 + (index % 7) * 8}%`;
-        });
-    } finally {
-        visualizerRequested = false;
-    }
-}
-
-function exitVisualizerMode() {
-    if (!visualizerActive && !visualizerRequested) return;
-    visualizerActive = false;
-    visualizerRequested = false;
-    document.body.classList.remove("spotui-visualizer-active");
-    document.getElementById("spotui-tui")?.classList.remove("spotui-has-visualizer");
-    stopVisualizerAnimations();
-    if (visualizerBars) visualizerBars.style.opacity = "0";
-    if (visualizerRoot) visualizerRoot.replaceChildren(visualizerFall, visualizerBars);
-}
-
-function clearIdleTimer() {
-    if (idleTimer) {
-        clearTimeout(idleTimer);
-        idleTimer = null;
-    }
-}
-
-function isPlaybackRunning() {
-    return Boolean(Spicetify?.Player?.isPlaying?.());
-}
-
-function scheduleIdleTimer() {
-    clearIdleTimer();
-}
-
-function noteActivity() {
-    clearIdleTimer();
 }
 
 function createCopyButton() {
@@ -661,7 +255,6 @@ function createCopyButton() {
             document.body.classList.remove("spotui-tui-hidden");
             document.body.classList.remove("spotui-search-mode");
             hideBtn.textContent = "Hide TUI";
-            noteActivity();
         }
     });
 
@@ -682,7 +275,6 @@ function createCopyButton() {
         spotifyBtn.textContent = "Enable Spotify";
         hideBtn.textContent = "Hide TUI";
         syncLyricsState();
-        noteActivity();
     });
     document.body.appendChild(backBtn);
 }
@@ -774,9 +366,7 @@ Type /help
     document.body.appendChild(box);
 
     const input = document.getElementById("spotui-input");
-    input.addEventListener("input", noteActivity);
     input.addEventListener("keydown", async (e) => {
-        noteActivity();
         if (e.key === "Enter") {
             const cmd = input.value.trim();
             input.value = "";
@@ -793,7 +383,6 @@ Type /help
         }
     });
 
-    document.addEventListener("pointerdown", noteActivity, true);
 }
 
 function print(text) {
@@ -834,7 +423,6 @@ async function execute(cmd) {
     }
     if (command === "clear") {
         document.getElementById("spotui-output").textContent = "";
-        noteActivity();
         return;
     }
 
@@ -894,7 +482,6 @@ async function execute(cmd) {
         document.body.classList.add("spotui-search-mode");
         document.body.classList.add("spotui-tui-hidden");
         syncLyricsState();
-        clearIdleTimer();
         return;
     }
 
@@ -1078,12 +665,10 @@ async function getPlaylists() {
 }
 
 async function openPlaylistPopup() {
-    clearIdleTimer();
     try {
         playlists = await getPlaylists();
     } catch (err) {
         print("Playlist error: " + err.message);
-        scheduleIdleTimer();
         return;
     }
     popupSelected = 0;
@@ -1092,12 +677,10 @@ async function openPlaylistPopup() {
 }
 
 async function openPlaylistTracksPopup() {
-    clearIdleTimer();
     try {
         const contextUri = getCurrentPlaylistContextUri();
         if (!contextUri || !Spicetify.URI.isPlaylistV1OrV2(contextUri)) {
             print("List error: not currently playing a playlist.");
-            scheduleIdleTimer();
             return;
         }
         const res = await Spicetify.Platform.PlaylistAPI.getContents(contextUri, {
@@ -1117,7 +700,6 @@ async function openPlaylistTracksPopup() {
     } catch (err) {
         print("List error: " + err.message);
         console.error("Playlist tracks popup error:", err);
-        scheduleIdleTimer();
     }
 }
 
@@ -1150,7 +732,6 @@ function getQueueTracks() {
 }
 
 function openQueuePopup() {
-    clearIdleTimer();
     const currentQueueTracks = getQueueTracks();
     if (!lastQueueSnapshot || lastQueueSnapshot.length === 0) {
         lastQueueSnapshot = currentQueueTracks;
@@ -1175,7 +756,6 @@ function closePopup() {
     popupTrackContext = null;
     const input = document.getElementById("spotui-input");
     if (input) input.focus();
-    scheduleIdleTimer();
 }
 
 function renderPopup() {
