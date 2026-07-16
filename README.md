@@ -1,3 +1,5 @@
+![SpoTUI animation](banner-gif.gif)
+
 # SpoTUI
 
 SpoTUI is a terminal-style Spotify skin built for Spicetify.
@@ -10,7 +12,6 @@ It combines:
 ## Screenshot
 
 ![SpoTUI preview](preview.png)
-
 ## Features
 
 - Terminal-inspired interface

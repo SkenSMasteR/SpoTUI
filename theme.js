@@ -28,7 +28,7 @@ const style = `
     top: 41%;
     transform: translate(-50%, -50%);
     color: #ff8c42;
-    opacity: 0.28;
+    opacity: 1;
     white-space: pre;
     text-align: center;
     font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -37,6 +37,64 @@ const style = `
     pointer-events: none;
     user-select: none;
     z-index: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.spotui-ascii-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: clamp(9px, 1.4vw, 22px);
+    letter-spacing: 0;
+    font-weight: 400;
+    font-variant-ligatures: none;
+    font-kerning: none;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    white-space: pre;
+    padding: 20px;
+    contain: layout style paint;
+}
+
+.spotui-ascii-row {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    contain: layout style paint;
+}
+
+.spotui-ascii-char {
+    display: inline-block;
+    font-size: clamp(9px, 1.4vw, 22px);
+    line-height: 1;
+    width: 1ch;
+    text-align: left;
+    position: relative;
+    text-shadow: 0 0 6px currentColor;
+}
+
+@media (max-width: 700px) {
+    .spotui-ascii-grid {
+        font-size: clamp(5px, 1.1vw, 11px);
+    }
+
+    .spotui-ascii-char {
+        font-size: clamp(5px, 1.1vw, 11px);
+    }
+}
+
+@media (max-width: 450px) {
+    .spotui-ascii-grid {
+        font-size: clamp(3.5px, 1.4vw, 7px);
+    }
+
+    .spotui-ascii-char {
+        font-size: clamp(3.5px, 1.4vw, 7px);
+    }
 }
 
 #spotui-output {
@@ -178,19 +236,497 @@ body.spotui-tui-hidden #spotui-popup {
 `;
 
 const SPOTUI_ASCII_ART = [
-    "  ██████  ██▓███   ▒█████  ▄▄▄█████▓ █    ██  ██▓",
-    "▒██    ▒ ▓██░  ██▒▒██▒  ██▒▓  ██▒ ▓▒ ██  ▓██▒▓██▒",
-    "░ ▓██▄   ▓██░ ██▓▒▒██░  ██▒▒ ▓██░ ▒░▓██  ▒██░▒██▒",
-    "  ▒   ██▒▒██▄█▓▒ ▒▒██   ██░░ ▓██▓ ░ ▓▓█  ░██░░██░",
-    "▒██████▒▒▒██▒ ░  ░░ ████▓▒░  ▒██▒ ░ ▒▒█████▓ ░██░",
-    "▒ ▒▓▒ ▒ ░▒▓▒░ ░  ░░ ▒░▒░▒░   ▒ ░░   ░▒▓▒ ▒ ▒ ░▓  ",
-    "░ ░▒  ░ ░░▒ ░       ░ ▒ ▒░     ░    ░░▒░ ░ ░  ▒ ░",
-    "░  ░  ░  ░░       ░ ░ ░ ▒    ░       ░░░ ░ ░  ▒ ░",
-    "      ░               ░ ░              ░      ░  ",
-    "                                                 ",
+    "   ▄████████    ▄███████▄  ▄██████▄      ███     ███    █▄   ▄█  ",
+    "  ███    ███   ███    ███ ███    ███ ▀█████████▄ ███    ███ ███  ",
+    "  ███    █▀    ███    ███ ███    ███    ▀███▀▀██ ███    ███ ███▌ ",
+    "  ███          ███    ███ ███    ███     ███   ▀ ███    ███ ███▌ ",
+    "▀███████████ ▀█████████▀  ███    ███     ███     ███    ███ ███▌ ",
+    "         ███   ███        ███    ███     ███     ███    ███ ███  ",
+    "   ▄█    ███   ███        ███    ███     ███     ███    ███ ███  ",
+    " ▄████████▀   ▄████▀       ▀██████▀     ▄████▀   ████████▀  █▀   ",
 ];
 
+const GLITCH_CHARS = "01";
+const ORANGE_PALETTE = [
+    "#ff6a00",
+    "#ff7a0a",
+    "#ff8c1a",
+    "#ff9e33",
+    "#ffb04d",
+    "#ffc266",
+    "#ffd480",
+    "#ffe699",
+];
 
+function getCharColor(row, col, totalRows, totalCols) {
+    const normRow = row / Math.max(totalRows - 1, 1);
+    const normCol = col / Math.max(totalCols - 1, 1);
+    const mix = normRow * 0.55 + normCol * 0.45;
+    const idx = Math.floor(mix * (ORANGE_PALETTE.length - 1));
+    const frac = mix * (ORANGE_PALETTE.length - 1) - idx;
+    const i = Math.min(idx, ORANGE_PALETTE.length - 2);
+    const c1 = ORANGE_PALETTE[i];
+    const c2 = ORANGE_PALETTE[i + 1] || ORANGE_PALETTE[i];
+    const r1 = parseInt(c1.slice(1, 3), 16);
+    const g1 = parseInt(c1.slice(3, 5), 16);
+    const b1 = parseInt(c1.slice(5, 7), 16);
+    const r2 = parseInt(c2.slice(1, 3), 16);
+    const g2 = parseInt(c2.slice(3, 5), 16);
+    const b2 = parseInt(c2.slice(5, 7), 16);
+    const r = Math.round(r1 + (r2 - r1) * frac);
+    const g = Math.round(g1 + (g2 - g1) * frac);
+    const b = Math.round(b1 + (b2 - b1) * frac);
+    return `rgb(${r},${g},${b})`;
+}
+
+let asciiAnimationInitialized = false;
+let asciiCharData = [];
+
+function initAsciiAnimation() {
+    if (asciiAnimationInitialized) return;
+    asciiAnimationInitialized = true;
+
+    const logo = document.getElementById("spotui-logo");
+    if (!logo) return;
+
+    logo.innerHTML = "";
+
+    const grid = document.createElement("div");
+    grid.className = "spotui-ascii-grid";
+    logo.appendChild(grid);
+
+    const rows = SPOTUI_ASCII_ART.length;
+    const cols = Math.max(...SPOTUI_ASCII_ART.map((row) => row.length));
+    const charData = [];
+    const rowSpansCache = [];
+
+    SPOTUI_ASCII_ART.forEach((line, rowIdx) => {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "spotui-ascii-row";
+        rowDiv.dataset.row = rowIdx;
+        const padded = line.padEnd(cols, " ");
+        const chars = [...padded];
+        const rowSpans = [];
+        chars.forEach((ch, colIdx) => {
+            const span = document.createElement("span");
+            span.className = "spotui-ascii-char";
+            span.textContent = ch;
+            span.dataset.row = rowIdx;
+            span.dataset.col = colIdx;
+            span.dataset.original = ch;
+            const color = getCharColor(rowIdx, colIdx, rows, cols);
+            span.style.color = color;
+            span.dataset.origColor = color;
+            charData.push({
+                row: rowIdx,
+                col: colIdx,
+                el: span,
+                original: ch,
+                color,
+            });
+            rowSpans.push(span);
+            rowDiv.appendChild(span);
+        });
+        rowSpansCache.push(rowSpans);
+        grid.appendChild(rowDiv);
+    });
+
+    asciiCharData = charData;
+
+    function resetGrid() {
+        charData.forEach(({ el, original, color }) => {
+            el.textContent = original;
+            el.style.color = color;
+        });
+    }
+
+    function getRowSpans(rowIdx) {
+        return rowSpansCache[rowIdx] || [];
+    }
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function decryptRow(rowIdx) {
+        const spans = getRowSpans(rowIdx);
+        if (!spans.length) return;
+        const chars = [...GLITCH_CHARS];
+        const origs = spans.map((span) => span.dataset.original || " ");
+        const colors = spans.map((span) => span.dataset.origColor || "#ff8c1a");
+
+        spans.forEach((span) => {
+            span.textContent = chars[Math.floor(Math.random() * chars.length)];
+        });
+
+        const indices = Array.from({ length: spans.length }, (_, i) => i);
+        for (let i = indices.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+
+        const batchSize = 4;
+        for (let start = 0; start < indices.length; start += batchSize) {
+            const batch = indices.slice(start, start + batchSize);
+            batch.forEach((idx) => {
+                spans[idx].textContent = chars[Math.floor(Math.random() * chars.length)];
+            });
+            await sleep(8);
+            batch.forEach((idx) => {
+                spans[idx].textContent = origs[idx];
+                spans[idx].style.color = colors[idx];
+            });
+            await sleep(6);
+        }
+    }
+
+    async function glitchRowWave(rowIdx, duration = 500) {
+        const spans = getRowSpans(rowIdx);
+        if (!spans.length) return;
+        const origs = spans.map((span) => span.dataset.original || " ");
+        const colors = spans.map((span) => span.dataset.origColor || "#ff8c1a");
+        const chars = [...GLITCH_CHARS];
+        const steps = 8;
+        for (let step = 0; step < steps; step += 1) {
+            spans.forEach((span) => {
+                const randIdx = Math.floor(Math.random() * chars.length);
+                span.textContent = chars[randIdx];
+                const hue = 20 + Math.random() * 35;
+                span.style.color = `hsl(${hue}, 100%, ${50 + Math.random() * 30}%)`;
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        spans.forEach((span, i) => {
+            span.textContent = origs[i] || " ";
+            span.style.color = colors[i] || "#ff8c1a";
+        });
+    }
+
+    async function burstGlitch(duration = 800) {
+        const centerRow = Math.floor(rows / 2);
+        const centerCol = Math.floor(cols / 2);
+        const withDist = charData.map((entry) => {
+            const dr = entry.row - centerRow;
+            const dc = entry.col - centerCol;
+            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
+        });
+        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
+        const chars = [...GLITCH_CHARS];
+        const steps = 8;
+        for (let step = 0; step < steps; step += 1) {
+            const progress = step / steps;
+            withDist.forEach(({ el, original, color, dist }) => {
+                const norm = dist / maxDist;
+                const threshold = progress * 1.1;
+                if (norm < threshold + 0.12 && norm > threshold - 0.12) {
+                    if (Math.random() < 0.75) {
+                        const randIdx = Math.floor(Math.random() * chars.length);
+                        el.textContent = chars[randIdx];
+                        el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                    }
+                } else if (norm < threshold - 0.12) {
+                    el.textContent = original;
+                    el.style.color = color;
+                }
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        resetGrid();
+    }
+
+    async function pulseGlitch(duration = 1200) {
+        const centerRow = Math.floor(rows / 2);
+        const centerCol = Math.floor(cols / 2);
+        const withDist = charData.map((entry) => {
+            const dr = entry.row - centerRow;
+            const dc = entry.col - centerCol;
+            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
+        });
+        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
+        const chars = [...GLITCH_CHARS];
+        const waves = 3;
+        const stepsPerWave = 10;
+
+        for (let wave = 0; wave < waves; wave += 1) {
+            for (let step = 0; step < stepsPerWave; step += 1) {
+                const progress = step / stepsPerWave;
+                const threshold = progress * 1.0;
+                withDist.forEach(({ el, original, color, dist }) => {
+                    const norm = dist / maxDist;
+                    if (norm < threshold + 0.1 && norm > threshold - 0.1) {
+                        if (Math.random() < 0.7) {
+                            const randIdx = Math.floor(Math.random() * chars.length);
+                            el.textContent = chars[randIdx];
+                            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                        }
+                    } else if (norm < threshold - 0.1 && wave === waves - 1) {
+                        el.textContent = original;
+                        el.style.color = color;
+                    }
+                });
+                await sleep(Math.floor(duration / (waves * stepsPerWave)));
+            }
+            await sleep(40);
+        }
+        resetGrid();
+    }
+
+    async function implosionGlitch(duration = 900) {
+        const centerRow = Math.floor(rows / 2);
+        const centerCol = Math.floor(cols / 2);
+        const withDist = charData.map((entry) => {
+            const dr = entry.row - centerRow;
+            const dc = entry.col - centerCol;
+            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
+        });
+        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
+        const chars = [...GLITCH_CHARS];
+        const steps = 10;
+
+        withDist.forEach(({ el }) => {
+            const randIdx = Math.floor(Math.random() * chars.length);
+            el.textContent = chars[randIdx];
+            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${45 + Math.random() * 35}%)`;
+        });
+
+        for (let step = 0; step < steps; step += 1) {
+            const progress = step / steps;
+            const threshold = 1.0 - progress * 1.1;
+            withDist.forEach(({ el, original, color, dist }) => {
+                const norm = dist / maxDist;
+                if (norm <= threshold) {
+                    el.textContent = original;
+                    el.style.color = color;
+                }
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        resetGrid();
+    }
+
+    async function spiralGlitch(duration = 1000) {
+        const centerRow = Math.floor(rows / 2);
+        const centerCol = Math.floor(cols / 2);
+        const withAngle = charData.map((entry) => {
+            const dr = entry.row - centerRow;
+            const dc = entry.col - centerCol;
+            const angle = Math.atan2(dc, dr);
+            const dist = Math.sqrt(dr * dr + dc * dc);
+            return { ...entry, angle, dist };
+        });
+        const chars = [...GLITCH_CHARS];
+        const steps = 36;
+        const wedgeWidth = 0.5;
+
+        for (let step = 0; step < steps; step += 1) {
+            const sweepAngle = (step / steps) * Math.PI * 2 - Math.PI;
+            withAngle.forEach(({ el, original, color, angle, dist }) => {
+                let diff = Math.abs(angle - sweepAngle);
+                if (diff > Math.PI) diff = Math.PI * 2 - diff;
+                if (diff < wedgeWidth && dist > 0.1) {
+                    const randIdx = Math.floor(Math.random() * chars.length);
+                    el.textContent = chars[randIdx];
+                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                } else {
+                    el.textContent = original;
+                    el.style.color = color;
+                }
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        resetGrid();
+    }
+
+    async function fuzzWaveGlitch(duration = 1000) {
+        const centerRow = Math.floor(rows / 2);
+        const centerCol = Math.floor(cols / 2);
+        const withDist = charData.map((entry) => {
+            const dr = entry.row - centerRow;
+            const dc = entry.col - centerCol;
+            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
+        });
+        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
+        const chars = [...GLITCH_CHARS];
+        const steps = 20;
+        const bandWidth = 0.25;
+
+        for (let step = 0; step < steps; step += 1) {
+            const progress = step / steps;
+            const targetNorm = progress * 1.0;
+            withDist.forEach(({ el, original, color, dist }) => {
+                const norm = dist / maxDist;
+                const distanceFromTarget = Math.abs(norm - targetNorm);
+                if (distanceFromTarget < bandWidth && Math.random() < 0.65) {
+                    const randIdx = Math.floor(Math.random() * chars.length);
+                    el.textContent = chars[randIdx];
+                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                } else if (distanceFromTarget > bandWidth * 1.5) {
+                    el.textContent = original;
+                    el.style.color = color;
+                }
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        resetGrid();
+    }
+
+    async function staticGlitch(duration = 600) {
+        const chars = [...GLITCH_CHARS];
+        const steps = 6;
+        for (let step = 0; step < steps; step += 1) {
+            charData.forEach(({ el }) => {
+                if (Math.random() < 0.8) {
+                    el.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                }
+            });
+            await sleep(Math.floor(duration / steps));
+        }
+        resetGrid();
+    }
+
+    async function horizontalBand(direction = 1, duration = 800) {
+        const chars = [...GLITCH_CHARS];
+        const start = direction === 1 ? 0 : rows - 1;
+        const totalSteps = rows + 2;
+        for (let step = 0; step <= totalSteps; step += 1) {
+            resetGrid();
+            const bandCenter = start + direction * step;
+            const bandTop = Math.max(0, bandCenter - 1);
+            const bandBottom = Math.min(rows - 1, bandCenter + 1);
+            for (let row = bandTop; row <= bandBottom; row += 1) {
+                const spans = getRowSpans(row);
+                spans.forEach((span) => {
+                    span.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    span.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                });
+            }
+            await sleep(Math.floor(duration / totalSteps));
+        }
+        resetGrid();
+    }
+
+    async function verticalSlice(direction = 1, duration = 800) {
+        const chars = [...GLITCH_CHARS];
+        const start = direction === 1 ? 0 : cols - 1;
+        const totalSteps = cols + 2;
+        for (let step = 0; step <= totalSteps; step += 1) {
+            resetGrid();
+            const bandCenter = start + direction * step;
+            const bandLeft = Math.max(0, bandCenter - 1);
+            const bandRight = Math.min(cols - 1, bandCenter + 1);
+            charData.forEach(({ el, col }) => {
+                if (col >= bandLeft && col <= bandRight) {
+                    el.textContent = chars[Math.floor(Math.random() * chars.length)];
+                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                }
+            });
+            await sleep(Math.floor(duration / totalSteps));
+        }
+        resetGrid();
+    }
+
+    async function stageWaveDown() {
+        for (let row = 0; row < rows; row += 1) {
+            await glitchRowWave(row, 300);
+            await sleep(20);
+        }
+    }
+
+    async function stageWaveUp() {
+        for (let row = rows - 1; row >= 0; row -= 1) {
+            await glitchRowWave(row, 260);
+            await sleep(15);
+        }
+    }
+
+    async function stageDecrypt() {
+        const chars = [...GLITCH_CHARS];
+        charData.forEach(({ el }) => {
+            const randIdx = Math.floor(Math.random() * chars.length);
+            el.textContent = chars[randIdx];
+        });
+        for (let row = 0; row < rows; row += 1) {
+            await decryptRow(row);
+        }
+    }
+
+    async function stageBurst() {
+        await burstGlitch(900);
+    }
+
+    async function stagePulse() {
+        await pulseGlitch(1200);
+    }
+
+    async function stageImplosion() {
+        await implosionGlitch(900);
+    }
+
+    async function stageSpiral() {
+        await spiralGlitch(1000);
+    }
+
+    async function stageFuzzWave() {
+        await fuzzWaveGlitch(1000);
+    }
+
+    async function stageStatic() {
+        await staticGlitch(700);
+    }
+
+    async function stageHSlashDown() {
+        await horizontalBand(1, 800);
+    }
+
+    async function stageHSlashUp() {
+        await horizontalBand(-1, 800);
+    }
+
+    async function stageVSlashRight() {
+        await verticalSlice(1, 800);
+    }
+
+    async function stageVSlashLeft() {
+        await verticalSlice(-1, 800);
+    }
+
+    const stageFunctions = [
+        stageWaveDown,
+        stageWaveUp,
+        stageDecrypt,
+        stageBurst,
+        stagePulse,
+        stageImplosion,
+        stageSpiral,
+        stageFuzzWave,
+        stageStatic,
+        stageHSlashDown,
+        stageHSlashUp,
+        stageVSlashRight,
+        stageVSlashLeft,
+    ];
+
+    function shuffleArray(array) {
+        for (let index = array.length - 1; index > 0; index -= 1) {
+            const j = Math.floor(Math.random() * (index + 1));
+            [array[index], array[j]] = [array[j], array[index]];
+        }
+        return array;
+    }
+
+    async function runLoop() {
+        while (true) {
+            const shuffled = shuffleArray([...stageFunctions]);
+            for (const stageFn of shuffled) {
+                await stageFn();
+                await sleep(700 + Math.random() * 400);
+            }
+            resetGrid();
+            await sleep(300);
+        }
+    }
+
+    runLoop().catch(console.error);
+}
 
 let tuiMode = "command";
 
@@ -343,16 +879,7 @@ function createTerminal() {
     box.id = "spotui-tui";
     setTuiMode("command");
     box.innerHTML = `
-<div id="spotui-logo">  ██████  ██▓███   ▒█████  ▄▄▄█████▓ █    ██  ██▓
-▒██    ▒ ▓██░  ██▒▒██▒  ██▒▓  ██▒ ▓▒ ██  ▓██▒▓██▒
-░ ▓██▄   ▓██░ ██▓▒▒██░  ██▒▒ ▓██░ ▒░▓██  ▒██░▒██▒
-  ▒   ██▒▒██▄█▓▒ ▒▒██   ██░░ ▓██▓ ░ ▓▓█  ░██░░██░
-▒██████▒▒▒██▒ ░  ░░ ████▓▒░  ▒██▒ ░ ▒▒█████▓ ░██░
-▒ ▒▓▒ ▒ ░▒▓▒░ ░  ░░ ▒░▒░▒░   ▒ ░░   ░▒▓▒ ▒ ▒ ░▓  
-░ ░▒  ░ ░░▒ ░       ░ ▒ ▒░     ░    ░░▒░ ░ ░  ▒ ░
-░  ░  ░  ░░       ░ ░ ░ ▒    ░       ░░░ ░ ░  ▒ ░
-      ░               ░ ░              ░      ░  
-                                                 </div>
+<div id="spotui-logo"></div>
 <div id="spotui-output">SpoTUI v1.0
 
 Type /help
@@ -364,6 +891,7 @@ Type /help
 </div>
 `;
     document.body.appendChild(box);
+    initAsciiAnimation();
 
     const input = document.getElementById("spotui-input");
     input.addEventListener("keydown", async (e) => {
