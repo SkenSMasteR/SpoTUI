@@ -77,7 +77,15 @@ It combines:
    ```
 
 </details>
+<details>
+<summary>Marketplace</summary>
 
+1. Open Spotify.
+2. Go to the Spicetify Marketplace.
+3. Select themes and search `SpoTUI`.
+4. The only result will be the SpoTUI theme.
+
+</details>
 
 ## Usage
 
