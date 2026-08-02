@@ -5,6 +5,7 @@ $ThemePath   = Join-Path $ThemesDir $ThemeName
 
 $Esc   = [char]27
 $Reset = "$Esc[0m"
+$AnsiPattern = "$Esc\[[0-9;]*m"
 
 $BlockFull  = [char]0x2588
 $BlockLower = [char]0x2584
@@ -45,8 +46,8 @@ function Get-RGBCode($r, $g, $b) {
 $OrangeLight = Get-RGBCode 255 140 66
 $OrangeDark  = Get-RGBCode 224 123 57
 $OrangeMid   = Get-RGBCode 240 131 61
-
-$SelectBg = "$Esc[48;2;255;140;66m$Esc[38;2;0;0;0m"
+$GreenAnsi   = Get-RGBCode 140 255 140
+$SelectBg    = "$Esc[48;2;255;140;66m$Esc[38;2;0;0;0m"
 
 $White = "White"
 $Gray  = "DarkGray"
@@ -73,9 +74,9 @@ function Get-AsciiArtLine($template) {
     return $out
 }
 
-function Show-Header {
-    Clear-Host
-    Write-Host ""
+function Get-HeaderLines {
+    $lines = @()
+    $lines += ""
     $templates = @(
         "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA     AAA    AB   BA  ",
         "  AAA    AAA   AAA    AAA AAA    AAA CAAAAAAAAAB AAA    AAA AAA  ",
@@ -89,23 +90,104 @@ function Show-Header {
     for ($i = 0; $i -lt $templates.Count; $i++) {
         $color = Get-GradientColor $i $templates.Count
         $line = Get-AsciiArtLine $templates[$i]
-        Write-Host "$color$line$Reset"
+        $lines += "$color$line$Reset"
     }
-    Write-Host ""
-    Write-Host "$OrangeMid                     Spicetify Theme Manager$Reset"
-    Write-Host "$OrangeDark  =============================================================$Reset"
-    Write-Host ""
+    $lines += ""
+    $lines += "$OrangeMid                     Spicetify Theme Manager$Reset"
+    $lines += "$OrangeDark  =============================================================$Reset"
+    $lines += ""
+    return $lines
+}
+
+function Show-Header {
+    Clear-Host
+    foreach ($line in (Get-HeaderLines)) {
+        Write-Host $line
+    }
+}
+
+function Get-VisibleLength($text) {
+    $stripped = $text -replace $AnsiPattern, ""
+    return $stripped.Length
+}
+
+function Write-Frame($lines) {
+    try { [Console]::SetCursorPosition(0, 0) } catch {}
+    $width = 80
+    try { $width = $Host.UI.RawUI.WindowSize.Width } catch {}
+    foreach ($line in $lines) {
+        $visible = Get-VisibleLength $line
+        $pad = $width - $visible - 1
+        if ($pad -lt 0) { $pad = 0 }
+        Write-Host ($line + (" " * $pad))
+    }
+}
+
+function Get-ConsoleHeight {
+    $height = 30
+    try { $height = $Host.UI.RawUI.WindowSize.Height } catch {}
+    return $height
+}
+
+function Refresh-Path {
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
+}
+
+function Install-Dependency($name) {
+    if ($name -eq "git") {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+        }
+        else {
+            Write-Host "  winget was not found. Install Git manually from https://git-scm.com/download/win" -ForegroundColor $Red
+        }
+    }
+    elseif ($name -eq "spicetify") {
+        $installCommand = "iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex"
+        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $installCommand -Wait
+    }
 }
 
 function Test-Dependencies {
     $missing = @()
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $missing += "git" }
     if (-not (Get-Command spicetify -ErrorAction SilentlyContinue)) { $missing += "spicetify" }
-    if ($missing.Count -gt 0) {
-        Write-Host "  Missing dependencies: $($missing -join ', ')" -ForegroundColor $Red
-        Write-Host "  Please install them before continuing." -ForegroundColor $Gray
+
+    if ($missing.Count -eq 0) {
+        return $true
+    }
+
+    Write-Host "  Missing dependencies: $($missing -join ', ')" -ForegroundColor $Red
+    Write-Host ""
+    $confirm = Read-Host "  Press I to install them now, or any other key to cancel"
+    if ($confirm -ne "I" -and $confirm -ne "i") {
         return $false
     }
+
+    foreach ($dep in $missing) {
+        Write-Host ""
+        Write-Host "$OrangeMid  Installing $dep...$Reset"
+        Install-Dependency $dep
+    }
+
+    Write-Host ""
+    Write-Host "$OrangeMid  Refreshing environment PATH...$Reset"
+    Refresh-Path
+
+    $stillMissing = @()
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $stillMissing += "git" }
+    if (-not (Get-Command spicetify -ErrorAction SilentlyContinue)) { $stillMissing += "spicetify" }
+
+    if ($stillMissing.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  Still missing: $($stillMissing -join ', '). You may need to restart your terminal." -ForegroundColor $Red
+        return $false
+    }
+
+    Write-Host ""
+    Write-Host "  All dependencies installed successfully." -ForegroundColor $Green
     return $true
 }
 
@@ -282,33 +364,58 @@ function Read-ArrowSelection {
     param(
         [string[]]$Items,
         [int]$CurrentIndex = -1,
-        [scriptblock]$HeaderRenderer
+        [string[]]$TitleLines
     )
 
     $selectedIndex = 0
     if ($CurrentIndex -ge 0) { $selectedIndex = $CurrentIndex }
 
-    while ($true) {
-        & $HeaderRenderer
+    $headerLines = Get-HeaderLines
+    $overheadLines = $headerLines.Count + $TitleLines.Count + 4
 
-        for ($i = 0; $i -lt $Items.Count; $i++) {
+    $pageSize = (Get-ConsoleHeight) - $overheadLines
+    if ($pageSize -gt $Items.Count) { $pageSize = $Items.Count }
+    if ($pageSize -lt 1) { $pageSize = 1 }
+
+    Clear-Host
+    try { [Console]::CursorVisible = $false } catch {}
+
+    while ($true) {
+        $totalPages = [Math]::Ceiling($Items.Count / $pageSize)
+        if ($totalPages -lt 1) { $totalPages = 1 }
+        $currentPage = [Math]::Floor($selectedIndex / $pageSize)
+        $pageStart = $currentPage * $pageSize
+        $pageEnd = $pageStart + $pageSize - 1
+        if ($pageEnd -gt ($Items.Count - 1)) { $pageEnd = $Items.Count - 1 }
+
+        $frame = @()
+        $frame += $headerLines
+        $frame += $TitleLines
+
+        for ($i = $pageStart; $i -le $pageEnd; $i++) {
             $prefix = if ($i -eq $CurrentIndex) { "> " } else { "  " }
             $text = "$prefix$($Items[$i])"
-
             if ($i -eq $selectedIndex) {
-                Write-Host "$SelectBg $text $Reset"
+                $frame += "$SelectBg$text$Reset"
             }
             elseif ($i -eq $CurrentIndex) {
-                Write-Host $text -ForegroundColor $Green
+                $frame += "$GreenAnsi$text$Reset"
             }
             else {
-                Write-Host $text -ForegroundColor $White
+                $frame += $text
             }
         }
 
-        Write-Host ""
-        Write-Host "$OrangeDark  =============================================================$Reset"
-        Write-Host "  Up/Down to move, Enter to select, Esc to go back" -ForegroundColor $Gray
+        $linesUsed = $pageEnd - $pageStart + 1
+        for ($p = $linesUsed; $p -lt $pageSize; $p++) {
+            $frame += ""
+        }
+
+        $frame += ""
+        $frame += "$OrangeDark  =============================================================$Reset"
+        $frame += "  Up/Down to move, Enter to select, Esc to go back   Page $($currentPage + 1) of $totalPages"
+
+        Write-Frame $frame
 
         $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         $code = $key.VirtualKeyCode
@@ -320,9 +427,11 @@ function Read-ArrowSelection {
             if ($selectedIndex -lt $Items.Count - 1) { $selectedIndex++ } else { $selectedIndex = 0 }
         }
         elseif ($code -eq 13) {
+            try { [Console]::CursorVisible = $true } catch {}
             return $selectedIndex
         }
         elseif ($code -eq 27) {
+            try { [Console]::CursorVisible = $true } catch {}
             return -1
         }
     }
@@ -390,13 +499,9 @@ function Show-CommitHistory {
         $backIndex = $items.Count
         $items += "Back"
 
-        $headerRenderer = {
-            Show-Header
-            Write-Host "$OrangeLight  Commit History$Reset"
-            Write-Host ""
-        }
+        $titleLines = @("$OrangeLight  Commit History$Reset", "")
 
-        $selection = Read-ArrowSelection -Items $items -CurrentIndex $currentIndex -HeaderRenderer $headerRenderer
+        $selection = Read-ArrowSelection -Items $items -CurrentIndex $currentIndex -TitleLines $titleLines
 
         if ($selection -eq -1 -or $selection -eq $backIndex) {
             $viewing = $false
