@@ -138,7 +138,17 @@ function Refresh-Path {
 function Install-Dependency($name) {
     if ($name -eq "git") {
         if (Get-Command winget -ErrorAction SilentlyContinue) {
-            winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+            Write-Host "  Launching winget to install Git..." -ForegroundColor $Gray
+            $proc = Start-Process -FilePath "winget" -ArgumentList "install","--id","Git.Git","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru
+            Write-Host "  winget exited with code $($proc.ExitCode)" -ForegroundColor $Gray
+
+            Refresh-Path
+            $tries = 0
+            while (-not (Get-Command git -ErrorAction SilentlyContinue) -and $tries -lt 10) {
+                Start-Sleep -Seconds 1
+                Refresh-Path
+                $tries++
+            }
         }
         else {
             Write-Host "  winget was not found. Install Git manually from https://git-scm.com/download/win" -ForegroundColor $Red
@@ -146,7 +156,10 @@ function Install-Dependency($name) {
     }
     elseif ($name -eq "spicetify") {
         $installCommand = "iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex"
+        Write-Host "  Opening a new window to install Spicetify. Waiting for it to finish..." -ForegroundColor $Gray
         Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $installCommand -Wait
+        Write-Host "  Spicetify installer window closed." -ForegroundColor $Gray
+        Refresh-Path
     }
 }
 
