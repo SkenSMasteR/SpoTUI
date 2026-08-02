@@ -26,56 +26,23 @@ It combines:
 <summary>Linux</summary>
 
 1. Open a terminal.
-2. Go to your Spicetify themes directory:
+2. Run the installer:
    ```bash
-   cd ~/.config/spicetify/Themes
+   curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/f4787d9cab3bec4d2ed5dd1daf403ce08f8fb43f/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
    ```
-3. Clone or pull this repo into that folder:
-   ```bash
-   git clone https://github.com/SkenSMasteR/SpoTUI SpoTUI
-   ```
-   If you already have it locally, update it instead:
-   ```bash
-   cd SpoTUI
-   git pull
-   ```
-4. Set SpoTUI as your current theme:
-   ```bash
-   spicetify config current_theme SpoTUI
-   ```
-5. Apply Spicetify:
-   ```bash
-   spicetify apply
-   ```
+3. Select install
 
 </details>
 
 <details>
 <summary>Windows</summary>
 
-1. Open PowerShell or Command Prompt.
-2. Go to your Spicetify themes directory:
+1. Open PowerShell.
+2. Run the installer:
    ```powershell
-   cd $env:APPDATA\spicetify\Themes
+   iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/f4787d9cab3bec4d2ed5dd1daf403ce08f8fb43f/scripts/install/windows/install.ps1 | iex
    ```
-3. Clone or pull this repo into that folder:
-   ```powershell
-   git clone https://github.com/SkenSMasteR/SpoTUI SpoTUI
-   ```
-   If you already have it locally, update it instead:
-   ```powershell
-   cd SpoTUI
-   git pull
-   ```
-4. Set SpoTUI as your current theme:
-   ```powershell
-   spicetify config current_theme SpoTUI
-   ```
-5. Apply Spicetify:
-   ```powershell
-   spicetify apply
-   ```
-
+3. Select install
 </details>
 <details>
 <summary>Marketplace</summary>
