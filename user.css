@@ -14,7 +14,7 @@
 body.spotui-spotify-enabled .Root__main-view,
 body.spotui-spotify-enabled .Root__nav-bar,
 body.spotui-spotify-enabled .main-topBar-container,
-body.spotui-spotify-enabled .main-appShell-topBar,
+body.spotui-spotify-enabled .Root__globalNav,
 body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist,
 body.spotui-spotify-enabled .main-yourLibraryX-entryPoints,
 body.spotui-spotify-enabled .Root__right-sidebar,
@@ -34,7 +34,7 @@ body.spotui-spotify-enabled .main-view-container {
 
 body.spotui-spotify-enabled .Root__nav-bar,
 body.spotui-spotify-enabled .main-topBar-container,
-body.spotui-spotify-enabled .main-appShell-topBar,
+body.spotui-spotify-enabled .Root__globalNav,
 body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist,
 body.spotui-spotify-enabled .main-yourLibraryX-entryPoints,
 body.spotui-spotify-enabled .Root__right-sidebar,
@@ -44,7 +44,7 @@ body.spotui-spotify-enabled .main-trackList-trackList {
     display: flex !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar {
+body.spotui-spotify-enabled .Root__globalNav {
     background: #000 !important;
     border-bottom: 1px solid #ff8c42 !important;
     box-shadow: inset 0 -1px 0 rgba(255, 140, 66, 0.18) !important;
@@ -52,56 +52,56 @@ body.spotui-spotify-enabled .main-appShell-topBar {
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-topBar-background,
-body.spotui-spotify-enabled .main-appShell-topBar .main-topBar-overlay,
-body.spotui-spotify-enabled .main-appShell-topBar .main-topBar-withBackgroundBlur {
+body.spotui-spotify-enabled .Root__globalNav .main-topBar-background,
+body.spotui-spotify-enabled .Root__globalNav .main-topBar-overlay,
+body.spotui-spotify-enabled .Root__globalNav .main-topBar-withBackgroundBlur {
     background: #000 !important;
     background-image: none !important;
     opacity: 1 !important;
     backdrop-filter: none !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchSection,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputContainer,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputSection,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputWrapper,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputTextWrapper,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-historyButtonsContainer,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-historyButtonsWrapper,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-contentRight {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchSection,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputSection,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputWrapper,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsContainer,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsWrapper,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-contentRight {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     min-height: 56px !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-navLink,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-historyButtons button,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer button,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer [role="button"] {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-navLink,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtons button,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer button,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [role="button"] {
     color: #ff8c42 !important;
     border-radius: 0 !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-navLink:hover,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-historyButtons button:hover,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer button:hover,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer [role="button"]:hover {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-navLink:hover,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtons button:hover,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer button:hover,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [role="button"]:hover {
     color: #ffb26f !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchContainer,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputContainer {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer {
     background: #000 !important;
     border: 1px solid #ff8c42 !important;
     border-radius: 0 !important;
     box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.15) !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputText,
-body.spotui-spotify-enabled .main-appShell-topBar .x-searchInput-searchInputInput,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputTextWrapper input {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText,
+body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper input {
     color: #ff8c42 !important;
     background: transparent !important;
     border: none !important;
@@ -110,9 +110,9 @@ body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputTex
     caret-color: #ff8c42 !important;
 }
 
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputText::placeholder,
-body.spotui-spotify-enabled .main-appShell-topBar .x-searchInput-searchInputInput::placeholder,
-body.spotui-spotify-enabled .main-appShell-topBar .main-globalNav-searchInputTextWrapper input::placeholder {
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText::placeholder,
+body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput::placeholder,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper input::placeholder {
     color: #777 !important;
 }
 
@@ -353,8 +353,15 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine {
 
 .Root__main-view,
 .main-view-container,
-.main-buddy-list {
+.main-buddy-list,
+.Root__nav-bar,
+.Root__right-sidebar {
     background: #000 !important;
+    border: 1px solid #ff8c42 !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 140, 66, 0.18) !important;
+    color: #ddd !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+    border-radius: 0 !important;
 }
 
 body {
@@ -483,4 +490,181 @@ body.spotui-spotify-enabled .main-topBar-topbarContent {
 button,
 [role="button"] {
     border-radius: 0 !important;
+}
+
+/* global theme overrides */
+:root, html, body {
+    --spice-main: #000000 !important;
+    --spice-sidebar: #000000 !important;
+    --spice-player: #000000 !important;
+    --spice-card: #000000 !important;
+    --spice-shadow: transparent !important;
+    --spice-selected-row: #2a2a2a !important;
+    --spice-button: #ff8c42 !important;
+    --spice-button-active: #ffb26f !important;
+    --spice-button-disabled: #555555 !important;
+    --spice-tab-active: #ff8c42 !important;
+    --spice-notification: #000000 !important;
+    --spice-notification-error: #ff5555 !important;
+    --spice-misc: #ff8c42 !important;
+    --spice-text: #dddddd !important;
+    --spice-subtext: #b3b3b3 !important;
+    
+    --background-base: #000000 !important;
+    --background-highlight: #111111 !important;
+    --background-press: #222222 !important;
+    --background-elevated-base: #000000 !important;
+    --background-elevated-highlight: #111111 !important;
+    --background-elevated-press: #222222 !important;
+    --background-tinted-base: #000000 !important;
+    --background-tinted-highlight: #111111 !important;
+    --background-tinted-press: #222222 !important;
+    
+    --text-base: #dddddd !important;
+    --text-subdued: #b3b3b3 !important;
+    --text-bright-accent: #ff8c42 !important;
+
+    /* encore specific color variables */
+    --encore-bg-base: #000000 !important;
+    --encore-bg-press: #222222 !important;
+    --encore-bg-tinted-base: #000000 !important;
+    --encore-bg-tinted-press: #222222 !important;
+    --encore-text-base: #dddddd !important;
+    --encore-text-subdued: #b3b3b3 !important;
+    --encore-text-bright-accent: #ff8c42 !important;
+    
+    --encore-internal-color-bg-base: #000000 !important;
+    --encore-internal-color-bg-canvas: #000000 !important;
+    --encore-internal-color-bg-press: #222222 !important;
+    --encore-internal-color-bg-elevated: #000000 !important;
+    --encore-internal-color-text-base: #dddddd !important;
+    --encore-internal-color-text-subdued: #b3b3b3 !important;
+    --encore-internal-color-text-bright-accent: #ff8c42 !important;
+    --encore-internal-color-text-positive: #ff8c42 !important;
+    --encore-internal-color-text-warning: #ff8c42 !important;
+    --encore-internal-color-text-announcement: #ff8c42 !important;
+    
+    --encore-internal-color-essential-base: #ff8c42 !important;
+    --encore-internal-color-essential-subdued: #ffb26f !important;
+    --encore-internal-color-essential-bright-accent: #ff8c42 !important;
+    --encore-internal-color-essential-positive: #ff8c42 !important;
+    --encore-internal-color-essential-warning: #ff8c42 !important;
+    --encore-internal-color-decorative-base: #ff8c42 !important;
+    --encore-internal-color-decorative-subdued: #111111 !important;
+}
+
+/* force standard font and border-radius everywhere */
+* {
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+    border-radius: 0 !important;
+}
+
+/* strip all gradients, dynamic backgrounds and borders */
+.main-home-homeHeader,
+.main-entityHeader-background,
+.main-entityHeader-overlay,
+.main-actionBarBackground-background {
+    background: #000 !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+}
+
+/* enforce black background on the main grid panels */
+body.spotui-spotify-enabled,
+body.spotui-spotify-enabled #main,
+body.spotui-spotify-enabled .Root,
+body.spotui-spotify-enabled .Root__top-container,
+body.spotui-spotify-enabled .Root__nav-bar,
+body.spotui-spotify-enabled .Root__main-view,
+body.spotui-spotify-enabled .Root__right-sidebar,
+body.spotui-spotify-enabled .Root__globalNav,
+body.spotui-spotify-enabled .main-yourLibraryX-libraryContainer,
+body.spotui-spotify-enabled .YourLibraryX,
+body.spotui-spotify-enabled .main-view-container,
+body.spotui-spotify-enabled .main-view-container__scroll-node,
+body.spotui-spotify-enabled .os-viewport,
+body.spotui-spotify-enabled .main-buddy-list {
+    background-color: #000000 !important;
+    background: #000000 !important;
+}
+
+/* frame panels with terminal borders */
+body.spotui-spotify-enabled .Root__nav-bar,
+body.spotui-spotify-enabled .Root__main-view,
+body.spotui-spotify-enabled .Root__right-sidebar,
+body.spotui-spotify-enabled .main-buddy-list,
+body.spotui-spotify-enabled .main-yourLibraryX-libraryContainer {
+    border: 1px solid #ff8c42 !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 140, 66, 0.18) !important;
+    box-sizing: border-box !important;
+}
+
+/* specific styling for the top global nav */
+body.spotui-spotify-enabled .Root__globalNav {
+    border-bottom: 1px solid #ff8c42 !important;
+    box-shadow: inset 0 -1px 0 rgba(255, 140, 66, 0.18) !important;
+    box-sizing: border-box !important;
+}
+
+/* specific styling for the bottom play bar */
+body.spotui-spotify-enabled .Root__now-playing-bar {
+    border-top: 1px solid #ff8c42 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.18) !important;
+    box-sizing: border-box !important;
+}
+
+/* TUI list row hover states */
+body.spotui-spotify-enabled .e-10451-box--interactive:hover,
+body.spotui-spotify-enabled .main-trackList-trackListRow:hover,
+body.spotui-spotify-enabled .main-yourLibraryX-listItem:hover,
+body.spotui-spotify-enabled [role="row"]:hover,
+body.spotui-spotify-enabled .HqUgEQOPyVcDu2NW:hover {
+    background-color: #ff8c42 !important;
+    background: #ff8c42 !important;
+    --box-hover-background-color: #ff8c42 !important;
+    --box-active-background-color: #ff8c42 !important;
+}
+
+body.spotui-spotify-enabled .e-10451-box--interactive:hover *,
+body.spotui-spotify-enabled .main-trackList-trackListRow:hover *,
+body.spotui-spotify-enabled .main-yourLibraryX-listItem:hover *,
+body.spotui-spotify-enabled [role="row"]:hover *,
+body.spotui-spotify-enabled .HqUgEQOPyVcDu2NW:hover * {
+    color: #000000 !important;
+    --encore-internal-color-text-base: #000000 !important;
+    --encore-internal-color-text-subdued: #222222 !important;
+    fill: #000000 !important;
+}
+
+/* search mode layout repositioning */
+body.spotui-search-mode .Root__globalNav .main-globalNav-searchSection {
+    position: fixed !important;
+    top: 42% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 10030 !important;
+    width: min(480px, calc(100vw - 32px)) !important;
+    display: flex !important;
+}
+
+body.spotui-search-mode .Root__globalNav .main-globalNav-searchContainer {
+    width: 100% !important;
+    background: #000 !important;
+    border: 1px solid #ff8c42 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.15) !important;
+}
+
+body.spotui-search-mode #spotui-back-btn {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 110px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 10020 !important;
+}
+
+/* Hide Home and Browse buttons in search mode */
+body.spotui-search-mode .Root__globalNav button[aria-label="Home"],
+body.spotui-search-mode .Root__globalNav .main-globalNav-browseButtonWrapper {
+    display: none !important;
 }
