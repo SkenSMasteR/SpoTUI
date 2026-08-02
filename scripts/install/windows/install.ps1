@@ -55,6 +55,10 @@ $Red   = "Red"
 $Green = "Green"
 $Cyan  = "Cyan"
 
+# Tracks whether we've already attempted a winget update this session,
+# so Test-Dependencies doesn't re-run it on every menu action.
+$script:WingetUpdateAttempted = $false
+
 function Get-GradientColor($index, $total) {
     $r1 = 255; $g1 = 140; $b1 = 66
     $r2 = 224; $g2 = 123; $b2 = 57
@@ -135,12 +139,69 @@ function Refresh-Path {
     $env:Path = "$machinePath;$userPath"
 }
 
+function Update-Winget {
+    Write-Host "$OrangeMid  Updating winget...$Reset"
+
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        try {
+            $proc = Start-Process -FilePath "winget" -ArgumentList "upgrade","--id","Microsoft.AppInstaller","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru -WindowStyle Hidden
+            Write-Host "  winget upgrade exited with code $($proc.ExitCode)" -ForegroundColor $Gray
+        } catch {
+            Write-Host "  winget upgrade command failed to run." -ForegroundColor $Red
+        }
+
+        try {
+            winget source reset --force | Out-Null
+        } catch {}
+
+        return
+    }
+
+    Write-Host "  winget command not found. Installing App Installer from GitHub release..." -ForegroundColor $Gray
+    try {
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
+        $asset = $release.assets | Where-Object { $_.name -like "*.msixbundle" } | Select-Object -First 1
+
+        if (-not $asset) {
+            Write-Host "  Could not find a .msixbundle asset in the latest release." -ForegroundColor $Red
+            return
+        }
+
+        $downloadPath = Join-Path $env:TEMP $asset.name
+        Write-Host "  Downloading $($asset.name)..." -ForegroundColor $Gray
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $downloadPath
+
+        Write-Host "  Installing package..." -ForegroundColor $Gray
+        Add-AppxPackage -Path $downloadPath -ErrorAction Stop
+
+        Write-Host "  App Installer installed successfully." -ForegroundColor $Green
+        Remove-Item $downloadPath -Force -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Host "  Failed to install App Installer automatically: $($_.Exception.Message)" -ForegroundColor $Red
+        Write-Host "  You can install it manually from the Microsoft Store (search 'App Installer')." -ForegroundColor $Gray
+    }
+
+    Refresh-Path
+}
+
 function Install-Dependency($name) {
     if ($name -eq "git") {
         if (Get-Command winget -ErrorAction SilentlyContinue) {
             Write-Host "  Launching winget to install Git..." -ForegroundColor $Gray
             $proc = Start-Process -FilePath "winget" -ArgumentList "install","--id","Git.Git","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru
             Write-Host "  winget exited with code $($proc.ExitCode)" -ForegroundColor $Gray
+
+            # 0xC0000005 = access violation / winget crash. Update winget once and retry.
+            if ($proc.ExitCode -eq -1073741819 -and -not $script:WingetUpdateAttempted) {
+                Write-Host "  winget crashed. Attempting to update winget and retry..." -ForegroundColor $Red
+                $script:WingetUpdateAttempted = $true
+                Update-Winget
+
+                Write-Host "  Retrying Git install..." -ForegroundColor $Gray
+                $proc = Start-Process -FilePath "winget" -ArgumentList "install","--id","Git.Git","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru
+                Write-Host "  winget exited with code $($proc.ExitCode)" -ForegroundColor $Gray
+            }
 
             Refresh-Path
             $tries = 0
