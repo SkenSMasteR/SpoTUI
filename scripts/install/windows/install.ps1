@@ -82,7 +82,7 @@ function Get-HeaderLines {
     $lines = @()
     $lines += ""
     $templates = @(
-        "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA     AAA    AB   BA  ",
+        "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA    AAA    AB   BA  ",
         "  AAA    AAA   AAA    AAA AAA    AAA CAAAAAAAAAB AAA    AAA AAA  ",
         "  AAA    AC    AAA    AAA AAA    AAA    CAAACCAA AAA    AAA AAAD ",
         "  AAA          AAA    AAA AAA    AAA     AAA   C AAA    AAA AAAD ",
