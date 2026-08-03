@@ -2,87 +2,102 @@
 
 # SpoTUI
 
-SpoTUI is a terminal-style Spotify skin built for Spicetify.
+SpoTUI is a terminal-inspired theme for Spotify that overlays a custom, keyboard-driven interface directly inside the Spotify client. It is built for [Spicetify](https://spicetify.app/).
 
-It combines:
-- a custom UI overlay in `theme.js`
-- theme styling in `user.css`
-- Spotify color values in `color.ini`
+## How It Works
 
-## Screenshot
+SpoTUI is a self-contained Spicetify theme that uses:
+- **`theme.js`**: A vanilla JavaScript component that creates and manages the entire TUI, including panels, commands, and Spotify API interactions.
+- **`user.css`**: CSS overrides to hide the default Spotify UI and style the SpoTUI interface.
+- **`color.ini`**: Standard Spicetify color definitions.
 
-![SpoTUI preview](preview.png)
 ## Features
 
-- Terminal-inspired interface
-- Built-in playback controls
-- Playlist browsing and management
-- Spotify-native fallback mode
-- Copy-log and hide/show controls
+- **Terminal Interface**: A command-driven overlay with a familiar feel.
+- **Multiple Panels**:
+    - **Lyrics**: Synced, auto-scrolling lyrics view.
+    - **Playlists**: A two-pane view to browse playlists and their tracks.
+    - **Help**: A quick reference for all available commands.
+- **Keyboard Navigation**: Control everything without touching the mouse.
+- **Built-in Commands**: Manage playback, volume, playlists, and more.
+- **Spotify Native Fallback**: Seamlessly switch back to the standard Spotify UI when needed.
+
+## Screenshots
+
+*More screenshots coming soon.*
+
+<!--
+### Main Interface
+![SpoTUI preview](preview.png)
+
+### Playlist View
+(placeholder for playlist.png)
+
+### Lyrics View
+(placeholder for lyrics.png)
+-->
 
 ## Installation
 
 <details>
 <summary>Linux</summary>
 
-1. Open a terminal.
-2. Run the installer:
-   ```bash
-   curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/f4787d9cab3bec4d2ed5dd1daf403ce08f8fb43f/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
-   ```
-3. Select install
+1.  Open a terminal.
+2.  Run the installer:
+    ```bash
+    curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/main/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
+    ```
+3.  Select "Install" from the menu.
 
 </details>
 
 <details>
 <summary>Windows</summary>
 
-1. Open PowerShell.
-2. Run the installer:
-   ```powershell
-   iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/f4787d9cab3bec4d2ed5dd1daf403ce08f8fb43f/scripts/install/windows/install.ps1 | iex
-   ```
-3. Select install
+1.  Open PowerShell.
+2.  Run the installer:
+    ```powershell
+    iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/main/scripts/install/windows/install.ps1 | iex
+    ```
+3.  Select "Install" from the menu.
 </details>
+
 <details>
 <summary>Marketplace</summary>
 
-1. Open Spotify.
-2. Go to the Spicetify Marketplace.
-3. Select themes and search `SpoTUI`.
-4. The only result will be the SpoTUI theme.
+1.  In Spotify, go to the Spicetify Marketplace.
+2.  Select "Themes" and search for `SpoTUI`.
+3.  Install the theme.
 
 </details>
 
 ## Usage
 
-After applying the theme, open Spotify and use the SpoTUI interface directly from the client.
+Type `help` in the SpoTUI command bar to see a list of available commands.
 
-The built-in command list includes:
+| Command                | Description                    |
+| -----------------------| -------------------------------|
+| `tui -m [cli\|cmd]`    | Switch TUI mode                |
+| `playlist` / `list`    | Open playlist viewer           |
+| `play` / `pause` / `p` | Toggle playback                |
+| `skip`                 | Next track                     |
+| `back`                 | Previous track                 |
+| `v` / `volume <%>`     | Set volume (0-100)             |
+| `shuffle`              | Toggle shuffle                 |
+| `loop` / `superloop`   | Toggle repeat mode             |
+| `lyrics`               | Toggle lyrics panel            |
+| `search`               | Open Spotify's native search   |
+| `clear`                | Clear the TUI output           |
+| `help`                 | Show the help panel            |
 
-- `tui -m [command|cli]`
-- `playlist`
-- `list`
-- `queue`
-- `play`
-- `pause`
-- `p`
-- `skip`
-- `back`
-- `v <percent>`
-- `volume <percent>`
-- `shuffle`
-- `loop [on|off]`
-- `superloop [on|off]`
-- `search`
-- `clear`
 
-## Theme Files
+## Notable forks of my project
+<details>
+<summary>SouRyan</summary>
+SouRyan - https://github.com/SouRyan/SpoTUI-By-SouRyan
+</details>
 
-- `theme.js` - JavaScript UI logic
-- `user.css` - Spotify UI styling overrides
-- `color.ini` - theme colors
-- `preview.png` - Marketplace preview image
+
 
 ## Author
 
