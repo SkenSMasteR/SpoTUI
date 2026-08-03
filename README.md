@@ -24,18 +24,11 @@ SpoTUI is a self-contained Spicetify theme that uses:
 
 ## Screenshots
 
-*More screenshots coming soon.*
 
-<!--
-### Main Interface
-![SpoTUI preview](preview.png)
-
-### Playlist View
-(placeholder for playlist.png)
+![SpoTUI preview](assets/preview.png)
 
 ### Lyrics View
-(placeholder for lyrics.png)
--->
+![SpoTUI preview](assets/lyrics.png)
 
 ## Installation
 
