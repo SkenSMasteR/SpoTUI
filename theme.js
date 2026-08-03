@@ -308,6 +308,124 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
     font-weight: 600;
 }
 
+#spotui-playlist-panel {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: row;
+    position: relative;
+    z-index: 1;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    border: none;
+    background: transparent;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 10px;
+}
+
+body.spotui-playlist-panel #spotui-playlist-panel {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.6s;
+}
+
+body.spotui-playlist-panel #spotui-logo {
+    top: 12px;
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0.8;
+    z-index: 2;
+    background-color: #000;
+}
+
+body.spotui-playlist-panel #spotui-output, body.spotui-help-panel #spotui-output {
+    display: none !important;
+}
+
+#spotui-help-panel {
+    display: none;
+    flex: 1 1 auto;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    border: 1px solid #ff8c42;
+    border-radius: 4px;
+    background: #000;
+}
+
+#spotui-help-panel::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+body.spotui-help-panel #spotui-help-panel {
+    display: flex;
+}
+
+body.spotui-help-panel #spotui-logo {
+    top: 12px;
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0.8;
+    z-index: 2;
+    background-color: #000;
+}
+
+.help-item {
+    padding: 4px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.help-item .command {
+    color: #ff8c42;
+    flex-basis: 30%;
+}
+
+.help-item .description {
+    flex-basis: 70%;
+    color: #b3b3b3;
+}
+
+
+
+#spotui-playlist-list, #spotui-song-list {
+    width: 50%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 10px;
+    border: 1px solid #ff8c42;
+    border-radius: 4px;
+}
+
+#spotui-playlist-list legend, #spotui-song-list legend {
+    color: #ff8c42;
+    padding: 0 5px;
+}
+
+#spotui-playlist-list::-webkit-scrollbar, #spotui-song-list::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.playlist-item, .song-item {
+    padding: 4px 6px;
+    cursor: pointer;
+}
+
+.playlist-item.selected, .song-item.selected {
+    background: #ff8c42;
+    color: #000;
+}
+
+
 .spotui-lyrics-lines.unsynced .spotui-lyrics-line {
     color: #b3b3b3;
     opacity: 0.9;
@@ -360,61 +478,6 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
 
 body.spotui-tui-hidden #spotui-tui {
     display: none !important;
-}
-
-body.spotui-tui-hidden #spotui-popup {
-    display: none !important;
-}
-
-#spotui-popup {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(480px, calc(100vw - 32px));
-    max-height: 60vh;
-    background: #0a0a0a;
-    border: 2px solid #ff8c42;
-    border-radius: 6px;
-    color: #ddd;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 14px;
-    z-index: 10002;
-    padding: 16px;
-    overflow-y: auto;
-    outline: none;
-    box-shadow: 0 0 24px rgba(0,0,0,0.6);
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-#spotui-popup::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-.popup-title {
-    color: #ff8c42;
-    margin-bottom: 10px;
-    font-size: 12px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 8px;
-}
-.popup-row {
-    padding: 4px 6px;
-}
-.popup-row.selected {
-    background: #ff8c42;
-    color: #000;
-}
-.popup-input {
-    width: 100%;
-    background: #111;
-    border: 1px solid #ff8c42;
-    color: #ff8c42;
-    font-family: inherit;
-    font-size: inherit;
-    padding: 6px;
-    outline: none;
-    box-sizing: border-box;
 }
 `;
 
@@ -1076,6 +1139,15 @@ Type /help
 <div class="spotui-lyrics-fade spotui-lyrics-fade-bottom"></div>
 </div>
 </div>
+<div id="spotui-playlist-panel" hidden>
+    <fieldset id="spotui-playlist-list">
+        <legend>Playlists</legend>
+    </fieldset>
+    <fieldset id="spotui-song-list">
+        <legend>Songs</legend>
+    </fieldset>
+</div>
+<div id="spotui-help-panel" hidden></div>
 <div id="spotui-footer">
 <span class="prompt">></span>
 <input id="spotui-input" autofocus placeholder="type help for a list of commands">
@@ -1086,10 +1158,8 @@ Type /help
 
     const input = document.getElementById("spotui-input");
     input.addEventListener("keydown", async (e) => {
-        if (lyricsPanelOpen && e.key === "Escape") {
-            e.preventDefault();
-            closeLyricsPanel();
-            print("Lyrics closed");
+        if (playlistPanelOpen) {
+            e.stopImmediatePropagation();
             return;
         }
         if (e.key === "Enter") {
@@ -1142,8 +1212,7 @@ async function execute(cmd) {
     }
 
     if (command === "help") {
-        popupMode = "help";
-        renderPopup();
+        openHelpPanel();
         return;
     }
     if (command === "clear") {
@@ -1152,17 +1221,12 @@ async function execute(cmd) {
     }
 
     if (command === "playlist") {
-        await openPlaylistPopup();
+        openPlaylistPanel();
         return;
     }
 
     if (command === "list") {
-        await openPlaylistTracksPopup();
-        return;
-    }
-
-    if (command === "queue") {
-        await openQueuePopup();
+        openPlaylistPanel();
         return;
     }
 
@@ -1288,16 +1352,223 @@ function renderResults() {
     });
 }
 
-let popup = null;
-let popupMode = "list";
+let playlistPanelOpen = false;
 let playlists = [];
-let popupSelected = 0;
-let popupTracks = [];
-let popupTrackSelected = 0;
-let popupTrackTitle = "";
-let popupTrackContext = null;
-let lastPlaylistContextUri = null;
-let lastQueueSnapshot = null;
+let playlistSongs = [];
+let selectedPlaylist = 0;
+let selectedSong = 0;
+let activePane = 'playlist'; // 'playlist' or 'song'
+let helpPanelOpen = false;
+
+const COMMAND_LIST = [
+    { cmd: "tui -m [cli|cmd]", desc: "Switch TUI mode" },
+    { cmd: "playlist / list", desc: "Open playlist viewer" },
+    { cmd: "play / pause / p", desc: "Toggle playback" },
+    { cmd: "skip", desc: "Next track" },
+    { cmd: "back", desc: "Previous track" },
+    { cmd: "v / volume <%>", desc: "Set volume" },
+    { cmd: "shuffle", desc: "Toggle shuffle" },
+    { cmd: "loop / superloop", desc: "Toggle repeat mode" },
+    { cmd: "lyrics", desc: "Toggle lyrics panel" },
+    { cmd: "search", desc: "Open Spotify search" },
+    { cmd: "clear", desc: "Clear the TUI output" },
+    { cmd: "help", desc: "Show this panel" },
+];
+
+function handleGlobalEsc(e) {
+    if (e.key === "Escape") {
+        e.preventDefault();
+        if (helpPanelOpen) closeHelpPanel();
+        if (lyricsPanelOpen) closeLyricsPanel();
+        // The playlist panel has its own listener that handles Esc
+    }
+}
+
+function closeHelpPanel() {
+    if (!helpPanelOpen) return;
+    helpPanelOpen = false;
+    document.body.classList.remove("spotui-help-panel");
+    const panel = document.getElementById("spotui-help-panel");
+    if (panel) {
+        panel.hidden = true;
+    }
+    const input = document.getElementById("spotui-input");
+    if (input) input.focus();
+    document.removeEventListener("keydown", handleGlobalEsc);
+}
+
+function openHelpPanel() {
+    if (helpPanelOpen) {
+        closeHelpPanel();
+        return;
+    }
+    if (lyricsPanelOpen) closeLyricsPanel();
+    if (playlistPanelOpen) closePlaylistPanel();
+
+    helpPanelOpen = true;
+    document.body.classList.add("spotui-help-panel");
+    document.addEventListener("keydown", handleGlobalEsc);
+    const panel = document.getElementById("spotui-help-panel");
+    if (panel) {
+        panel.hidden = false;
+        panel.innerHTML = COMMAND_LIST.map(
+            item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
+        ).join('');
+    }
+    const input = document.getElementById("spotui-input");
+    if (input) input.blur();
+}
+
+
+function closePlaylistPanel() {
+    playlistPanelOpen = false;
+    document.body.classList.remove("spotui-playlist-panel");
+    const panel = document.getElementById("spotui-playlist-panel");
+    if (panel) {
+        panel.hidden = true;
+    }
+    const input = document.getElementById("spotui-input");
+    if (input) input.focus();
+    document.removeEventListener("keydown", handlePlaylistPanelKeydown);
+}
+
+async function openPlaylistPanel() {
+    if (playlistPanelOpen) {
+        closePlaylistPanel();
+        return;
+    }
+    if (lyricsPanelOpen) closeLyricsPanel();
+    if (helpPanelOpen) closeHelpPanel();
+
+    try {
+        playlists = await getPlaylists();
+    } catch (err) {
+        print("Playlist error: " + err.message);
+        return;
+    }
+
+    playlistPanelOpen = true;
+    document.body.classList.add("spotui-playlist-panel");
+    const panel = document.getElementById("spotui-playlist-panel");
+    if (panel) {
+        panel.hidden = false;
+    }
+
+    const input = document.getElementById("spotui-input");
+    if (input) input.blur();
+
+    selectedPlaylist = 0;
+    selectedSong = 0;
+    activePane = 'playlist';
+
+    await renderPlaylistPanel();
+    document.addEventListener("keydown", handlePlaylistPanelKeydown);
+}
+
+async function renderPlaylistPanel() {
+    const playlistList = document.getElementById("spotui-playlist-list");
+    const songList = document.getElementById("spotui-song-list");
+
+    if (!playlistList || !songList) return;
+
+    playlistList.innerHTML = "";
+    playlists.forEach((p, idx) => {
+        const item = document.createElement("div");
+        item.className = "playlist-item";
+        if (idx === selectedPlaylist) {
+            item.classList.add("selected");
+        }
+        item.textContent = p.name;
+        playlistList.appendChild(item);
+    });
+
+    const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
+    if (selectedPlaylistUri) {
+        try {
+            const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
+            playlistSongs = (res.items || [])
+                .filter(item => item && item.uri && item.isPlayable !== false)
+                .map((item, index) => normalizeTrackItem(item, index));
+        } catch (err) {
+            playlistSongs = [{ name: "Error loading songs", artist: "" }];
+        }
+    } else {
+        playlistSongs = [];
+    }
+
+    songList.innerHTML = "";
+    playlistSongs.forEach((s, idx) => {
+        const item = document.createElement("div");
+        item.className = "song-item";
+        if (idx === selectedSong && activePane === 'song') {
+            item.classList.add("selected");
+        }
+        item.textContent = `${s.name} - ${s.artist}`;
+        songList.appendChild(item);
+    });
+
+    scrollSelectedIntoView();
+}
+
+function scrollSelectedIntoView() {
+    const selectedItem = document.querySelector(activePane === 'playlist' ? '.playlist-item.selected' : '.song-item.selected');
+    if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+async function handlePlaylistPanelKeydown(e) {
+    if (e.key === "Escape") {
+        e.preventDefault();
+        closePlaylistPanel();
+        return;
+    }
+
+    if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (activePane === 'playlist') {
+            if (playlists.length) selectedPlaylist = (selectedPlaylist - 1 + playlists.length) % playlists.length;
+        } else {
+            if (playlistSongs.length) selectedSong = (selectedSong - 1 + playlistSongs.length) % playlistSongs.length;
+        }
+        await renderPlaylistPanel();
+    } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (activePane === 'playlist') {
+            if (playlists.length) selectedPlaylist = (selectedPlaylist + 1) % playlists.length;
+        } else {
+            if (playlistSongs.length) selectedSong = (selectedSong + 1) % playlistSongs.length;
+        }
+        await renderPlaylistPanel();
+    } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        activePane = 'playlist';
+        await renderPlaylistPanel();
+    } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        activePane = 'song';
+        await renderPlaylistPanel();
+    } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activePane === 'playlist') {
+            const p = playlists[selectedPlaylist];
+            if (p) {
+                Spicetify.Player.playUri(p.uri);
+                print("Playing playlist: " + p.name);
+                closePlaylistPanel();
+            }
+        } else {
+            const song = playlistSongs[selectedSong];
+            const context = playlists[selectedPlaylist];
+            if (song && context) {
+                Spicetify.Player.playUri(song.uri, { uri: context.uri });
+                print(`Playing: ${song.name} from ${context.name}`);
+                closePlaylistPanel();
+            }
+        }
+    }
+}
+
 
 function getTrackTitle(track, index = 0) {
     const meta = track?.metadata || track?.contextTrack?.metadata || {};
@@ -1392,279 +1663,6 @@ async function getPlaylists() {
     }
     flatten(rootlist.items);
     return list;
-}
-
-async function openPlaylistPopup() {
-    try {
-        playlists = await getPlaylists();
-    } catch (err) {
-        print("Playlist error: " + err.message);
-        return;
-    }
-    popupSelected = 0;
-    popupMode = "list";
-    renderPopup();
-}
-
-async function openPlaylistTracksPopup() {
-    try {
-        const contextUri = getCurrentPlaylistContextUri();
-        if (!contextUri || !Spicetify.URI.isPlaylistV1OrV2(contextUri)) {
-            print("List error: not currently playing a playlist.");
-            return;
-        }
-        const res = await Spicetify.Platform.PlaylistAPI.getContents(contextUri, {
-            limit: 9999999,
-        });
-        popupTracks = (res.items || [])
-            .filter((item) => item && item.uri && item.isPlayable !== false)
-            .map((item, index) => normalizeTrackItem(item, index));
-        popupTracks = dedupeTracks(popupTracks);
-        popupTrackTitle = "Playlist tracks";
-        popupTrackContext = Spicetify.Player.data?.context || { uri: contextUri };
-        lastPlaylistContextUri = contextUri;
-        const currentTrackUri = Spicetify.Player.data?.item?.uri;
-        popupTrackSelected = Math.max(findTrackIndexByUri(popupTracks, currentTrackUri), 0);
-        popupMode = "tracks";
-        renderPopup();
-    } catch (err) {
-        print("List error: " + err.message);
-        console.error("Playlist tracks popup error:", err);
-    }
-}
-
-function getQueueTracks() {
-    const queue = Spicetify.Queue || {};
-    const tracks = [];
-
-    if (queue.track && queue.track.uri) {
-        tracks.push(queue.track);
-    } else if (Spicetify.Player.data?.item?.uri) {
-        tracks.push(Spicetify.Player.data.item);
-    }
-
-    for (const item of queue.nextTracks || []) {
-        const track = item?.contextTrack || item?.track || item;
-        if (!track?.uri || track.uri === "spotify:delimiter") continue;
-        tracks.push(track);
-    }
-
-    const currentTrackContextUri =
-        Spicetify.Player.data?.context_uri ||
-        Spicetify.Player.data?.context?.uri ||
-        queue.track?.contextTrack?.metadata?.context_uri ||
-        queue.track?.metadata?.context_uri ||
-        null;
-
-    popupTrackContext = currentTrackContextUri ? { uri: currentTrackContextUri } : Spicetify.Player.data?.context || null;
-
-    return dedupeTracks(tracks.map((track, index) => normalizeTrackItem(track, index)));
-}
-
-function openQueuePopup() {
-    const currentQueueTracks = getQueueTracks();
-    if (!lastQueueSnapshot || lastQueueSnapshot.length === 0) {
-        lastQueueSnapshot = currentQueueTracks;
-    }
-    popupTracks = lastQueueSnapshot.length ? lastQueueSnapshot : currentQueueTracks;
-    popupTrackTitle = "Queue";
-    const currentTrackUri = Spicetify.Player.data?.item?.uri;
-    popupTrackSelected = Math.max(findTrackIndexByUri(popupTracks, currentTrackUri), 0);
-    popupMode = "tracks";
-    renderPopup();
-}
-
-function closePopup() {
-    if (popup) {
-        popup.remove();
-        popup = null;
-    }
-    popupMode = "list";
-    popupTracks = [];
-    popupTrackSelected = 0;
-    popupTrackTitle = "";
-    popupTrackContext = null;
-    const input = document.getElementById("spotui-input");
-    if (input) input.focus();
-}
-
-function renderPopup() {
-    if (popup) popup.remove();
-    popup = document.createElement("div");
-    popup.id = "spotui-popup";
-    popup.tabIndex = 0;
-
-    if (popupMode === "list") {
-        popup.innerHTML = `<div class="popup-title">Playlists &mdash; &uarr;/&darr; move &middot; Enter play &middot; n new &middot; Esc close</div><div id="popup-list"></div>`;
-        document.body.appendChild(popup);
-        const listEl = popup.querySelector("#popup-list");
-        if (!playlists.length) {
-            const row = document.createElement("div");
-            row.className = "popup-row";
-            row.textContent = "No playlists found.";
-            listEl.appendChild(row);
-        } else {
-            playlists.forEach((p, idx) => {
-                const row = document.createElement("div");
-                row.className = "popup-row" + (idx === popupSelected ? " selected" : "");
-                row.textContent = `${idx + 1}. ${p.name}`;
-                listEl.appendChild(row);
-            });
-        }
-        popup.addEventListener("keydown", handleListKeydown);
-        popup.focus();
-    } else if (popupMode === "new") {
-        popup.innerHTML = `<div class="popup-title">New playlist name &mdash; Enter confirm &middot; Esc cancel</div><input id="popup-input" class="popup-input">`;
-        document.body.appendChild(popup);
-        const inputEl = popup.querySelector("#popup-input");
-        inputEl.focus();
-        inputEl.addEventListener("keydown", handleNewKeydown);
-    } else if (popupMode === "tracks") {
-        popup.innerHTML = `<div class="popup-title">${popupTrackTitle} &mdash; &uarr;/&darr; move &middot; Enter play &middot; Esc close</div><div id="popup-list"></div>`;
-        document.body.appendChild(popup);
-        const listEl = popup.querySelector("#popup-list");
-        if (!popupTracks.length) {
-            const row = document.createElement("div");
-            row.className = "popup-row";
-            row.textContent = "No tracks found.";
-            listEl.appendChild(row);
-        } else {
-            popupTracks.forEach((track, idx) => {
-                const row = document.createElement("div");
-                row.className = "popup-row" + (idx === popupTrackSelected ? " selected" : "");
-                row.textContent = `${idx + 1}. ${track.name}${track.artist ? " - " + track.artist : ""}`;
-                listEl.appendChild(row);
-            });
-        }
-        popup.addEventListener("keydown", handleTrackListKeydown);
-        popup.focus();
-        scrollSelectedPopupRowIntoView();
-    } else if (popupMode === "help") {
-        popup.innerHTML = `<div class="popup-title">Help &mdash; Esc close</div><div id="popup-list"></div>`;
-        document.body.appendChild(popup);
-        const listEl = popup.querySelector("#popup-list");
-        [
-            "tui -m [command|cli]",
-            "playlist",
-            "list",
-            "queue",
-            "play",
-            "pause",
-            "p",
-            "skip",
-            "back",
-            "v <percent>",
-            "volume <percent>",
-            "shuffle",
-            "loop [on|off]",
-            "superloop [on|off]",
-            "lyrics [on|off]",
-            "search",
-            "clear",
-        ].forEach((item) => {
-            const row = document.createElement("div");
-            row.className = "popup-row";
-            row.textContent = item;
-            listEl.appendChild(row);
-        });
-        popup.addEventListener("keydown", handleHelpKeydown);
-        popup.focus();
-    }
-}
-
-function scrollSelectedPopupRowIntoView() {
-    requestAnimationFrame(() => {
-        const selectedRow = popup?.querySelector(".popup-row.selected");
-        if (selectedRow?.scrollIntoView) {
-            selectedRow.scrollIntoView({ block: "nearest" });
-        }
-    });
-}
-
-function handleListKeydown(e) {
-    if (e.key === "ArrowDown") {
-        e.preventDefault();
-        if (playlists.length) popupSelected = (popupSelected + 1) % playlists.length;
-        renderPopup();
-    } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        if (playlists.length) popupSelected = (popupSelected - 1 + playlists.length) % playlists.length;
-        renderPopup();
-    } else if (e.key === "Enter") {
-        e.preventDefault();
-        const p = playlists[popupSelected];
-        if (p) {
-            lastPlaylistContextUri = p.uri;
-            Spicetify.Player.playUri(p.uri);
-            print("Playing playlist: " + p.name);
-        }
-        closePopup();
-    } else if (e.key === "n" || e.key === "N") {
-        e.preventDefault();
-        popupMode = "new";
-        renderPopup();
-    } else if (e.key === "Escape") {
-        e.preventDefault();
-        closePopup();
-    }
-    scrollSelectedPopupRowIntoView();
-}
-
-function handleTrackListKeydown(e) {
-    if (e.key === "ArrowDown") {
-        e.preventDefault();
-        if (popupTracks.length) popupTrackSelected = (popupTrackSelected + 1) % popupTracks.length;
-        renderPopup();
-    } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        if (popupTracks.length) popupTrackSelected = (popupTrackSelected - 1 + popupTracks.length) % popupTracks.length;
-        renderPopup();
-    } else if (e.key === "Enter") {
-        e.preventDefault();
-        const track = popupTracks[popupTrackSelected];
-        if (track?.uri) {
-            Spicetify.Player.playUri(track.uri, popupTrackContext || undefined);
-            print("Playing: " + track.name);
-        }
-        if (popupTrackTitle === "Queue") {
-            lastQueueSnapshot = popupTracks.slice();
-        }
-        closePopup();
-    } else if (e.key === "Escape") {
-        e.preventDefault();
-        closePopup();
-    }
-    scrollSelectedPopupRowIntoView();
-}
-
-function handleHelpKeydown(e) {
-    if (e.key === "Escape" || e.key === "Enter") {
-        e.preventDefault();
-        closePopup();
-    }
-}
-
-async function handleNewKeydown(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const name = e.target.value.trim();
-        if (!name) return;
-        try {
-            await Spicetify.Platform.RootlistAPI.createPlaylist(name, {});
-            print("Created playlist: " + name);
-        } catch (err) {
-            print("Create failed: " + err.message + " (check console)");
-            console.error("Create playlist error:", err);
-        }
-        playlists = await getPlaylists();
-        popupSelected = 0;
-        popupMode = "list";
-        renderPopup();
-    } else if (e.key === "Escape") {
-        e.preventDefault();
-        popupMode = "list";
-        renderPopup();
-    }
 }
 
 const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
@@ -1908,9 +1906,12 @@ function storeLyricsOpen(open) {
 }
 
 function openLyricsPanel() {
+    if (playlistPanelOpen) closePlaylistPanel();
+    if (helpPanelOpen) closeHelpPanel();
     lyricsPanelOpen = true;
     storeLyricsOpen(true);
     document.body.classList.add("spotui-lyrics-panel");
+    document.addEventListener("keydown", handleGlobalEsc);
     const root = document.getElementById("spotui-lyrics");
     if (root) {
         root.hidden = false;
@@ -1924,9 +1925,11 @@ function openLyricsPanel() {
 }
 
 function closeLyricsPanel() {
+    if (!lyricsPanelOpen) return;
     lyricsPanelOpen = false;
     lyricsLoadToken += 1;
     storeLyricsOpen(false);
+    document.removeEventListener("keydown", handleGlobalEsc);
     const root = document.getElementById("spotui-lyrics");
     if (root) {
         root.classList.remove("spotui-lyrics-active");
