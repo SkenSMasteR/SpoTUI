@@ -40,6 +40,31 @@ const style = `
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.spotui-lyrics-panel #spotui-logo {
+    top: 12px;
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0.8;
+    z-index: 2;
+    background-color: #000;
+}
+
+#spotui-top-fade {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0));
+    pointer-events: none;
+    z-index: 1;
+}
+
+body.spotui-lyrics-panel #spotui-top-fade {
+    display: block;
 }
 
 .spotui-ascii-grid {
@@ -152,6 +177,164 @@ body.spotui-cli-mode #spotui-output {
 .cl-line, .result { margin-bottom: 8px; user-select: text; }
 .result { padding: 5px; }
 .selected { background: #ff8c42; color: #000; }
+
+body.spotui-lyrics-panel #spotui-output {
+    display: none !important;
+}
+
+body.spotui-lyrics-panel #spotui-logo {
+    display: flex !important;
+}
+
+#spotui-lyrics {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    margin: 0 0 8px;
+    border: none;
+    background: transparent;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.6s;
+}
+
+.spotui-lyrics-header {
+    flex: 0 0 auto;
+    padding: 16px 22px 12px;
+    border-bottom: 1px solid rgba(255, 140, 66, 0.18);
+}
+
+.spotui-lyrics-kicker {
+    color: #ff8c42;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.spotui-lyrics-track {
+    color: #ddd;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spotui-lyrics-meta {
+    margin-top: 4px;
+    color: #b3b3b3;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+}
+
+.spotui-lyrics-viewport {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.spotui-lyrics-lines {
+    height: 100%;
+    overflow-y: auto;
+    padding: 18vh 28px;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    text-align: center;
+}
+
+.spotui-lyrics-lines::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.spotui-lyrics-fade {
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 72px;
+    z-index: 2;
+}
+
+.spotui-lyrics-fade-top {
+    top: 0;
+    background: linear-gradient(180deg, #000, transparent);
+}
+
+.spotui-lyrics-fade-bottom {
+    bottom: 0;
+    background: linear-gradient(0deg, #000, transparent);
+}
+
+.spotui-lyrics-line {
+    color: #777;
+    font-size: 17px;
+    line-height: 1.45;
+    padding: 10px 8px;
+    opacity: 0.45;
+    transform: scale(0.96);
+    transition:
+        color 220ms ease,
+        opacity 220ms ease,
+        transform 220ms ease,
+        text-shadow 220ms ease;
+}
+
+.spotui-lyrics-line.near {
+    color: #b3b3b3;
+    opacity: 0.72;
+    transform: scale(0.98);
+}
+
+.spotui-lyrics-line.active {
+    color: #ff8c42;
+    opacity: 1;
+    transform: scale(1.06);
+    font-weight: 600;
+}
+
+.spotui-lyrics-lines.unsynced .spotui-lyrics-line {
+    color: #b3b3b3;
+    opacity: 0.9;
+    transform: none;
+    text-align: center;
+}
+
+.spotui-lyrics-empty {
+    color: #b3b3b3;
+    font-size: 3em;
+    line-height: 1.6;
+    padding: 18vh 24px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    opacity: 0.5;
+}
+
+.spotui-lyrics-empty strong {
+    display: block;
+    color: #ff8c42;
+    font-size: 16px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
 
 #spotui-controls {
     display: flex;
@@ -880,10 +1063,18 @@ function createTerminal() {
     setTuiMode("command");
     box.innerHTML = `
 <div id="spotui-logo"></div>
+<div id="spotui-top-fade"></div>
 <div id="spotui-output">SpoTUI v1.0
 
 Type /help
 
+</div>
+<div id="spotui-lyrics" hidden>
+<div class="spotui-lyrics-viewport">
+<div class="spotui-lyrics-fade spotui-lyrics-fade-top"></div>
+<div class="spotui-lyrics-lines"></div>
+<div class="spotui-lyrics-fade spotui-lyrics-fade-bottom"></div>
+</div>
 </div>
 <div id="spotui-footer">
 <span class="prompt">></span>
@@ -895,6 +1086,12 @@ Type /help
 
     const input = document.getElementById("spotui-input");
     input.addEventListener("keydown", async (e) => {
+        if (lyricsPanelOpen && e.key === "Escape") {
+            e.preventDefault();
+            closeLyricsPanel();
+            print("Lyrics closed");
+            return;
+        }
         if (e.key === "Enter") {
             const cmd = input.value.trim();
             input.value = "";
@@ -1069,6 +1266,11 @@ async function execute(cmd) {
 
     if (command === "superloop") {
         handleRepeatCommand("superloop", argText);
+        return;
+    }
+
+    if (command === "lyrics") {
+        handleLyricsCommand(argText);
         return;
     }
 
@@ -1356,6 +1558,7 @@ function renderPopup() {
             "shuffle",
             "loop [on|off]",
             "superloop [on|off]",
+            "lyrics [on|off]",
             "search",
             "clear",
         ].forEach((item) => {
@@ -1464,6 +1667,300 @@ async function handleNewKeydown(e) {
     }
 }
 
+const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
+
+let lyricsPanelOpen = false;
+let lyricsLoadToken = 0;
+let lyricsActiveIndex = -1;
+let lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+let lyricsBound = false;
+let lyricsSyncInterval = null;
+
+function getLyricsEls() {
+    const root = document.getElementById("spotui-lyrics");
+    if (!root) return null;
+    return {
+        root,
+        track: root.querySelector(".spotui-lyrics-track"),
+        meta: root.querySelector(".spotui-lyrics-meta"),
+        lines: root.querySelector(".spotui-lyrics-lines"),
+    };
+}
+
+function getCurrentTrackLyricsInfo() {
+    const item = Spicetify.Player?.data?.item;
+    if (!item?.uri || !String(item.uri).includes(":track:")) return null;
+
+    const track = normalizeTrackItem(item);
+    const album = item.album?.name || item.metadata?.album_title || item.metadata?.album || "";
+    const durationMs = Spicetify.Player.getDuration() || Number(item.duration?.milliseconds) || 0;
+
+    return {
+        uri: item.uri,
+        title: track.name,
+        artist: track.artist || "Unknown",
+        album: album || track.name,
+        durationMs,
+        durationSec: Math.round(durationMs / 1000),
+    };
+}
+
+function parseLrc(lrcText) {
+    if (!lrcText) return [];
+    const lines = [];
+    for (const raw of String(lrcText).split(/\r?\n/)) {
+        const stamps = [...raw.matchAll(/\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g)];
+        if (!stamps.length) continue;
+        const text = raw.replace(/\[\d{1,2}:\d{2}(?:\.\d+)?\]/g, "").trim();
+        if (!text) continue;
+        for (const stamp of stamps) {
+            lines.push({ startTime: (Number(stamp[1]) * 60 + Number(stamp[2])) * 1000, text });
+        }
+    }
+    lines.sort((a, b) => a.startTime - b.startTime);
+    return lines;
+}
+
+function plainLyricsToLines(plainText) {
+    return String(plainText || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(text => ({ startTime: -1, text }));
+}
+
+async function fetchSpotifyColorLyrics(uri) {
+    if (!uri || !Spicetify.CosmosAsync?.get) return null;
+    const id = uri.split(":").pop();
+    if (!id) return null;
+    try {
+        const body = await Spicetify.CosmosAsync.get(
+            `https://spclient.wg.spotify.com/color-lyrics/v2/track/${id}?format=json&vocalRemoval=false&market=from_token`
+        );
+        const lyrics = body?.lyrics;
+        if (!lyrics?.lines?.length) return null;
+        const synced = lyrics.syncType === "LINE_SYNCED";
+        const lines = lyrics.lines
+            .map(line => ({ startTime: synced ? Number(line.startTimeMs) || 0 : -1, text: String(line.words || "").trim() }))
+            .filter(line => line.text && line.text !== "♪");
+        if (!lines.length) return null;
+        return { lines, synced, provider: "Spotify", instrumental: false };
+    } catch { return null; }
+}
+
+async function fetchLrclibLyrics(info) {
+    const headers = { "Lrclib-Client": "SpoTUI v1.0 (https://github.com/SkenS/SpoTUI)" };
+    const exactParams = new URLSearchParams({
+        track_name: info.title,
+        artist_name: info.artist.split(",")[0].trim(),
+        album_name: info.album || info.title,
+        duration: String(info.durationSec || 0),
+    });
+    try {
+        const exactRes = await fetch(`https://lrclib.net/api/get?${exactParams}`, { headers });
+        if (exactRes.ok) {
+            const data = await exactRes.json();
+            const result = normalizeLrclibPayload(data);
+            if (result) return result;
+        }
+    } catch { /* try search */ }
+    try {
+        const searchParams = new URLSearchParams({
+            track_name: info.title,
+            artist_name: info.artist.split(",")[0].trim(),
+        });
+        const searchRes = await fetch(`https://lrclib.net/api/search?${searchParams}`, { headers });
+        if (!searchRes.ok) return null;
+        const results = await searchRes.json();
+        if (!Array.isArray(results) || !results.length) return null;
+        const target = info.durationSec || 0;
+        results.sort((a, b) => {
+            const da = Math.abs((a.duration || 0) - target);
+            const db = Math.abs((b.duration || 0) - target);
+            const syncBonus = x => x.syncedLyrics ? -0.5 : 0;
+            return (da + syncBonus(a)) - (db + syncBonus(b));
+        });
+        return normalizeLrclibPayload(results[0]);
+    } catch { return null; }
+}
+
+function normalizeLrclibPayload(data) {
+    if (!data) return null;
+    if (data.instrumental) return { lines: [], synced: false, provider: "lrclib", instrumental: true };
+    const syncedLines = parseLrc(data.syncedLyrics);
+    if (syncedLines.length) return { lines: syncedLines, synced: true, provider: "lrclib", instrumental: false };
+    const plainLines = plainLyricsToLines(data.plainLyrics);
+    if (plainLines.length) return { lines: plainLines, synced: false, provider: "lrclib", instrumental: false };
+    return null;
+}
+
+async function resolveTrackLyrics(info) {
+    const spotify = await fetchSpotifyColorLyrics(info.uri);
+    if (spotify) return spotify;
+    const lrclib = await fetchLrclibLyrics(info);
+    if (lrclib) return lrclib;
+    return { lines: [], synced: false, provider: "", instrumental: false, error: "No lyrics found" };
+}
+
+function renderLyricsEmpty(message, detail = "") {
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    lyricsActiveIndex = -1;
+    els.lines.classList.remove("unsynced");
+    els.lines.innerHTML = "";
+    const empty = document.createElement("div");
+    empty.className = "spotui-lyrics-empty";
+    empty.textContent = "¯\\_(ツ)_/¯";
+    els.lines.appendChild(empty);
+}
+
+function renderLyricsLines(lines, synced = true) {
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    els.lines.innerHTML = "";
+    els.lines.classList.toggle("unsynced", !synced);
+    lyricsActiveIndex = -1;
+    if (!lines.length) { renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
+    lines.forEach((line, idx) => {
+        const row = document.createElement("div");
+        row.className = "spotui-lyrics-line";
+        row.dataset.index = String(idx);
+        row.textContent = line.text;
+        els.lines.appendChild(row);
+    });
+}
+
+function findActiveLyricIndex(lines, progressMs) {
+    if (!lines?.length || lines[0].startTime < 0) return -1;
+    let idx = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startTime <= progressMs) idx = i;
+        else break;
+    }
+    return idx;
+}
+
+function syncLyricsHighlight(force = false) {
+    if (!lyricsPanelOpen || !lyricsCache.synced || !lyricsCache.lines.length) return;
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    const progress = Spicetify.Player.getProgress() || 0;
+    const next = findActiveLyricIndex(lyricsCache.lines, progress);
+    if (!force && next === lyricsActiveIndex) return;
+    const rows = els.lines.querySelectorAll(".spotui-lyrics-line");
+    rows.forEach((row, idx) => {
+        const distance = next < 0 ? 99 : Math.abs(idx - next);
+        row.classList.toggle("active", idx === next);
+        row.classList.toggle("near", distance === 1);
+    });
+    lyricsActiveIndex = next;
+    if (next >= 0) rows[next]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
+}
+
+function setLyricsHeader(info, statusText) {
+    const els = getLyricsEls();
+    if (!els) return;
+    if (els.track) els.track.textContent = info ? `${info.title}${info.artist ? ` — ${info.artist}` : ""}` : "Nothing playing";
+    if (els.meta) els.meta.textContent = statusText || "";
+}
+
+async function loadLyricsForCurrentTrack() {
+    const token = ++lyricsLoadToken;
+    const info = getCurrentTrackLyricsInfo();
+    const els = getLyricsEls();
+    if (!els) return;
+
+    if (!info) {
+        lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+        setLyricsHeader(null, "");
+        renderLyricsEmpty("¯\\_(ツ)_/¯");
+        return;
+    }
+
+    if (lyricsCache.uri === info.uri && (lyricsCache.lines.length || lyricsCache.instrumental || lyricsCache.error)) {
+        setLyricsHeader(info, lyricsCache.instrumental ? "instrumental" : `${lyricsCache.synced ? "synced" : "unsynced"} · ${lyricsCache.provider || "cache"}`);
+        if (lyricsCache.instrumental) { renderLyricsEmpty("Instrumental", "No vocals to show for this track."); }
+        else if (lyricsCache.error) { renderLyricsEmpty("No lyrics", lyricsCache.error); }
+        else { renderLyricsLines(lyricsCache.lines, lyricsCache.synced); syncLyricsHighlight(true); }
+        return;
+    }
+
+    setLyricsHeader(info, "fetching…");
+    renderLyricsEmpty("¯\\_(ツ)_/¯");
+
+    const result = await resolveTrackLyrics(info);
+    if (token !== lyricsLoadToken || !lyricsPanelOpen) return;
+
+    lyricsCache = {
+        uri: info.uri,
+        lines: result.lines || [],
+        synced: Boolean(result.synced),
+        provider: result.provider || "",
+        instrumental: Boolean(result.instrumental),
+        error: result.error || "",
+    };
+
+    if (lyricsCache.instrumental) { setLyricsHeader(info, "instrumental"); renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
+    if (!lyricsCache.lines.length) { setLyricsHeader(info, "not found"); renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
+    setLyricsHeader(info, `${lyricsCache.synced ? "synced" : "unsynced"} · ${lyricsCache.provider}`);
+    renderLyricsLines(lyricsCache.lines, lyricsCache.synced);
+    syncLyricsHighlight(true);
+}
+
+function storeLyricsOpen(open) {
+    try { localStorage.setItem(LYRICS_STORAGE_KEY, open ? "1" : "0"); } catch { /* ignore */ }
+}
+
+function openLyricsPanel() {
+    lyricsPanelOpen = true;
+    storeLyricsOpen(true);
+    document.body.classList.add("spotui-lyrics-panel");
+    const root = document.getElementById("spotui-lyrics");
+    if (root) {
+        root.hidden = false;
+        setTimeout(() => root.classList.add("spotui-lyrics-active"), 10);
+    }
+    bindLyricsEvents();
+    loadLyricsForCurrentTrack();
+    if (!lyricsSyncInterval) {
+        lyricsSyncInterval = setInterval(() => syncLyricsHighlight(), 200);
+    }
+}
+
+function closeLyricsPanel() {
+    lyricsPanelOpen = false;
+    lyricsLoadToken += 1;
+    storeLyricsOpen(false);
+    const root = document.getElementById("spotui-lyrics");
+    if (root) {
+        root.classList.remove("spotui-lyrics-active");
+        setTimeout(() => {
+            if (!lyricsPanelOpen) {
+                root.hidden = true;
+                document.body.classList.remove("spotui-lyrics-panel");
+            }
+        }, 500);
+    } else {
+        document.body.classList.remove("spotui-lyrics-panel");
+    }
+    if (lyricsSyncInterval) { clearInterval(lyricsSyncInterval); lyricsSyncInterval = null; }
+}
+
+function bindLyricsEvents() {
+    if (lyricsBound || !Spicetify.Player?.addEventListener) return;
+    lyricsBound = true;
+    Spicetify.Player.addEventListener("songchange", () => {
+        if (!lyricsPanelOpen) return;
+        lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+        loadLyricsForCurrentTrack();
+    });
+}
+
+function handleLyricsCommand(arg) {
+    const mode = String(arg || "").trim().toLowerCase();
+    if (mode === "on" || mode === "open") { openLyricsPanel(); print("Lyrics open"); return; }
+    if (mode === "off" || mode === "close") { closeLyricsPanel(); print("Lyrics closed"); return; }
+    if (mode && mode !== "toggle") { print("Usage: lyrics [on|off]"); return; }
+    if (lyricsPanelOpen) { closeLyricsPanel(); print("Lyrics closed"); }
+    else { openLyricsPanel(); print("Lyrics open"); }
+}
+
 injectStyle();
 setTimeout(createCopyButton, 500);
 setTimeout(initLyricsBridge, 1000);
@@ -1473,5 +1970,11 @@ if (Spicetify?.Platform) {
 } else {
     setTimeout(createTerminal, 1500);
 }
+
+try {
+    if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
+        setTimeout(() => openLyricsPanel(), 2000);
+    }
+} catch { /* ignore */ }
 
 })();
