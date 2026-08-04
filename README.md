@@ -38,7 +38,7 @@ SpoTUI is a self-contained Spicetify theme that uses:
 1.  Open a terminal.
 2.  Run the installer:
     ```bash
-    curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/main/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
+    curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/master/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
     ```
 3.  Select "Install" from the menu.
 
