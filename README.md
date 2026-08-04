@@ -50,7 +50,7 @@ SpoTUI is a self-contained Spicetify theme that uses:
 1.  Open PowerShell.
 2.  Run the installer:
     ```powershell
-    iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/main/scripts/install/windows/install.ps1 | iex
+    iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/master/scripts/install/windows/install.ps1 | iex
     ```
 3.  Select "Install" from the menu.
 </details>
