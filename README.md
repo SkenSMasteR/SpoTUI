@@ -3,6 +3,7 @@
 # SpoTUI
 
 [![Live Preview](https://img.shields.io/badge/Live%20Preview-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://skensmaster.github.io/SpoTUI-Docs/)
+
 SpoTUI is a terminal-inspired theme for Spotify that overlays a custom, keyboard-driven interface directly inside the Spotify client. It is built for [Spicetify](https://spicetify.app/).
 
 ## How It Works
