@@ -341,7 +341,7 @@ body.spotui-playlist-panel #spotui-logo {
     background-color: #000;
 }
 
-body.spotui-playlist-panel #spotui-output, body.spotui-help-panel #spotui-output {
+body.spotui-playlist-panel #spotui-output, body.spotui-help-panel #spotui-output, body.spotui-about-panel #spotui-output {
     display: none !important;
 }
 
@@ -376,6 +376,39 @@ body.spotui-help-panel #spotui-logo {
     z-index: 2;
     background-color: #000;
 }
+
+#spotui-about-panel {
+    display: none;
+    flex: 1 1 auto;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    border: 1px solid #ff8c42;
+    border-radius: 4px;
+    background: #000;
+}
+
+#spotui-about-panel::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+body.spotui-about-panel #spotui-about-panel {
+    display: flex;
+}
+
+body.spotui-about-panel #spotui-logo {
+    top: 12px;
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0.8;
+    z-index: 2;
+    background-color: #000;
+}
+
 
 .help-item {
     padding: 4px 0;
@@ -1143,6 +1176,7 @@ function createTerminal() {
     </fieldset>
 </div>
 <div id="spotui-help-panel" hidden></div>
+<div id="spotui-about-panel" hidden></div>
 <div id="spotui-footer">
 <span class="prompt">></span>
 <input id="spotui-input" autofocus placeholder="type help for a list of commands">
@@ -1208,6 +1242,10 @@ async function execute(cmd) {
 
     if (command === "help") {
         openHelpPanel();
+        return;
+    }
+    if (command === "about") {
+        openAboutPanel();
         return;
     }
     if (command === "clear") {
@@ -1385,6 +1423,7 @@ let selectedPlaylist = 0;
 let selectedSong = 0;
 let activePane = 'playlist';
 let helpPanelOpen = false;
+let aboutPanelOpen = false;
 
 const COMMAND_LIST = [
     { cmd: "tui -m [cli|cmd]", desc: "Switch TUI mode" },
@@ -1400,6 +1439,7 @@ const COMMAND_LIST = [
     { cmd: "lyrics", desc: "Toggle lyrics panel" },
     { cmd: "search", desc: "Open Spotify search" },
     { cmd: "clear", desc: "Clear the TUI output" },
+    { cmd: "about", desc: "Show about panel" },
     { cmd: "help", desc: "Show this panel" },
 ];
 
@@ -1407,6 +1447,7 @@ function handleGlobalEsc(e) {
     if (e.key === "Escape") {
         e.preventDefault();
         if (helpPanelOpen) closeHelpPanel();
+        if (aboutPanelOpen) closeAboutPanel();
         if (lyricsPanelOpen) closeLyricsPanel();
     }
 }
@@ -1431,6 +1472,7 @@ function openHelpPanel() {
     }
     if (lyricsPanelOpen) closeLyricsPanel();
     if (playlistPanelOpen) closePlaylistPanel();
+    if (aboutPanelOpen) closeAboutPanel();
 
     helpPanelOpen = true;
     document.body.classList.add("spotui-help-panel");
@@ -1445,6 +1487,46 @@ function openHelpPanel() {
     const input = document.getElementById("spotui-input");
     if (input) input.blur();
 }
+
+function closeAboutPanel() {
+    if (!aboutPanelOpen) return;
+    aboutPanelOpen = false;
+    document.body.classList.remove("spotui-about-panel");
+    const panel = document.getElementById("spotui-about-panel");
+    if (panel) {
+        panel.hidden = true;
+    }
+    const input = document.getElementById("spotui-input");
+    if (input) input.focus();
+    document.removeEventListener("keydown", handleGlobalEsc);
+}
+
+function openAboutPanel() {
+    if (aboutPanelOpen) {
+        closeAboutPanel();
+        return;
+    }
+    if (lyricsPanelOpen) closeLyricsPanel();
+    if (playlistPanelOpen) closePlaylistPanel();
+    if (helpPanelOpen) closeHelpPanel();
+
+    aboutPanelOpen = true;
+    document.body.classList.add("spotui-about-panel");
+    document.addEventListener("keydown", handleGlobalEsc);
+    const panel = document.getElementById("spotui-about-panel");
+    if (panel) {
+        panel.hidden = false;
+        panel.innerHTML = `
+<div class="help-item"><span class="command">Version</span><span class="description">chore(theme): moved all comments to LNotes</span></div>
+<div class="help-item"><span class="command">Developer</span><span class="description">SkenS</span></div>
+<div class="help-item"><span class="command">Repository</span><span class="description"><a href="https://github.com/SkenSMasteR/SpoTUI">https://github.com/SkenSMasteR/SpoTUI</a></span></div>
+<div class="help-item"><span class="command">Docs</span><span class="description"><a href="https://skensmaster.github.io/SpoTUI-Docs/">https://skensmaster.github.io/SpoTUI-Docs/</a></span></div>
+        `;
+    }
+    const input = document.getElementById("spotui-input");
+    if (input) input.blur();
+}
+
 
 
 function closePlaylistPanel() {
