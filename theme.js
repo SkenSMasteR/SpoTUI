@@ -1594,7 +1594,7 @@ async function handlePlaylistPanelKeydown(e) {
             const song = playlistSongs[selectedSong];
             const context = playlists[selectedPlaylist];
             if (song && context) {
-                Spicetify.Player.playUri(song.uri, { uri: context.uri });
+                Spicetify.Player.playUri(context.uri, {}, { skipTo: { uri: song.uri } });
                 print(`Playing: ${song.name} from ${context.name}`);
                 closePlaylistPanel();
             }
