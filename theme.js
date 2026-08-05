@@ -1209,10 +1209,15 @@ const COMMAND_LIST = [
 function handleGlobalEsc(e) {
     if (e.key === "Escape") {
         e.preventDefault();
-        if (helpPanelOpen) closeHelpPanel();
-        if (aboutPanelOpen) closeAboutPanel();
-        if (lyricsPanelOpen) closeLyricsPanel();
+        closeActivePanel();
     }
+}
+
+function closeActivePanel() {
+    if (helpPanelOpen) setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false);
+    if (aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false);
+    if (lyricsPanelOpen) closeLyricsPanel();
+    if (playlistPanelOpen) closePlaylistPanel();
 }
 
 function setPanelState(panelId, className, openVarName, targetState) {
@@ -1233,13 +1238,9 @@ function setPanelState(panelId, className, openVarName, targetState) {
     else document.removeEventListener("keydown", handleGlobalEsc);
 }
 
-function closeHelpPanel() { if (helpPanelOpen) setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false); }
-
 function openHelpPanel() {
-    if (helpPanelOpen) { closeHelpPanel(); return; }
-    if (lyricsPanelOpen) closeLyricsPanel();
-    if (playlistPanelOpen) closePlaylistPanel();
-    if (aboutPanelOpen) closeAboutPanel();
+    if (helpPanelOpen) { setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false); return; }
+    closeActivePanel();
 
     setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", true);
     const panel = document.getElementById("spotui-help-panel");
@@ -1250,13 +1251,9 @@ function openHelpPanel() {
     }
 }
 
-function closeAboutPanel() { if (aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false); }
-
 function openAboutPanel() {
-    if (aboutPanelOpen) { closeAboutPanel(); return; }
-    if (lyricsPanelOpen) closeLyricsPanel();
-    if (playlistPanelOpen) closePlaylistPanel();
-    if (helpPanelOpen) closeHelpPanel();
+    if (aboutPanelOpen) { setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false); return; }
+    closeActivePanel();
 
     setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", true);
     const panel = document.getElementById("spotui-about-panel");
@@ -1282,8 +1279,7 @@ function closePlaylistPanel() {
 
 async function openPlaylistPanel() {
     if (playlistPanelOpen) { closePlaylistPanel(); return; }
-    if (lyricsPanelOpen) closeLyricsPanel();
-    if (helpPanelOpen) closeHelpPanel();
+    closeActivePanel();
 
     try {
         playlists = await getPlaylists();
@@ -1732,8 +1728,7 @@ function storeLyricsOpen(open) {
 }
 
 function openLyricsPanel() {
-    if (playlistPanelOpen) closePlaylistPanel();
-    if (helpPanelOpen) closeHelpPanel();
+    closeActivePanel();
     lyricsPanelOpen = true;
     storeLyricsOpen(true);
     document.body.classList.add("spotui-lyrics-panel");
