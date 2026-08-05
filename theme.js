@@ -1127,11 +1127,6 @@ function createTerminal() {
     box.innerHTML = `
 <div id="spotui-logo"></div>
 <div id="spotui-top-fade"></div>
-<div id="spotui-output">SpoTUI v1.0
-
-Type /help
-
-</div>
 <div id="spotui-lyrics" hidden>
 <div class="spotui-lyrics-viewport">
 <div class="spotui-lyrics-fade spotui-lyrics-fade-top"></div>
@@ -1388,7 +1383,7 @@ let playlists = [];
 let playlistSongs = [];
 let selectedPlaylist = 0;
 let selectedSong = 0;
-let activePane = 'playlist'; // 'playlist' or 'song'
+let activePane = 'playlist';
 let helpPanelOpen = false;
 
 const COMMAND_LIST = [
@@ -1413,7 +1408,6 @@ function handleGlobalEsc(e) {
         e.preventDefault();
         if (helpPanelOpen) closeHelpPanel();
         if (lyricsPanelOpen) closeLyricsPanel();
-        // The playlist panel has its own listener that handles Esc
     }
 }
 
@@ -1776,7 +1770,7 @@ async function fetchSpotifyColorLyrics(uri) {
 }
 
 async function fetchLrclibLyrics(info) {
-    const headers = { "Lrclib-Client": "SpoTUI v1.0 (https://github.com/SkenS/SpoTUI)" };
+    const headers = { "Lrclib-Client": "SpoTUI (https://github.com/SkenS/SpoTUI)" };
     const exactParams = new URLSearchParams({
         track_name: info.title,
         artist_name: info.artist.split(",")[0].trim(),
