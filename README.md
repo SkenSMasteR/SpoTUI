@@ -72,6 +72,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 
 | Command                | Description                    |
 | -----------------------| -------------------------------|
+| `tui -l -a <on/off>`   | Toggle ASCII animation         |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
 | `tui -wp off`          | Remove wallpaper               |
 | `playlist` / `list`    | Open playlist viewer           |

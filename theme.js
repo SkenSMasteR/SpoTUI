@@ -1,4 +1,5 @@
 (function () {
+const ANIMATION_KEY = "spotui:ascii-animation";
 
 const style = `
 #spotui-tui {
@@ -492,6 +493,19 @@ function getCharColor(row, col, totalRows, totalCols) {
 
 let asciiAnimationInitialized = false;
 let asciiCharData = [];
+let asciiEnabled = true;
+
+function resetGrid() {
+    asciiCharData.forEach(({ el, original, color }) => {
+        el.textContent = original;
+        el.style.color = color;
+    });
+}
+
+function stopAsciiAnimation() {
+    asciiEnabled = false;
+    resetGrid();
+}
 
 function initAsciiAnimation() {
     if (asciiAnimationInitialized) return;
@@ -543,13 +557,6 @@ function initAsciiAnimation() {
     });
 
     asciiCharData = charData;
-
-    function resetGrid() {
-        charData.forEach(({ el, original, color }) => {
-            el.textContent = original;
-            el.style.color = color;
-        });
-    }
 
     function getRowSpans(rowIdx) {
         return rowSpansCache[rowIdx] || [];
@@ -877,8 +884,13 @@ function initAsciiAnimation() {
 
     async function runLoop() {
         while (true) {
+            if (!asciiEnabled || localStorage.getItem(ANIMATION_KEY) === "off") {
+                await sleep(500);
+                continue;
+            }
             const shuffled = shuffleArray([...stageFunctions]);
             for (const stageFn of shuffled) {
+                if (!asciiEnabled || localStorage.getItem(ANIMATION_KEY) === "off") break;
                 await stageFn();
                 await sleep(700 + Math.random() * 400);
             }
@@ -1115,17 +1127,16 @@ async function execute(cmd) {
     const argText = args.join(" ").trim();
 
     if (command === "tui") {
-        if (args[0] === "-wp") {
-            const url = args[1];
-            if (url === "off") {
-                const wp = document.getElementById("spotui-wallpaper");
-                if (wp) wp.remove();
-                try { localStorage.removeItem(WP_URL_KEY); localStorage.removeItem(WP_OPACITY_KEY); } catch {}
-                return;
+        if (args.includes("-l") || args.includes("-a")) {
+            const state = args[args.length - 1];
+            if (state === "off") {
+                asciiEnabled = false;
+                resetGrid();
+                try { localStorage.setItem(ANIMATION_KEY, "off"); console.log("SpoTUI: Saved off"); } catch(e) { console.error("SpoTUI: Save failed", e); }
+            } else if (state === "on") {
+                asciiEnabled = true;
+                try { localStorage.removeItem(ANIMATION_KEY); console.log("SpoTUI: Removed key"); } catch(e) { console.error("SpoTUI: Remove failed", e); }
             }
-            const opacityIdx = args.indexOf("-o");
-            const opacity = (opacityIdx !== -1 && args[opacityIdx + 1]) ? args[opacityIdx + 1] : "1";
-            setWallpaper(url, opacity);
             return;
         }
         return;
@@ -1204,6 +1215,7 @@ let helpPanelOpen = false;
 let aboutPanelOpen = false;
 
 const COMMAND_LIST = [
+    { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
@@ -1805,10 +1817,8 @@ try {
     if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
         setTimeout(() => openLyricsPanel(), 2000);
     }
-    const savedWp = localStorage.getItem(WP_URL_KEY);
-    const savedOpacity = localStorage.getItem(WP_OPACITY_KEY) || "1";
-    if (savedWp) {
-        setTimeout(() => setWallpaper(savedWp, savedOpacity, false), 1500);
+    if (localStorage.getItem(WP_URL_KEY)) {
+        setTimeout(() => setWallpaper(localStorage.getItem(WP_URL_KEY), localStorage.getItem(WP_OPACITY_KEY) || "1", false), 1500);
     }
 } catch { }
 
