@@ -1333,6 +1333,17 @@ async function execute(cmd) {
         return;
     }
 
+    if (command === "like") {
+        try {
+            const isLiked = await Spicetify.Player.getHeart();
+            await Spicetify.Player.toggleHeart();
+            print(!isLiked ? "Liked song" : "Unliked song");
+        } catch (err) {
+            print("Like error: " + err.message);
+        }
+        return;
+    }
+
     if (command === "lyrics") {
         handleLyricsCommand(argText);
         return;
@@ -1369,6 +1380,7 @@ const COMMAND_LIST = [
     { cmd: "v / volume <%>", desc: "Set volume" },
     { cmd: "shuffle", desc: "Toggle shuffle" },
     { cmd: "loop / superloop", desc: "Toggle repeat mode" },
+    { cmd: "like", desc: "Like/unlike current song" },
     { cmd: "lyrics", desc: "Toggle lyrics panel" },
     { cmd: "search", desc: "Open Spotify search" },
     { cmd: "clear", desc: "Clear the TUI output" },
