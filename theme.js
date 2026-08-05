@@ -48,22 +48,26 @@ body.spotui-about-panel #spotui-logo {
     transform: translate(-50%, 0) scale(0.6);
     opacity: 0.8;
     z-index: 2;
+    background-color: transparent;
+}
+
+body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-playlist-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-help-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
     background-color: #000;
 }
 
 #spotui-top-fade {
-    display: none;
+    display: block;
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 120px;
     background: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0));
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
 }
 
-body.spotui-lyrics-panel #spotui-top-fade {
-    display: block;
-}
 
 .spotui-ascii-grid {
     display: flex;
@@ -260,7 +264,6 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
     z-index: 2;
 }
 
-.spotui-lyrics-fade-top {
     top: 0;
     background: linear-gradient(180deg, #000, transparent);
 }
@@ -434,8 +437,13 @@ body.spotui-about-panel #spotui-about-panel {
 }
 
 body.spotui-tui-hidden #spotui-tui {
-    display: none !important;
-}
+	    display: none !important;
+	}
+
+	body:not(.spotui-tui-hidden) .main-topBar-container,
+	body:not(.spotui-tui-hidden) header {
+	    display: none !important;
+	}
 `;
 
 const SPOTUI_ASCII_ART = [
@@ -893,6 +901,35 @@ function injectStyle() {
     document.head.appendChild(s);
 }
 
+function setWallpaper(url, opacity, save = true) {
+    let tui = document.getElementById("spotui-tui");
+    if (!tui) return;
+
+    let wp = document.getElementById("spotui-wallpaper");
+    if (!wp) {
+        wp = document.createElement("div");
+        wp.id = "spotui-wallpaper";
+        wp.style.position = "absolute";
+        wp.style.top = "0";
+        wp.style.left = "0";
+        wp.style.width = "100%";
+        wp.style.height = "100%";
+        wp.style.zIndex = "-1";
+        wp.style.backgroundSize = "cover";
+        wp.style.backgroundPosition = "center";
+        tui.prepend(wp);
+    }
+    wp.style.backgroundImage = `url("${url}")`;
+    wp.style.opacity = opacity;
+    tui.style.background = "transparent";
+    if (save) {
+        try {
+            localStorage.setItem(WP_URL_KEY, url);
+            localStorage.setItem(WP_OPACITY_KEY, opacity);
+        } catch {}
+    }
+}
+
 function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
@@ -1028,7 +1065,6 @@ function createTerminal() {
 <div id="spotui-top-fade"></div>
 <div id="spotui-lyrics" hidden>
 <div class="spotui-lyrics-viewport">
-<div class="spotui-lyrics-fade spotui-lyrics-fade-top"></div>
 <div class="spotui-lyrics-lines"></div>
 <div class="spotui-lyrics-fade spotui-lyrics-fade-bottom"></div>
 </div>
@@ -1110,7 +1146,22 @@ async function execute(cmd) {
             print(`TUI mode: ${mode}`);
             return;
         }
-        print("Usage: tui -m [command|cli]");
+        if (args[0] === "-wp") {
+            const url = args[1];
+            if (url === "off") {
+                const wp = document.getElementById("spotui-wallpaper");
+                if (wp) wp.remove();
+                try { localStorage.removeItem(WP_URL_KEY); localStorage.removeItem(WP_OPACITY_KEY); } catch {}
+                print("Wallpaper disabled");
+                return;
+            }
+            const opacityIdx = args.indexOf("-o");
+            const opacity = (opacityIdx !== -1 && args[opacityIdx + 1]) ? args[opacityIdx + 1] : "1";
+            setWallpaper(url, opacity);
+            print(`Wallpaper set: ${url} (opacity: ${opacity})`);
+            return;
+        }
+        print("Usage: tui -m [command|cli] or tui -wp <url> [-o <opacity>]");
         return;
     }
 
@@ -1190,6 +1241,8 @@ let aboutPanelOpen = false;
 
 const COMMAND_LIST = [
     { cmd: "tui -m [cli|cmd]", desc: "Switch TUI mode" },
+    { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
+    { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1484,6 +1537,8 @@ async function getPlaylists() {
 }
 
 const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
+const WP_URL_KEY = "spotui:wp-url";
+const WP_OPACITY_KEY = "spotui:wp-opacity";
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
 let lyricsActiveIndex = -1;
@@ -1790,6 +1845,11 @@ else setTimeout(createTerminal, 1500);
 try {
     if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
         setTimeout(() => openLyricsPanel(), 2000);
+    }
+    const savedWp = localStorage.getItem(WP_URL_KEY);
+    const savedOpacity = localStorage.getItem(WP_OPACITY_KEY) || "1";
+    if (savedWp) {
+        setTimeout(() => setWallpaper(savedWp, savedOpacity, false), 1500);
     }
 } catch { }
 
