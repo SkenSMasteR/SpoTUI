@@ -43,7 +43,10 @@ const style = `
     transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.spotui-lyrics-panel #spotui-logo {
+body.spotui-lyrics-panel #spotui-logo,
+body.spotui-playlist-panel #spotui-logo,
+body.spotui-help-panel #spotui-logo,
+body.spotui-about-panel #spotui-logo {
     top: 12px;
     transform: translate(-50%, 0) scale(0.6);
     opacity: 0.8;
@@ -103,21 +106,13 @@ body.spotui-lyrics-panel #spotui-top-fade {
 }
 
 @media (max-width: 700px) {
-    .spotui-ascii-grid {
-        font-size: clamp(5px, 1.1vw, 11px);
-    }
-
-    .spotui-ascii-char {
+    .spotui-ascii-grid, .spotui-ascii-char {
         font-size: clamp(5px, 1.1vw, 11px);
     }
 }
 
 @media (max-width: 450px) {
-    .spotui-ascii-grid {
-        font-size: clamp(3.5px, 1.4vw, 7px);
-    }
-
-    .spotui-ascii-char {
+    .spotui-ascii-grid, .spotui-ascii-char {
         font-size: clamp(3.5px, 1.4vw, 7px);
     }
 }
@@ -137,7 +132,11 @@ body.spotui-lyrics-panel #spotui-top-fade {
     transition: opacity 260ms ease, transform 260ms ease;
 }
 
-body.spotui-command-mode #spotui-output {
+body.spotui-command-mode #spotui-output,
+body.spotui-playlist-panel #spotui-output,
+body.spotui-help-panel #spotui-output,
+body.spotui-about-panel #spotui-output,
+body.spotui-lyrics-panel #spotui-output {
     display: none !important;
 }
 
@@ -145,7 +144,12 @@ body.spotui-cli-mode #spotui-output {
     display: flex !important;
 }
 
-#spotui-output::-webkit-scrollbar {
+#spotui-output::-webkit-scrollbar,
+#spotui-help-panel::-webkit-scrollbar,
+#spotui-about-panel::-webkit-scrollbar,
+#spotui-playlist-list::-webkit-scrollbar,
+#spotui-song-list::-webkit-scrollbar,
+.spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
     height: 0;
 }
@@ -177,10 +181,6 @@ body.spotui-cli-mode #spotui-output {
 .cl-line, .result { margin-bottom: 8px; user-select: text; }
 .result { padding: 5px; }
 .selected { background: #ff8c42; color: #000; }
-
-body.spotui-lyrics-panel #spotui-output {
-    display: none !important;
-}
 
 body.spotui-lyrics-panel #spotui-logo {
     display: flex !important;
@@ -257,11 +257,6 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
     text-align: center;
 }
 
-.spotui-lyrics-lines::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-
 .spotui-lyrics-fade {
     pointer-events: none;
     position: absolute;
@@ -333,19 +328,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition-delay: 0.6s;
 }
 
-body.spotui-playlist-panel #spotui-logo {
-    top: 12px;
-    transform: translate(-50%, 0) scale(0.6);
-    opacity: 0.8;
-    z-index: 2;
-    background-color: #000;
-}
-
-body.spotui-playlist-panel #spotui-output, body.spotui-help-panel #spotui-output, body.spotui-about-panel #spotui-output {
-    display: none !important;
-}
-
-#spotui-help-panel {
+#spotui-help-panel, #spotui-about-panel {
     display: none;
     flex: 1 1 auto;
     flex-direction: column;
@@ -360,55 +343,10 @@ body.spotui-playlist-panel #spotui-output, body.spotui-help-panel #spotui-output
     background: #000;
 }
 
-#spotui-help-panel::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-
-body.spotui-help-panel #spotui-help-panel {
-    display: flex;
-}
-
-body.spotui-help-panel #spotui-logo {
-    top: 12px;
-    transform: translate(-50%, 0) scale(0.6);
-    opacity: 0.8;
-    z-index: 2;
-    background-color: #000;
-}
-
-#spotui-about-panel {
-    display: none;
-    flex: 1 1 auto;
-    flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    margin: 33vh 5vw 8px;
-    height: 60vh;
-    border: 1px solid #ff8c42;
-    border-radius: 4px;
-    background: #000;
-}
-
-#spotui-about-panel::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-
+body.spotui-help-panel #spotui-help-panel,
 body.spotui-about-panel #spotui-about-panel {
     display: flex;
 }
-
-body.spotui-about-panel #spotui-logo {
-    top: 12px;
-    transform: translate(-50%, 0) scale(0.6);
-    opacity: 0.8;
-    z-index: 2;
-    background-color: #000;
-}
-
 
 .help-item {
     padding: 4px 0;
@@ -426,8 +364,6 @@ body.spotui-about-panel #spotui-logo {
     color: #b3b3b3;
 }
 
-
-
 #spotui-playlist-list, #spotui-song-list {
     width: 50%;
     overflow-y: auto;
@@ -443,11 +379,6 @@ body.spotui-about-panel #spotui-logo {
     padding: 0 5px;
 }
 
-#spotui-playlist-list::-webkit-scrollbar, #spotui-song-list::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-}
-
 .playlist-item, .song-item {
     padding: 4px 6px;
     cursor: pointer;
@@ -457,7 +388,6 @@ body.spotui-about-panel #spotui-logo {
     background: #ff8c42;
     color: #000;
 }
-
 
 .spotui-lyrics-lines.unsynced .spotui-lyrics-line {
     color: #b3b3b3;
@@ -679,7 +609,7 @@ function initAsciiAnimation() {
         });
     }
 
-    async function burstGlitch(duration = 800) {
+    async function runGlitchByDist(duration, logic) {
         const centerRow = Math.floor(rows / 2);
         const centerCol = Math.floor(cols / 2);
         const withDist = charData.map((entry) => {
@@ -688,97 +618,85 @@ function initAsciiAnimation() {
             return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
         });
         const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
-        const chars = [...GLITCH_CHARS];
-        const steps = 8;
-        for (let step = 0; step < steps; step += 1) {
-            const progress = step / steps;
-            withDist.forEach(({ el, original, color, dist }) => {
-                const norm = dist / maxDist;
-                const threshold = progress * 1.1;
-                if (norm < threshold + 0.12 && norm > threshold - 0.12) {
-                    if (Math.random() < 0.75) {
-                        const randIdx = Math.floor(Math.random() * chars.length);
-                        el.textContent = chars[randIdx];
-                        el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
-                    }
-                } else if (norm < threshold - 0.12) {
-                    el.textContent = original;
-                    el.style.color = color;
-                }
-            });
-            await sleep(Math.floor(duration / steps));
-        }
+        await logic(withDist, maxDist);
         resetGrid();
     }
 
-    async function pulseGlitch(duration = 1200) {
-        const centerRow = Math.floor(rows / 2);
-        const centerCol = Math.floor(cols / 2);
-        const withDist = charData.map((entry) => {
-            const dr = entry.row - centerRow;
-            const dc = entry.col - centerCol;
-            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
-        });
-        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
+    async function burstGlitch(duration = 800) {
         const chars = [...GLITCH_CHARS];
-        const waves = 3;
-        const stepsPerWave = 10;
-
-        for (let wave = 0; wave < waves; wave += 1) {
-            for (let step = 0; step < stepsPerWave; step += 1) {
-                const progress = step / stepsPerWave;
-                const threshold = progress * 1.0;
+        const steps = 8;
+        await runGlitchByDist(duration, async (withDist, maxDist) => {
+            for (let step = 0; step < steps; step += 1) {
+                const progress = step / steps;
                 withDist.forEach(({ el, original, color, dist }) => {
                     const norm = dist / maxDist;
-                    if (norm < threshold + 0.1 && norm > threshold - 0.1) {
-                        if (Math.random() < 0.7) {
-                            const randIdx = Math.floor(Math.random() * chars.length);
-                            el.textContent = chars[randIdx];
-                            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                    const threshold = progress * 1.1;
+                    if (norm < threshold + 0.12 && norm > threshold - 0.12) {
+                        if (Math.random() < 0.75) {
+                            el.textContent = chars[Math.floor(Math.random() * chars.length)];
+                            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
                         }
-                    } else if (norm < threshold - 0.1 && wave === waves - 1) {
+                    } else if (norm < threshold - 0.12) {
                         el.textContent = original;
                         el.style.color = color;
                     }
                 });
-                await sleep(Math.floor(duration / (waves * stepsPerWave)));
+                await sleep(Math.floor(duration / steps));
             }
-            await sleep(40);
-        }
-        resetGrid();
+        });
+    }
+
+    async function pulseGlitch(duration = 1200) {
+        const chars = [...GLITCH_CHARS];
+        const waves = 3;
+        const stepsPerWave = 10;
+        await runGlitchByDist(duration, async (withDist, maxDist) => {
+            for (let wave = 0; wave < waves; wave += 1) {
+                for (let step = 0; step < stepsPerWave; step += 1) {
+                    const progress = step / stepsPerWave;
+                    const threshold = progress * 1.0;
+                    withDist.forEach(({ el, original, color, dist }) => {
+                        const norm = dist / maxDist;
+                        if (norm < threshold + 0.1 && norm > threshold - 0.1) {
+                            if (Math.random() < 0.7) {
+                                const randIdx = Math.floor(Math.random() * chars.length);
+                                el.textContent = chars[randIdx];
+                                el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                            }
+                        } else if (norm < threshold - 0.1 && wave === waves - 1) {
+                            el.textContent = original;
+                            el.style.color = color;
+                        }
+                    });
+                    await sleep(Math.floor(duration / (waves * stepsPerWave)));
+                }
+                await sleep(40);
+            }
+        });
     }
 
     async function implosionGlitch(duration = 900) {
-        const centerRow = Math.floor(rows / 2);
-        const centerCol = Math.floor(cols / 2);
-        const withDist = charData.map((entry) => {
-            const dr = entry.row - centerRow;
-            const dc = entry.col - centerCol;
-            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
-        });
-        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
         const chars = [...GLITCH_CHARS];
         const steps = 10;
-
-        withDist.forEach(({ el }) => {
-            const randIdx = Math.floor(Math.random() * chars.length);
-            el.textContent = chars[randIdx];
-            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${45 + Math.random() * 35}%)`;
-        });
-
-        for (let step = 0; step < steps; step += 1) {
-            const progress = step / steps;
-            const threshold = 1.0 - progress * 1.1;
-            withDist.forEach(({ el, original, color, dist }) => {
-                const norm = dist / maxDist;
-                if (norm <= threshold) {
-                    el.textContent = original;
-                    el.style.color = color;
-                }
+        await runGlitchByDist(duration, async (withDist, maxDist) => {
+            withDist.forEach(({ el }) => {
+                const randIdx = Math.floor(Math.random() * chars.length);
+                el.textContent = chars[randIdx];
+                el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${45 + Math.random() * 35}%)`;
             });
-            await sleep(Math.floor(duration / steps));
-        }
-        resetGrid();
+            for (let step = 0; step < steps; step += 1) {
+                const progress = step / steps;
+                const threshold = 1.0 - progress * 1.1;
+                withDist.forEach(({ el, original, color, dist }) => {
+                    const norm = dist / maxDist;
+                    if (norm <= threshold) {
+                        el.textContent = original;
+                        el.style.color = color;
+                    }
+                });
+                await sleep(Math.floor(duration / steps));
+            }
+        });
     }
 
     async function spiralGlitch(duration = 1000) {
@@ -815,36 +733,28 @@ function initAsciiAnimation() {
     }
 
     async function fuzzWaveGlitch(duration = 1000) {
-        const centerRow = Math.floor(rows / 2);
-        const centerCol = Math.floor(cols / 2);
-        const withDist = charData.map((entry) => {
-            const dr = entry.row - centerRow;
-            const dc = entry.col - centerCol;
-            return { ...entry, dist: Math.sqrt(dr * dr + dc * dc) };
-        });
-        const maxDist = Math.max(...withDist.map((entry) => entry.dist), 1);
         const chars = [...GLITCH_CHARS];
         const steps = 20;
         const bandWidth = 0.25;
-
-        for (let step = 0; step < steps; step += 1) {
-            const progress = step / steps;
-            const targetNorm = progress * 1.0;
-            withDist.forEach(({ el, original, color, dist }) => {
-                const norm = dist / maxDist;
-                const distanceFromTarget = Math.abs(norm - targetNorm);
-                if (distanceFromTarget < bandWidth && Math.random() < 0.65) {
-                    const randIdx = Math.floor(Math.random() * chars.length);
-                    el.textContent = chars[randIdx];
-                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
-                } else if (distanceFromTarget > bandWidth * 1.5) {
-                    el.textContent = original;
-                    el.style.color = color;
-                }
-            });
-            await sleep(Math.floor(duration / steps));
-        }
-        resetGrid();
+        await runGlitchByDist(duration, async (withDist, maxDist) => {
+            for (let step = 0; step < steps; step += 1) {
+                const progress = step / steps;
+                const targetNorm = progress * 1.0;
+                withDist.forEach(({ el, original, color, dist }) => {
+                    const norm = dist / maxDist;
+                    const distanceFromTarget = Math.abs(norm - targetNorm);
+                    if (distanceFromTarget < bandWidth && Math.random() < 0.65) {
+                        const randIdx = Math.floor(Math.random() * chars.length);
+                        el.textContent = chars[randIdx];
+                        el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                    } else if (distanceFromTarget > bandWidth * 1.5) {
+                        el.textContent = original;
+                        el.style.color = color;
+                    }
+                });
+                await sleep(Math.floor(duration / steps));
+            }
+        });
     }
 
     async function staticGlitch(duration = 600) {
@@ -928,45 +838,16 @@ function initAsciiAnimation() {
         }
     }
 
-    async function stageBurst() {
-        await burstGlitch(900);
-    }
-
-    async function stagePulse() {
-        await pulseGlitch(1200);
-    }
-
-    async function stageImplosion() {
-        await implosionGlitch(900);
-    }
-
-    async function stageSpiral() {
-        await spiralGlitch(1000);
-    }
-
-    async function stageFuzzWave() {
-        await fuzzWaveGlitch(1000);
-    }
-
-    async function stageStatic() {
-        await staticGlitch(700);
-    }
-
-    async function stageHSlashDown() {
-        await horizontalBand(1, 800);
-    }
-
-    async function stageHSlashUp() {
-        await horizontalBand(-1, 800);
-    }
-
-    async function stageVSlashRight() {
-        await verticalSlice(1, 800);
-    }
-
-    async function stageVSlashLeft() {
-        await verticalSlice(-1, 800);
-    }
+    async function stageBurst() { await burstGlitch(900); }
+    async function stagePulse() { await pulseGlitch(1200); }
+    async function stageImplosion() { await implosionGlitch(900); }
+    async function stageSpiral() { await spiralGlitch(1000); }
+    async function stageFuzzWave() { await fuzzWaveGlitch(1000); }
+    async function stageStatic() { await staticGlitch(700); }
+    async function stageHSlashDown() { await horizontalBand(1, 800); }
+    async function stageHSlashUp() { await horizontalBand(-1, 800); }
+    async function stageVSlashRight() { await verticalSlice(1, 800); }
+    async function stageVSlashLeft() { await verticalSlice(-1, 800); }
 
     const stageFunctions = [
         stageWaveDown,
@@ -1008,7 +889,6 @@ function initAsciiAnimation() {
 }
 
 let tuiMode = "command";
-
 let results = [];
 let selected = 0;
 let lyricsObserver = null;
@@ -1036,8 +916,7 @@ function createCopyButton() {
     copyBtn.addEventListener("click", () => {
         const output = document.getElementById("spotui-output");
         if (output) {
-            const text = output.innerText;
-            navigator.clipboard.writeText(text).then(() => {
+            navigator.clipboard.writeText(output.innerText).then(() => {
                 copyBtn.textContent = "Copied!";
                 setTimeout(() => { copyBtn.textContent = "Copy log"; }, 1500);
             }).catch(() => {
@@ -1076,17 +955,14 @@ function createCopyButton() {
     controls.appendChild(copyBtn);
     controls.appendChild(hideBtn);
     controls.appendChild(spotifyBtn);
-    const footer = document.getElementById("spotui-footer");
-    (footer || document.body).appendChild(controls);
+    (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
     const backBtn = document.createElement("button");
     backBtn.id = "spotui-back-btn";
     backBtn.className = "spotui-control-btn";
     backBtn.textContent = "Back";
     backBtn.addEventListener("click", () => {
-        document.body.classList.remove("spotui-search-mode");
-        document.body.classList.remove("spotui-spotify-enabled");
-        document.body.classList.remove("spotui-tui-hidden");
+        document.body.classList.remove("spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
         spotifyBtn.textContent = "Enable Spotify";
         hideBtn.textContent = "Hide TUI";
         syncLyricsState();
@@ -1103,8 +979,9 @@ function detectLyricsSurface() {
 }
 
 function syncLyricsState() {
-    if (!document.body) return;
-    document.body.classList.toggle("spotui-lyrics-open", detectLyricsSurface());
+    if (document.body) {
+        document.body.classList.toggle("spotui-lyrics-open", detectLyricsSurface());
+    }
 }
 
 function hookLyricsButton() {
@@ -1127,14 +1004,11 @@ function initLyricsBridge() {
         setTimeout(initLyricsBridge, 250);
         return;
     }
-
     const refresh = () => {
         hookLyricsButton();
         syncLyricsState();
     };
-
     refresh();
-
     if (!lyricsObserver) {
         lyricsObserver = new MutationObserver(refresh);
         lyricsObserver.observe(document.body, {
@@ -1145,9 +1019,7 @@ function initLyricsBridge() {
         });
         window.addEventListener(
             "beforeunload",
-            () => {
-                lyricsObserver?.disconnect();
-            },
+            () => { lyricsObserver?.disconnect(); },
             { once: true }
         );
     }
@@ -1206,7 +1078,6 @@ function createTerminal() {
             renderResults();
         }
     });
-
 }
 
 function print(text) {
@@ -1217,6 +1088,15 @@ function print(text) {
     line.textContent = text;
     output.prepend(line);
     output.scrollTop = 0;
+}
+
+async function runPlayerAction(actionName, promiseFn, successMsg) {
+    try {
+        const res = await promiseFn();
+        print(successMsg ?? `Executed ${actionName}`);
+    } catch (err) {
+        print(`${actionName} error: ${err.message}`);
+    }
 }
 
 async function execute(cmd) {
@@ -1240,167 +1120,91 @@ async function execute(cmd) {
         return;
     }
 
-    if (command === "help") {
-        openHelpPanel();
-        return;
-    }
-    if (command === "about") {
-        openAboutPanel();
-        return;
-    }
-    if (command === "clear") {
-        document.getElementById("spotui-output").textContent = "";
-        return;
-    }
-
-    if (command === "playlist") {
-        openPlaylistPanel();
-        return;
-    }
-
-    if (command === "list") {
-        openPlaylistPanel();
-        return;
-    }
+    if (command === "help") { openHelpPanel(); return; }
+    if (command === "about") { openAboutPanel(); return; }
+    if (command === "clear") { document.getElementById("spotui-output").textContent = ""; return; }
+    if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
 
     if (command === "play") {
-        try {
-            const wasPlaying = Spicetify.Player.isPlaying();
-            if (!wasPlaying) {
-                Spicetify.Player.togglePlay();
-            }
-            print("Playing");
-        } catch (err) {
-            print("Play error: " + err.message);
-        }
+        await runPlayerAction("Play", async () => {
+            if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay();
+        }, "Playing");
         return;
     }
 
     if (command === "pause") {
-        try {
-            const wasPlaying = Spicetify.Player.isPlaying();
-            if (wasPlaying) {
-                Spicetify.Player.togglePlay();
-            }
-            print("Paused");
-        } catch (err) {
-            print("Pause error: " + err.message);
-        }
+        await runPlayerAction("Pause", async () => {
+            if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay();
+        }, "Paused");
         return;
     }
 
     if (command === "p") {
-        try {
+        await runPlayerAction("Play/PauseToggle", async () => {
             const wasPlaying = Spicetify.Player.isPlaying();
             Spicetify.Player.togglePlay();
-            print(wasPlaying ? "Paused" : "Playing");
-        } catch (err) {
-            print("Play/pause error: " + err.message);
-        }
+            return wasPlaying;
+        }, Spicetify.Player.isPlaying() ? "Paused" : "Playing");
         return;
     }
 
     if (command === "search") {
-        document.body.classList.add("spotui-search-mode");
-        document.body.classList.add("spotui-tui-hidden");
+        document.body.classList.add("spotui-search-mode", "spotui-tui-hidden");
         syncLyricsState();
         return;
     }
 
     if (command === "skip") {
-        try {
-            Spicetify.Player.next();
-            print("Skipped to next track");
-        } catch (err) {
-            print("Skip error: " + err.message);
-        }
+        await runPlayerAction("Skip", () => Spicetify.Player.next(), "Skipped to next track");
         return;
     }
     if (command === "back") {
-        try {
-            Spicetify.Player.back();
-            print("Went back to previous track");
-        } catch (err) {
-            print("Back error: " + err.message);
-        }
+        await runPlayerAction("Back", () => Spicetify.Player.back(), "Went back to previous track");
         return;
     }
 
     if (command === "seek" || command === "s") {
-        try {
-            if (!argText) {
-                print("Usage: seek <mm:ss>");
-                return;
-            }
+        await runPlayerAction("Seek", () => {
+            if (!argText) throw new Error("Usage: seek <mm:ss>");
             const parts = argText.split(':').map(Number);
-            if (parts.length !== 2 || parts.some(isNaN)) {
-                print("Invalid time format. Use mm:ss.");
-                return;
-            }
-            const seekMs = (parts[0] * 60 + parts[1]) * 1000;
-            Spicetify.Player.seek(seekMs);
-            print(`Seeked to ${argText}`);
-        } catch (err) {
-            print("Seek error: " + err.message);
-        }
+            if (parts.length !== 2 || parts.some(isNaN)) throw new Error("Invalid time format. Use mm:ss.");
+            Spicetify.Player.seek((parts[0] * 60 + parts[1]) * 1000);
+        }, `Seeked to ${argText}`);
         return;
     }
 
     if (command === "volume" || command === "v") {
-        try {
-            if (!argText) {
-                print("Usage: volume <0-100>");
-                return;
-            }
+        await runPlayerAction("Volume", () => {
+            if (!argText) throw new Error("Usage: volume <0-100>");
             const percent = Number(argText);
-            if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
-                print("Volume must be between 0 and 100.");
-                return;
-            }
+            if (!Number.isFinite(percent) || percent < 0 || percent > 100) throw new Error("Volume must be between 0 and 100.");
             Spicetify.Player.setVolume(percent / 100);
-            print(`Volume is ${Math.round(percent)}%`);
-        } catch (err) {
-            print("Volume error: " + err.message);
-        }
+        }, `Volume is ${Math.round(Number(argText))}%`);
         return;
     }
 
     if (command === "shuffle") {
-        try {
+        await runPlayerAction("Shuffle", () => {
             const current = Spicetify.Player.getShuffle();
             Spicetify.Player.setShuffle(!current);
-            print("Shuffle: " + (!current ? "ON" : "OFF"));
-        } catch (err) {
-            print("Shuffle error: " + err.message);
-        }
+            return current;
+        }, "Shuffle: " + (!Spicetify.Player.getShuffle() ? "ON" : "OFF"));
         return;
     }
 
-    if (command === "loop") {
-        handleRepeatCommand("loop", argText);
-        return;
-    }
-
-    if (command === "superloop") {
-        handleRepeatCommand("superloop", argText);
-        return;
-    }
+    if (command === "loop") { handleRepeatCommand("loop", argText); return; }
+    if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
 
     if (command === "like") {
-        try {
+        await runPlayerAction("Like", async () => {
             const isLiked = await Spicetify.Player.getHeart();
             await Spicetify.Player.toggleHeart();
-            print(!isLiked ? "Liked song" : "Unliked song");
-        } catch (err) {
-            print("Like error: " + err.message);
-        }
+            return isLiked;
+        }, Spicetify.Player.getHeart() ? "Unliked song" : "Liked song");
         return;
     }
 
-    if (command === "lyrics") {
-        handleLyricsCommand(argText);
-        return;
-    }
+    if (command === "lyrics") { handleLyricsCommand(argText); return; }
 
     print("Unknown command. Type /help");
 }
@@ -1452,70 +1256,52 @@ function handleGlobalEsc(e) {
     }
 }
 
-function closeHelpPanel() {
-    if (!helpPanelOpen) return;
-    helpPanelOpen = false;
-    document.body.classList.remove("spotui-help-panel");
-    const panel = document.getElementById("spotui-help-panel");
-    if (panel) {
-        panel.hidden = true;
-    }
+function setPanelState(panelId, className, openVarName, targetState) {
+    const panels = {
+        'helpPanelOpen': () => helpPanelOpen = targetState,
+        'aboutPanelOpen': () => aboutPanelOpen = targetState
+    };
+    if (panels[openVarName]) panels[openVarName]();
+    document.body.classList.toggle(className, targetState);
+    const panel = document.getElementById(panelId);
+    if (panel) panel.hidden = !targetState;
     const input = document.getElementById("spotui-input");
-    if (input) input.focus();
-    document.removeEventListener("keydown", handleGlobalEsc);
+    if (input) {
+        if (targetState) input.blur();
+        else input.focus();
+    }
+    if (targetState) document.addEventListener("keydown", handleGlobalEsc);
+    else document.removeEventListener("keydown", handleGlobalEsc);
 }
 
+function closeHelpPanel() { if (helpPanelOpen) setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false); }
+
 function openHelpPanel() {
-    if (helpPanelOpen) {
-        closeHelpPanel();
-        return;
-    }
+    if (helpPanelOpen) { closeHelpPanel(); return; }
     if (lyricsPanelOpen) closeLyricsPanel();
     if (playlistPanelOpen) closePlaylistPanel();
     if (aboutPanelOpen) closeAboutPanel();
 
-    helpPanelOpen = true;
-    document.body.classList.add("spotui-help-panel");
-    document.addEventListener("keydown", handleGlobalEsc);
+    setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", true);
     const panel = document.getElementById("spotui-help-panel");
     if (panel) {
-        panel.hidden = false;
         panel.innerHTML = COMMAND_LIST.map(
             item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
         ).join('');
     }
-    const input = document.getElementById("spotui-input");
-    if (input) input.blur();
 }
 
-function closeAboutPanel() {
-    if (!aboutPanelOpen) return;
-    aboutPanelOpen = false;
-    document.body.classList.remove("spotui-about-panel");
-    const panel = document.getElementById("spotui-about-panel");
-    if (panel) {
-        panel.hidden = true;
-    }
-    const input = document.getElementById("spotui-input");
-    if (input) input.focus();
-    document.removeEventListener("keydown", handleGlobalEsc);
-}
+function closeAboutPanel() { if (aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false); }
 
 function openAboutPanel() {
-    if (aboutPanelOpen) {
-        closeAboutPanel();
-        return;
-    }
+    if (aboutPanelOpen) { closeAboutPanel(); return; }
     if (lyricsPanelOpen) closeLyricsPanel();
     if (playlistPanelOpen) closePlaylistPanel();
     if (helpPanelOpen) closeHelpPanel();
 
-    aboutPanelOpen = true;
-    document.body.classList.add("spotui-about-panel");
-    document.addEventListener("keydown", handleGlobalEsc);
+    setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", true);
     const panel = document.getElementById("spotui-about-panel");
     if (panel) {
-        panel.hidden = false;
         panel.innerHTML = `
 <div class="help-item"><span class="command">Developer</span><span class="description">SkenS</span></div>
 <div class="help-item"><span class="command">Repository</span><span class="description"><a href="https://github.com/SkenSMasteR/SpoTUI">https://github.com/SkenSMasteR/SpoTUI</a></span></div>
@@ -1523,29 +1309,20 @@ function openAboutPanel() {
 <div class="help-item"><span class="command">Contact</span><span class="description"><a href="mailto:receive@gmx.us">receive@gmx.us</a></span></div>
         `;
     }
-    const input = document.getElementById("spotui-input");
-    if (input) input.blur();
 }
-
-
 
 function closePlaylistPanel() {
     playlistPanelOpen = false;
     document.body.classList.remove("spotui-playlist-panel");
     const panel = document.getElementById("spotui-playlist-panel");
-    if (panel) {
-        panel.hidden = true;
-    }
+    if (panel) panel.hidden = true;
     const input = document.getElementById("spotui-input");
     if (input) input.focus();
     document.removeEventListener("keydown", handlePlaylistPanelKeydown);
 }
 
 async function openPlaylistPanel() {
-    if (playlistPanelOpen) {
-        closePlaylistPanel();
-        return;
-    }
+    if (playlistPanelOpen) { closePlaylistPanel(); return; }
     if (lyricsPanelOpen) closeLyricsPanel();
     if (helpPanelOpen) closeHelpPanel();
 
@@ -1559,9 +1336,7 @@ async function openPlaylistPanel() {
     playlistPanelOpen = true;
     document.body.classList.add("spotui-playlist-panel");
     const panel = document.getElementById("spotui-playlist-panel");
-    if (panel) {
-        panel.hidden = false;
-    }
+    if (panel) panel.hidden = false;
 
     const input = document.getElementById("spotui-input");
     if (input) input.blur();
@@ -1577,16 +1352,12 @@ async function openPlaylistPanel() {
 async function renderPlaylistPanel() {
     const playlistList = document.getElementById("spotui-playlist-list");
     const songList = document.getElementById("spotui-song-list");
-
     if (!playlistList || !songList) return;
 
     playlistList.innerHTML = "";
     playlists.forEach((p, idx) => {
         const item = document.createElement("div");
-        item.className = "playlist-item";
-        if (idx === selectedPlaylist) {
-            item.classList.add("selected");
-        }
+        item.className = "playlist-item" + (idx === selectedPlaylist ? " selected" : "");
         item.textContent = p.name;
         playlistList.appendChild(item);
     });
@@ -1608,10 +1379,7 @@ async function renderPlaylistPanel() {
     songList.innerHTML = "";
     playlistSongs.forEach((s, idx) => {
         const item = document.createElement("div");
-        item.className = "song-item";
-        if (idx === selectedSong && activePane === 'song') {
-            item.classList.add("selected");
-        }
+        item.className = "song-item" + (idx === selectedSong && activePane === 'song' ? " selected" : "");
         item.textContent = `${s.name} - ${s.artist}`;
         songList.appendChild(item);
     });
@@ -1621,9 +1389,7 @@ async function renderPlaylistPanel() {
 
 function scrollSelectedIntoView() {
     const selectedItem = document.querySelector(activePane === 'playlist' ? '.playlist-item.selected' : '.song-item.selected');
-    if (selectedItem) {
-        selectedItem.scrollIntoView({ block: 'nearest' });
-    }
+    if (selectedItem) selectedItem.scrollIntoView({ block: 'nearest' });
 }
 
 async function handlePlaylistPanelKeydown(e) {
@@ -1677,7 +1443,6 @@ async function handlePlaylistPanelKeydown(e) {
         }
     }
 }
-
 
 function getTrackTitle(track, index = 0) {
     const meta = track?.metadata || track?.contextTrack?.metadata || {};
@@ -1740,16 +1505,10 @@ function handleRepeatCommand(kind, arg) {
         const targetMode = kind === "loop" ? 1 : 2;
         let nextMode = targetMode;
 
-        if (arg === "on") {
-            nextMode = targetMode;
-        } else if (arg === "off") {
-            nextMode = 0;
-        } else if (arg === "") {
-            nextMode = current === targetMode ? 0 : targetMode;
-        } else {
-            print(`Usage: /${kind} [on|off]`);
-            return;
-        }
+        if (arg === "on") nextMode = targetMode;
+        else if (arg === "off") nextMode = 0;
+        else if (arg === "") nextMode = current === targetMode ? 0 : targetMode;
+        else { print(`Usage: /${kind} [on|off]`); return; }
 
         Spicetify.Player.setRepeat(nextMode);
         print(`${kind === "loop" ? "Loop" : "Superloop"}: ${nextMode === 0 ? "OFF" : "ON"}`);
@@ -1775,7 +1534,6 @@ async function getPlaylists() {
 }
 
 const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
-
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
 let lyricsActiveIndex = -1;
@@ -1866,7 +1624,7 @@ async function fetchLrclibLyrics(info) {
             const result = normalizeLrclibPayload(data);
             if (result) return result;
         }
-    } catch { /* try search */ }
+    } catch { }
     try {
         const searchParams = new URLSearchParams({
             track_name: info.title,
@@ -1982,8 +1740,8 @@ async function loadLyricsForCurrentTrack() {
 
     if (lyricsCache.uri === info.uri && (lyricsCache.lines.length || lyricsCache.instrumental || lyricsCache.error)) {
         setLyricsHeader(info, lyricsCache.instrumental ? "instrumental" : `${lyricsCache.synced ? "synced" : "unsynced"} · ${lyricsCache.provider || "cache"}`);
-        if (lyricsCache.instrumental) { renderLyricsEmpty("Instrumental", "No vocals to show for this track."); }
-        else if (lyricsCache.error) { renderLyricsEmpty("No lyrics", lyricsCache.error); }
+        if (lyricsCache.instrumental) renderLyricsEmpty("Instrumental", "No vocals to show for this track.");
+        else if (lyricsCache.error) renderLyricsEmpty("No lyrics", lyricsCache.error);
         else { renderLyricsLines(lyricsCache.lines, lyricsCache.synced); syncLyricsHighlight(true); }
         return;
     }
@@ -2011,7 +1769,7 @@ async function loadLyricsForCurrentTrack() {
 }
 
 function storeLyricsOpen(open) {
-    try { localStorage.setItem(LYRICS_STORAGE_KEY, open ? "1" : "0"); } catch { /* ignore */ }
+    try { localStorage.setItem(LYRICS_STORAGE_KEY, open ? "1" : "0"); } catch { }
 }
 
 function openLyricsPanel() {
@@ -2077,16 +1835,13 @@ injectStyle();
 setTimeout(createCopyButton, 500);
 setTimeout(initLyricsBridge, 1000);
 
-if (Spicetify?.Platform) {
-    createTerminal();
-} else {
-    setTimeout(createTerminal, 1500);
-}
+if (Spicetify?.Platform) createTerminal();
+else setTimeout(createTerminal, 1500);
 
 try {
     if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
         setTimeout(() => openLyricsPanel(), 2000);
     }
-} catch { /* ignore */ }
+} catch { }
 
 })();
