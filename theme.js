@@ -337,7 +337,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     height: 60vh;
     border: 1px solid #ff8c42;
     border-radius: 4px;
-    background: #000;
+    background: transparent;
 }
 
 body.spotui-help-panel #spotui-help-panel,
