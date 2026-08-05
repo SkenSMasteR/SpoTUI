@@ -1293,6 +1293,26 @@ async function execute(cmd) {
         return;
     }
 
+    if (command === "seek" || command === "s") {
+        try {
+            if (!argText) {
+                print("Usage: seek <mm:ss>");
+                return;
+            }
+            const parts = argText.split(':').map(Number);
+            if (parts.length !== 2 || parts.some(isNaN)) {
+                print("Invalid time format. Use mm:ss.");
+                return;
+            }
+            const seekMs = (parts[0] * 60 + parts[1]) * 1000;
+            Spicetify.Player.seek(seekMs);
+            print(`Seeked to ${argText}`);
+        } catch (err) {
+            print("Seek error: " + err.message);
+        }
+        return;
+    }
+
     if (command === "volume" || command === "v") {
         try {
             if (!argText) {
@@ -1377,6 +1397,7 @@ const COMMAND_LIST = [
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
     { cmd: "back", desc: "Previous track" },
+    { cmd: "s / seek <mm:ss>", desc: "Jump to a specific time" },
     { cmd: "v / volume <%>", desc: "Set volume" },
     { cmd: "shuffle", desc: "Toggle shuffle" },
     { cmd: "loop / superloop", desc: "Toggle repeat mode" },
