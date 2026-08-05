@@ -72,11 +72,12 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 
 | Command                | Description                    |
 | -----------------------| -------------------------------|
-| `tui -m [cli\|cmd]`    | Switch TUI mode                |
+| `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
+| `tui -wp off`          | Remove wallpaper               |
 | `playlist` / `list`    | Open playlist viewer           |
 | `play` / `pause` / `p` | Toggle playback                |
 | `skip`                 | Next track                     |
-| `back`                 | Previous track                 |
+| `s` / `seek <mm:ss>`      | Jump to a specific time        |
 | `v` / `volume <%>`     | Set volume (0-100)             |
 | `shuffle`              | Toggle shuffle                 |
 | `loop` / `superloop`   | Toggle repeat mode             |

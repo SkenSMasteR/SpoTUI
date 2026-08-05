@@ -921,7 +921,12 @@ function setWallpaper(url, opacity, save = true) {
     }
     wp.style.backgroundImage = `url("${url}")`;
     wp.style.opacity = opacity;
-    tui.style.background = "transparent";
+    tui.style.backgroundColor = "transparent";
+    const children = tui.querySelectorAll(':not(#spotui-wallpaper)');
+    children.forEach(c => {
+        if (window.getComputedStyle(c).position === 'static') c.style.position = 'relative';
+        c.style.zIndex = '1';
+    });
     if (save) {
         try {
             localStorage.setItem(WP_URL_KEY, url);
@@ -936,25 +941,9 @@ function setTuiMode(mode) {
     document.body.classList.toggle("spotui-command-mode", tuiMode !== "cli");
 }
 
-function createCopyButton() {
+function createControlButtons() {
     const controls = document.createElement("div");
     controls.id = "spotui-controls";
-
-    const copyBtn = document.createElement("button");
-    copyBtn.id = "copy-log-btn";
-    copyBtn.className = "spotui-control-btn";
-    copyBtn.textContent = "Copy log";
-    copyBtn.addEventListener("click", () => {
-        const output = document.getElementById("spotui-output");
-        if (output) {
-            navigator.clipboard.writeText(output.innerText).then(() => {
-                copyBtn.textContent = "Copied!";
-                setTimeout(() => { copyBtn.textContent = "Copy log"; }, 1500);
-            }).catch(() => {
-                alert("Copy failed. Please manually select and copy.");
-            });
-        }
-    });
 
     const hideBtn = document.createElement("button");
     hideBtn.id = "hide-tui-btn";
@@ -983,7 +972,6 @@ function createCopyButton() {
         }
     });
 
-    controls.appendChild(copyBtn);
     controls.appendChild(hideBtn);
     controls.appendChild(spotifyBtn);
     (document.getElementById("spotui-footer") || document.body).appendChild(controls);
@@ -1000,6 +988,8 @@ function createCopyButton() {
     });
     document.body.appendChild(backBtn);
 }
+
+setTimeout(createControlButtons, 500);
 
 function detectLyricsSurface() {
     return Boolean(
@@ -1110,23 +1100,12 @@ function createTerminal() {
     });
 }
 
-function print(text) {
-    if (tuiMode !== "cli") return;
-    const output = document.getElementById("spotui-output");
-    const line = document.createElement("div");
-    line.className = "cl-line";
-    line.textContent = text;
-    output.prepend(line);
-    output.scrollTop = 0;
-}
+function print(text) {}
 
 async function runPlayerAction(actionName, promiseFn, successMsg) {
     try {
-        const res = await promiseFn();
-        print(successMsg ?? `Executed ${actionName}`);
-    } catch (err) {
-        print(`${actionName} error: ${err.message}`);
-    }
+        await promiseFn();
+    } catch (err) {}
 }
 
 async function execute(cmd) {
@@ -1136,32 +1115,19 @@ async function execute(cmd) {
     const argText = args.join(" ").trim();
 
     if (command === "tui") {
-        if (args[0] === "-m") {
-            const mode = args[1];
-            if (!mode || (mode !== "cli" && mode !== "command")) {
-                print("Usage: tui -m [command|cli]");
-                return;
-            }
-            setTuiMode(mode);
-            print(`TUI mode: ${mode}`);
-            return;
-        }
         if (args[0] === "-wp") {
             const url = args[1];
             if (url === "off") {
                 const wp = document.getElementById("spotui-wallpaper");
                 if (wp) wp.remove();
                 try { localStorage.removeItem(WP_URL_KEY); localStorage.removeItem(WP_OPACITY_KEY); } catch {}
-                print("Wallpaper disabled");
                 return;
             }
             const opacityIdx = args.indexOf("-o");
             const opacity = (opacityIdx !== -1 && args[opacityIdx + 1]) ? args[opacityIdx + 1] : "1";
             setWallpaper(url, opacity);
-            print(`Wallpaper set: ${url} (opacity: ${opacity})`);
             return;
         }
-        print("Usage: tui -m [command|cli] or tui -wp <url> [-o <opacity>]");
         return;
     }
 
@@ -1171,18 +1137,18 @@ async function execute(cmd) {
     if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
 
     const playerMap = {
-        play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play", success: "Playing" },
-        pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause", success: "Paused" },
-        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle", success: Spicetify.Player.isPlaying() ? "Paused" : "Playing" },
-        skip: { fn: () => Spicetify.Player.next(), name: "Skip", success: "Skipped to next track" },
-        back: { fn: () => Spicetify.Player.back(), name: "Back", success: "Went back to previous track" },
-        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle", success: !Spicetify.Player.getShuffle() ? "ON" : "OFF" },
-        like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like", success: Spicetify.Player.getHeart() ? "Unliked song" : "Liked song" }
+        play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play" },
+        pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause" },
+        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle" },
+        skip: { fn: () => Spicetify.Player.next(), name: "Skip" },
+        back: { fn: () => Spicetify.Player.back(), name: "Back" },
+        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle" },
+        like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like" }
     };
 
     if (playerMap[command]) {
         const act = playerMap[command];
-        await runPlayerAction(act.name, act.fn, act.success);
+        try { await act.fn(); } catch {}
         return;
     }
 
@@ -1193,30 +1159,28 @@ async function execute(cmd) {
     }
 
     if (command === "seek" || command === "s") {
-        await runPlayerAction("Seek", () => {
-            if (!argText) throw new Error("Usage: seek <mm:ss>");
+        try {
+            if (!argText) return;
             const parts = argText.split(':').map(Number);
-            if (parts.length !== 2 || parts.some(isNaN)) throw new Error("Invalid time format. Use mm:ss.");
+            if (parts.length !== 2 || parts.some(isNaN)) return;
             Spicetify.Player.seek((parts[0] * 60 + parts[1]) * 1000);
-        }, `Seeked to ${argText}`);
+        } catch {}
         return;
     }
 
     if (command === "volume" || command === "v") {
-        await runPlayerAction("Volume", () => {
-            if (!argText) throw new Error("Usage: volume <0-100>");
+        try {
+            if (!argText) return;
             const percent = Number(argText);
-            if (!Number.isFinite(percent) || percent < 0 || percent > 100) throw new Error("Volume must be between 0 and 100.");
+            if (!Number.isFinite(percent) || percent < 0 || percent > 100) return;
             Spicetify.Player.setVolume(percent / 100);
-        }, `Volume is ${Math.round(Number(argText))}%`);
+        } catch {}
         return;
     }
 
     if (command === "loop") { handleRepeatCommand("loop", argText); return; }
     if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
     if (command === "lyrics") { handleLyricsCommand(argText); return; }
-
-    print("Unknown command. Type /help");
 }
 
 function renderResults() {
@@ -1240,7 +1204,6 @@ let helpPanelOpen = false;
 let aboutPanelOpen = false;
 
 const COMMAND_LIST = [
-    { cmd: "tui -m [cli|cmd]", desc: "Switch TUI mode" },
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
@@ -1511,13 +1474,10 @@ function handleRepeatCommand(kind, arg) {
         if (arg === "on") nextMode = targetMode;
         else if (arg === "off") nextMode = 0;
         else if (arg === "") nextMode = current === targetMode ? 0 : targetMode;
-        else { print(`Usage: /${kind} [on|off]`); return; }
+        else return;
 
         Spicetify.Player.setRepeat(nextMode);
-        print(`${kind === "loop" ? "Loop" : "Superloop"}: ${nextMode === 0 ? "OFF" : "ON"}`);
-    } catch (err) {
-        print(`${kind === "loop" ? "Loop" : "Superloop"} error: ${err.message}`);
-    }
+    } catch (err) {}
 }
 
 async function getPlaylists() {
@@ -1828,15 +1788,14 @@ function bindLyricsEvents() {
 
 function handleLyricsCommand(arg) {
     const mode = String(arg || "").trim().toLowerCase();
-    if (mode === "on" || mode === "open") { openLyricsPanel(); print("Lyrics open"); return; }
-    if (mode === "off" || mode === "close") { closeLyricsPanel(); print("Lyrics closed"); return; }
-    if (mode && mode !== "toggle") { print("Usage: lyrics [on|off]"); return; }
-    if (lyricsPanelOpen) { closeLyricsPanel(); print("Lyrics closed"); }
-    else { openLyricsPanel(); print("Lyrics open"); }
+    if (mode === "on" || mode === "open") { openLyricsPanel(); return; }
+    if (mode === "off" || mode === "close") { closeLyricsPanel(); return; }
+    if (mode && mode !== "toggle") return;
+    if (lyricsPanelOpen) { closeLyricsPanel(); }
+    else { openLyricsPanel(); }
 }
 
 injectStyle();
-setTimeout(createCopyButton, 500);
 setTimeout(initLyricsBridge, 1000);
 
 if (Spicetify?.Platform) createTerminal();
