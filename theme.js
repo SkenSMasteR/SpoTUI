@@ -1517,10 +1517,10 @@ function openAboutPanel() {
     if (panel) {
         panel.hidden = false;
         panel.innerHTML = `
-<div class="help-item"><span class="command">Version</span><span class="description">chore(theme): moved all comments to LNotes</span></div>
 <div class="help-item"><span class="command">Developer</span><span class="description">SkenS</span></div>
 <div class="help-item"><span class="command">Repository</span><span class="description"><a href="https://github.com/SkenSMasteR/SpoTUI">https://github.com/SkenSMasteR/SpoTUI</a></span></div>
 <div class="help-item"><span class="command">Docs</span><span class="description"><a href="https://skensmaster.github.io/SpoTUI-Docs/">https://skensmaster.github.io/SpoTUI-Docs/</a></span></div>
+<div class="help-item"><span class="command">Contact</span><span class="description"><a href="mailto:receive@gmx.us">receive@gmx.us</a></span></div>
         `;
     }
     const input = document.getElementById("spotui-input");
