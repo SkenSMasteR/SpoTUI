@@ -1127,6 +1127,24 @@ async function execute(cmd) {
     const argText = args.join(" ").trim();
 
     if (command === "tui") {
+        if (args.includes("-wp")) {
+            const urlIdx = args.indexOf("-wp") + 1;
+            const url = args[urlIdx];
+            if (url === "off") {
+                const wp = document.getElementById("spotui-wallpaper");
+                if (wp) wp.remove();
+                localStorage.removeItem(WP_URL_KEY);
+                localStorage.removeItem(WP_OPACITY_KEY);
+                return;
+            }
+            if (url) {
+                let opacity = "1";
+                const oIdx = args.indexOf("-o");
+                if (oIdx !== -1 && args[oIdx + 1]) opacity = args[oIdx + 1];
+                setWallpaper(url, opacity);
+            }
+            return;
+        }
         if (args.includes("-l") || args.includes("-a")) {
             const state = args[args.length - 1];
             if (state === "off") {
