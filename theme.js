@@ -1354,21 +1354,16 @@ async function handlePlaylistPanelKeydown(e) {
         return;
     }
 
+    const isPlaylist = activePane === 'playlist';
     if (e.key === "ArrowUp") {
         e.preventDefault();
-        if (activePane === 'playlist') {
-            if (playlists.length) selectedPlaylist = (selectedPlaylist - 1 + playlists.length) % playlists.length;
-        } else {
-            if (playlistSongs.length) selectedSong = (selectedSong - 1 + playlistSongs.length) % playlistSongs.length;
-        }
+        if (isPlaylist && playlists.length) selectedPlaylist = (selectedPlaylist - 1 + playlists.length) % playlists.length;
+        if (!isPlaylist && playlistSongs.length) selectedSong = (selectedSong - 1 + playlistSongs.length) % playlistSongs.length;
         await renderPlaylistPanel();
     } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        if (activePane === 'playlist') {
-            if (playlists.length) selectedPlaylist = (selectedPlaylist + 1) % playlists.length;
-        } else {
-            if (playlistSongs.length) selectedSong = (selectedSong + 1) % playlistSongs.length;
-        }
+        if (isPlaylist && playlists.length) selectedPlaylist = (selectedPlaylist + 1) % playlists.length;
+        if (!isPlaylist && playlistSongs.length) selectedSong = (selectedSong + 1) % playlistSongs.length;
         await renderPlaylistPanel();
     } else if (e.key === "ArrowLeft") {
         e.preventDefault();
@@ -1380,7 +1375,7 @@ async function handlePlaylistPanelKeydown(e) {
         await renderPlaylistPanel();
     } else if (e.key === "Enter") {
         e.preventDefault();
-        if (activePane === 'playlist') {
+        if (isPlaylist) {
             const p = playlists[selectedPlaylist];
             if (p) {
                 Spicetify.Player.playUri(p.uri);
