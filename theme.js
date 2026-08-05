@@ -3,10 +3,7 @@
 const style = `
 #spotui-tui {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 90px;
+    top: 0; left: 0; right: 0; bottom: 90px;
     width: 100vw;
     background: #000;
     color: #ddd;
@@ -57,9 +54,7 @@ body.spotui-about-panel #spotui-logo {
 #spotui-top-fade {
     display: none;
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 120px;
     background: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0));
     pointer-events: none;
@@ -260,8 +255,7 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
 .spotui-lyrics-fade {
     pointer-events: none;
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 0; right: 0;
     height: 72px;
     z-index: 2;
 }
@@ -1125,41 +1119,25 @@ async function execute(cmd) {
     if (command === "clear") { document.getElementById("spotui-output").textContent = ""; return; }
     if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
 
-    if (command === "play") {
-        await runPlayerAction("Play", async () => {
-            if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay();
-        }, "Playing");
-        return;
-    }
+    const playerMap = {
+        play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play", success: "Playing" },
+        pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause", success: "Paused" },
+        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle", success: Spicetify.Player.isPlaying() ? "Paused" : "Playing" },
+        skip: { fn: () => Spicetify.Player.next(), name: "Skip", success: "Skipped to next track" },
+        back: { fn: () => Spicetify.Player.back(), name: "Back", success: "Went back to previous track" },
+        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle", success: !Spicetify.Player.getShuffle() ? "ON" : "OFF" },
+        like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like", success: Spicetify.Player.getHeart() ? "Unliked song" : "Liked song" }
+    };
 
-    if (command === "pause") {
-        await runPlayerAction("Pause", async () => {
-            if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay();
-        }, "Paused");
-        return;
-    }
-
-    if (command === "p") {
-        await runPlayerAction("Play/PauseToggle", async () => {
-            const wasPlaying = Spicetify.Player.isPlaying();
-            Spicetify.Player.togglePlay();
-            return wasPlaying;
-        }, Spicetify.Player.isPlaying() ? "Paused" : "Playing");
+    if (playerMap[command]) {
+        const act = playerMap[command];
+        await runPlayerAction(act.name, act.fn, act.success);
         return;
     }
 
     if (command === "search") {
         document.body.classList.add("spotui-search-mode", "spotui-tui-hidden");
         syncLyricsState();
-        return;
-    }
-
-    if (command === "skip") {
-        await runPlayerAction("Skip", () => Spicetify.Player.next(), "Skipped to next track");
-        return;
-    }
-    if (command === "back") {
-        await runPlayerAction("Back", () => Spicetify.Player.back(), "Went back to previous track");
         return;
     }
 
@@ -1183,27 +1161,8 @@ async function execute(cmd) {
         return;
     }
 
-    if (command === "shuffle") {
-        await runPlayerAction("Shuffle", () => {
-            const current = Spicetify.Player.getShuffle();
-            Spicetify.Player.setShuffle(!current);
-            return current;
-        }, "Shuffle: " + (!Spicetify.Player.getShuffle() ? "ON" : "OFF"));
-        return;
-    }
-
     if (command === "loop") { handleRepeatCommand("loop", argText); return; }
     if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
-
-    if (command === "like") {
-        await runPlayerAction("Like", async () => {
-            const isLiked = await Spicetify.Player.getHeart();
-            await Spicetify.Player.toggleHeart();
-            return isLiked;
-        }, Spicetify.Player.getHeart() ? "Unliked song" : "Liked song");
-        return;
-    }
-
     if (command === "lyrics") { handleLyricsCommand(argText); return; }
 
     print("Unknown command. Type /help");
