@@ -1430,7 +1430,7 @@ async function openThemePanel() {
         createCard.className = 'theme-card';
         createCard.innerHTML = `
             <h3>Add yours</h3>
-            <img src="https://imgs.search.brave.com/qsWzCiBrdeOE9PQmFvp0eS0rfLyVkcm97DyHxEXGNBk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLm1h/Z25pZmljLmNvbS8y/NTYvMTAwODQvMTAw/ODQzOTAucG5nP3Nl/bXQ9YWlzX3doaXRl/X2xhYmVs" alt="Add Theme">
+            <img src="https://imgs.search.brave.com/2VYp5kTKXFu84NcOgmYXQM8zyBByOalm9xwmIOX4Lp8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvOTU5Ni85NTk2/MTU2LnBuZw" alt="Add Theme">
             <button>Add</button>
         `;
         createCard.querySelector('button').addEventListener('click', () => {
