@@ -1419,7 +1419,7 @@ async function openThemePanel() {
     panel.innerHTML = "<p>Loading themes...</p>";
 
     const script = document.createElement('script');
-    script.src = `${THEME_HOST}themes.js`;
+    script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
 
     script.onload = () => {
         const themes = window.spotuiThemes || [];
