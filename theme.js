@@ -336,14 +336,14 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     display: none;
     flex: 1 1 auto;
     flex-direction: column;
-    padding: 20px;
+    padding: 30px;
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     margin: 33vh 5vw 8px;
     height: 60vh;
-    border: 1px solid #ff8c42;
-    border-radius: 4px;
+    border: 1px solid rgba(255, 140, 66, 0.3);
+    border-radius: 6px;
     background: transparent;
 }
 
@@ -355,8 +355,9 @@ body.spotui-theme-panel #spotui-theme-panel {
 
 .theme-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    padding: 12px;
 }
 
 .theme-card {
@@ -366,6 +367,12 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
 }
 
 .theme-card img {
@@ -377,20 +384,28 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .theme-card h3 {
-    margin: 10px 0 5px;
+    margin: 10px 0 10px;
     color: #ff8c42;
+    font-weight: 600;
 }
 
 .theme-card button {
     background: #ff8c42;
     color: #000;
     border: none;
-    padding: 6px 12px;
+    padding: 8px 12px;
     font-family: "JetBrains Mono", monospace;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     border-radius: 4px;
     margin-top: auto;
+    width: 100%;
+    transition: background-color 0.2s ease;
+}
+
+.theme-card button:hover {
+    background-color: #e07b39;
 }
 
 .help-item {
@@ -1105,6 +1120,28 @@ function initLyricsBridge() {
     }
 }
 
+function applyThemeByName(themeName) {
+    const script = document.createElement('script');
+    script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
+
+    script.onload = () => {
+        const themes = window.spotuiThemes || [];
+        const theme = themes.find(t => t.name === themeName);
+
+        if (theme && theme.commands) {
+            theme.commands.forEach(cmd => execute(cmd));
+        }
+
+        document.body.removeChild(script);
+    };
+
+    script.onerror = () => {
+        document.body.removeChild(script);
+    };
+
+    document.body.appendChild(script);
+}
+
 function createTerminal() {
     const box = document.createElement("div");
     box.id = "spotui-tui";
@@ -1193,6 +1230,17 @@ async function execute(cmd) {
             }
             return;
         }
+        if (args.includes("-t")) {
+            const tIndex = args.indexOf("-t");
+            if (args[tIndex+1] === "pull" && args[tIndex+2]) {
+                const base64Name = args[tIndex+2];
+                try {
+                    const themeName = atob(base64Name);
+                    applyThemeByName(themeName);
+                } catch (e) {}
+            }
+            return;
+        }
         if (args.includes("-l") || args.includes("-a")) {
             const state = args[args.length - 1];
             if (state === "off") {
@@ -1210,7 +1258,6 @@ async function execute(cmd) {
 
     if (command === "help") { openHelpPanel(); return; }
     if (command === "about") { openAboutPanel(); return; }
-    if (command === "clear") { document.getElementById("spotui-output").textContent = ""; return; }
     if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
     if (command === "theme") { openThemePanel(); return; }
 
@@ -1286,6 +1333,7 @@ const COMMAND_LIST = [
     { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
+    { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1297,7 +1345,6 @@ const COMMAND_LIST = [
     { cmd: "like", desc: "Like/unlike current song" },
     { cmd: "lyrics", desc: "Toggle lyrics panel" },
     { cmd: "search", desc: "Open Spotify search" },
-    { cmd: "clear", desc: "Clear the TUI output" },
     { cmd: "about", desc: "Show about panel" },
     { cmd: "theme", desc: "Browse and apply themes" },
     { cmd: "help", desc: "Show this panel" },
@@ -1423,8 +1470,25 @@ async function openThemePanel() {
 
     script.onload = () => {
         const themes = window.spotuiThemes || [];
-        panel.innerHTML = '<div class="theme-grid"></div>';
+        panel.innerHTML = `
+            <div style="margin-bottom: 20px; display: flex;">
+                <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+            </div>
+            <div class="theme-grid"></div>
+        `;
         const grid = panel.querySelector('.theme-grid');
+        const searchInput = document.getElementById('spotui-theme-search');
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = grid.querySelectorAll('.theme-card');
+            cards.forEach(card => {
+                const title = card.querySelector('h3')?.textContent.toLowerCase();
+                if (title) {
+                    card.style.display = title.includes(searchTerm) ? '' : 'none';
+                }
+            });
+        });
 
         const createCard = document.createElement('div');
         createCard.className = 'theme-card';
@@ -1462,7 +1526,12 @@ async function openThemePanel() {
     };
 
     script.onerror = () => {
-        panel.innerHTML = `<p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>`;
+        panel.innerHTML = `
+            <div style="margin-bottom: 20px; display: flex;">
+                 <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
+            </div>
+            <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
+        `;
         const grid = document.createElement('div');
         grid.className = 'theme-grid';
 

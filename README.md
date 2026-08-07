@@ -74,6 +74,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | -----------------------| -------------------------------|
 | `tui -l -a <on/off>`   | Toggle ASCII animation         |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
+| `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
 | `tui -wp off`          | Remove wallpaper               |
 | `playlist` / `list`    | Open playlist viewer           |
 | `play` / `pause` / `p` | Toggle playback                |
@@ -84,7 +85,6 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `loop` / `superloop`   | Toggle repeat mode             |
 | `lyrics`               | Toggle lyrics panel            |
 | `search`               | Open Spotify's native search   |
-| `clear`                | Clear the TUI output           |
 | `theme`                | Browse and apply themes        |
 | `help`                 | Show the help panel            |
 
