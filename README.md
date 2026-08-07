@@ -85,7 +85,15 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `lyrics`               | Toggle lyrics panel            |
 | `search`               | Open Spotify's native search   |
 | `clear`                | Clear the TUI output           |
+| `theme`                | Browse and apply themes        |
 | `help`                 | Show the help panel            |
+
+## Contributing
+
+You can add your own theme to the theme browser by visiting [spotui.root.sx](https://spotui.root.sx/).
+
+**Note**: You can only submit one theme every 24 hours.
+
 
 
 ## Notable forks of my project
