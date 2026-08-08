@@ -82,6 +82,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -bar off` | Reset player bar colors |
 | `tui -progress -bg <#hex> -fg <#hex>` | Set progress bar colors |
 | `tui -progress off` | Reset progress bar colors |
+| `tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>` | Set input colors |
+| `tui -inputs off` | Reset input colors |
 | `playlist` / `list`    | Open playlist viewer           |
 | `play` / `pause` / `p` | Toggle playback                |
 | `skip`                 | Next track                     |

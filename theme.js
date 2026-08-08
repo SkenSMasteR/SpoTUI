@@ -166,7 +166,7 @@ body.spotui-cli-mode #spotui-output {
     gap: 12px;
     padding-top: 12px;
     margin-top: auto;
-    border-top: 1px solid rgba(255, 140, 66, 0.18);
+    border-top: 1px solid var(--input-border-color, rgba(255, 140, 66, 0.18));
     position: relative;
     z-index: 1;
     transition: opacity 260ms ease, transform 260ms ease;
@@ -176,14 +176,14 @@ body.spotui-cli-mode #spotui-output {
     background: transparent;
     border: none;
     outline: none;
-    color: #ff8c42;
+    color: var(--input-text-color, #ff8c42);
     font-family: inherit;
     font-size: inherit;
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.prompt { color: #ff8c42; }
+.prompt { color: var(--input-text-color, #ff8c42); }
 .cl-line, .result { margin-bottom: 8px; user-select: text; }
 .result { padding: 5px; }
 .selected { background: #ff8c42; color: #000; }
@@ -485,8 +485,8 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .spotui-control-btn {
-    background: #ff8c42;
-    color: #000;
+    background: var(--input-bg-color, #ff8c42);
+    color: var(--input-text-color, #000);
     border: none;
     padding: 6px 12px;
     font-family: "JetBrains Mono", monospace;
@@ -496,7 +496,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .spotui-control-btn:hover {
-    background: #e07b39;
+    background: var(--input-bg-hover-color, #e07b39);
 }
 
 body.spotui-tui-hidden #spotui-tui {
@@ -1065,6 +1065,30 @@ function applyProgressBarColors() {
     }
 }
 
+function applyInputColors() {
+    try {
+        const bg = localStorage.getItem(INPUT_BG);
+        const bgHover = localStorage.getItem(INPUT_BG_HOVER);
+        const text = localStorage.getItem(INPUT_TEXT);
+        const border = localStorage.getItem(INPUT_BORDER);
+
+        const root = document.documentElement;
+        if (bg) root.style.setProperty("--input-bg-color", bg);
+        else root.style.removeProperty("--input-bg-color");
+
+        if (bgHover) root.style.setProperty("--input-bg-hover-color", bgHover);
+        else root.style.removeProperty("--input-bg-hover-color");
+
+        if (text) root.style.setProperty("--input-text-color", text);
+        else root.style.removeProperty("--input-text-color");
+
+        if (border) root.style.setProperty("--input-border-color", border);
+        else root.style.removeProperty("--input-border-color");
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply input colors", e);
+    }
+}
+
 function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
@@ -1346,6 +1370,26 @@ async function execute(cmd) {
             applyProgressBarColors();
             return;
         }
+        if (args.includes("-inputs")) {
+            if (args.includes("off")) {
+                localStorage.removeItem(INPUT_BG);
+                localStorage.removeItem(INPUT_BG_HOVER);
+                localStorage.removeItem(INPUT_TEXT);
+                localStorage.removeItem(INPUT_BORDER);
+            } else {
+                const bgIndex = args.indexOf("-bg");
+                const bgHoverIndex = args.indexOf("-bg-hover");
+                const textIndex = args.indexOf("-text");
+                const borderIndex = args.indexOf("-border");
+
+                if (bgIndex !== -1) localStorage.setItem(INPUT_BG, args[bgIndex + 1]);
+                if (bgHoverIndex !== -1) localStorage.setItem(INPUT_BG_HOVER, args[bgHoverIndex + 1]);
+                if (textIndex !== -1) localStorage.setItem(INPUT_TEXT, args[textIndex + 1]);
+                if (borderIndex !== -1) localStorage.setItem(INPUT_BORDER, args[borderIndex + 1]);
+            }
+            applyInputColors();
+            return;
+        }
         if (args.includes("-l") || args.includes("-a")) {
             const state = args[args.length - 1];
             if (state === "off") {
@@ -1445,6 +1489,8 @@ const COMMAND_LIST = [
     { cmd: "tui -bar off", desc: "Reset player bar colors" },
     { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
     { cmd: "tui -progress off", desc: "Reset progress bar colors" },
+    { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
+    { cmd: "tui -inputs off", desc: "Reset input colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1853,6 +1899,10 @@ const PLAYER_BAR_BORDER = "spotui:player-bar-border";
 const PLAYER_BAR_TEXT = "spotui:player-bar-text";
 const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
 const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
+const INPUT_BG = "spotui:input-bg";
+const INPUT_BG_HOVER = "spotui:input-bg-hover";
+const INPUT_TEXT = "spotui:input-text";
+const INPUT_BORDER = "spotui:input-border";
 
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
@@ -2190,6 +2240,7 @@ try {
     applyLyricColors();
     applyPlayerBarColors();
     applyProgressBarColors();
+    applyInputColors();
 } catch { }
 
 })();
