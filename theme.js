@@ -1029,6 +1029,42 @@ function applyLyricColors() {
     }
 }
 
+function applyPlayerBarColors() {
+    try {
+        const bg = localStorage.getItem(PLAYER_BAR_BG);
+        const border = localStorage.getItem(PLAYER_BAR_BORDER);
+        const text = localStorage.getItem(PLAYER_BAR_TEXT);
+
+        const root = document.documentElement;
+        if (bg) root.style.setProperty("--player-bar-background", bg);
+        else root.style.removeProperty("--player-bar-background");
+
+        if (border) root.style.setProperty("--player-bar-border-color", border);
+        else root.style.removeProperty("--player-bar-border-color");
+
+        if (text) root.style.setProperty("--player-bar-text-color", text);
+        else root.style.removeProperty("--player-bar-text-color");
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply player bar colors", e);
+    }
+}
+
+function applyProgressBarColors() {
+    try {
+        const bg = localStorage.getItem(PROGRESS_BAR_BG);
+        const fg = localStorage.getItem(PROGRESS_BAR_FG);
+
+        const root = document.documentElement;
+        if (bg) root.style.setProperty("--progress-bar-background", bg);
+        else root.style.removeProperty("--progress-bar-background");
+
+        if (fg) root.style.setProperty("--progress-bar-foreground", fg);
+        else root.style.removeProperty("--progress-bar-foreground");
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply progress bar colors", e);
+    }
+}
+
 function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
@@ -1263,21 +1299,51 @@ async function execute(cmd) {
             return;
         }
         if (args.includes("-ly") && args.includes("-cp")) {
-            const cpIndex = args.indexOf("-cp");
-            if (args[cpIndex + 1] === "off") {
+            if (args.includes("off")) {
                 localStorage.removeItem(LYRICS_COLOR_ACTIVE);
                 localStorage.removeItem(LYRICS_COLOR_INACTIVE);
                 localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
             } else {
-                const colorActive = args[cpIndex + 1];
-                const colorInactive = args[cpIndex + 2];
-                const colorLightInactive = args[cpIndex + 3];
+                const activeIndex = args.indexOf("-active");
+                const inactiveIndex = args.indexOf("-inactive");
+                const nearIndex = args.indexOf("-near");
 
-                if (colorActive) localStorage.setItem(LYRICS_COLOR_ACTIVE, colorActive);
-                if (colorInactive) localStorage.setItem(LYRICS_COLOR_INACTIVE, colorInactive);
-                if (colorLightInactive) localStorage.setItem(LYRICS_COLOR_LIGHT_INACTIVE, colorLightInactive);
+                if (activeIndex !== -1) localStorage.setItem(LYRICS_COLOR_ACTIVE, args[activeIndex + 1]);
+                if (inactiveIndex !== -1) localStorage.setItem(LYRICS_COLOR_INACTIVE, args[inactiveIndex + 1]);
+                if (nearIndex !== -1) localStorage.setItem(LYRICS_COLOR_LIGHT_INACTIVE, args[nearIndex + 1]);
             }
             applyLyricColors();
+            return;
+        }
+        if (args.includes("-bar")) {
+            if (args.includes("off")) {
+                localStorage.removeItem(PLAYER_BAR_BG);
+                localStorage.removeItem(PLAYER_BAR_BORDER);
+                localStorage.removeItem(PLAYER_BAR_TEXT);
+            } else {
+                const bgIndex = args.indexOf("-bg");
+                const borderIndex = args.indexOf("-border");
+                const textIndex = args.indexOf("-text");
+
+                if (bgIndex !== -1) localStorage.setItem(PLAYER_BAR_BG, args[bgIndex + 1]);
+                if (borderIndex !== -1) localStorage.setItem(PLAYER_BAR_BORDER, args[borderIndex + 1]);
+                if (textIndex !== -1) localStorage.setItem(PLAYER_BAR_TEXT, args[textIndex + 1]);
+            }
+            applyPlayerBarColors();
+            return;
+        }
+        if (args.includes("-progress")) {
+            if (args.includes("off")) {
+                localStorage.removeItem(PROGRESS_BAR_BG);
+                localStorage.removeItem(PROGRESS_BAR_FG);
+            } else {
+                const bgIndex = args.indexOf("-bg");
+                const fgIndex = args.indexOf("-fg");
+
+                if (bgIndex !== -1) localStorage.setItem(PROGRESS_BAR_BG, args[bgIndex + 1]);
+                if (fgIndex !== -1) localStorage.setItem(PROGRESS_BAR_FG, args[fgIndex + 1]);
+            }
+            applyProgressBarColors();
             return;
         }
         if (args.includes("-l") || args.includes("-a")) {
@@ -1373,8 +1439,12 @@ const COMMAND_LIST = [
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
-    { cmd: "tui -ly -cp &lt;active&gt; &lt;inactive&gt; &lt;light_inactive&gt;", desc: "Set lyrics colors (hex)" },
+    { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
+    { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
+    { cmd: "tui -bar off", desc: "Reset player bar colors" },
+    { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
+    { cmd: "tui -progress off", desc: "Reset progress bar colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1778,6 +1848,11 @@ const WP_OPACITY_KEY = "spotui:wp-opacity";
 const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
 const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
 const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
+const PLAYER_BAR_BG = "spotui:player-bar-bg";
+const PLAYER_BAR_BORDER = "spotui:player-bar-border";
+const PLAYER_BAR_TEXT = "spotui:player-bar-text";
+const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
+const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
 
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
@@ -2088,6 +2163,15 @@ function resetAllSettings() {
     localStorage.removeItem(LYRICS_COLOR_INACTIVE);
     localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
     applyLyricColors();
+
+    localStorage.removeItem(PLAYER_BAR_BG);
+    localStorage.removeItem(PLAYER_BAR_BORDER);
+    localStorage.removeItem(PLAYER_BAR_TEXT);
+    applyPlayerBarColors();
+
+    localStorage.removeItem(PROGRESS_BAR_BG);
+    localStorage.removeItem(PROGRESS_BAR_FG);
+    applyProgressBarColors();
 }
 
 injectStyle();
@@ -2104,6 +2188,8 @@ try {
         setTimeout(() => setWallpaper(localStorage.getItem(WP_URL_KEY), localStorage.getItem(WP_OPACITY_KEY) || "1", false), 1500);
     }
     applyLyricColors();
+    applyPlayerBarColors();
+    applyProgressBarColors();
 } catch { }
 
 })();

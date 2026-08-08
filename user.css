@@ -147,10 +147,10 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    background: #000 !important;
-    border-top: 1px solid #ff8c42;
+    background: var(--player-bar-background, #000) !important;
+    border-top: 1px solid var(--player-bar-border-color, #ff8c42);
     box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.18);
-    color: #ddd !important;
+    color: var(--player-bar-text-color, #ddd) !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
 
@@ -180,14 +180,15 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 }
 
 .Root__now-playing-bar .main-trackInfo-name {
-    color: #ff8c42 !important;
+    color: var(--player-bar-text-color, #ff8c42) !important;
     font-family: inherit !important;
     letter-spacing: 0.02em;
 }
 
 .Root__now-playing-bar .main-trackInfo-artists a,
 .Root__now-playing-bar .main-trackInfo-artists {
-    color: #b8b8b8 !important;
+    color: var(--player-bar-text-color, #b8b8b8) !important;
+    opacity: 0.7;
     font-family: inherit !important;
 }
 
@@ -195,24 +196,25 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 .Root__now-playing-bar .main-nowPlayingBar-container [role="button"],
 .Root__now-playing-bar .volume-bar__icon-button {
     border-radius: 0 !important;
-    color: #ff8c42 !important;
+    color: var(--player-bar-text-color, #ff8c42) !important;
 }
 
 .Root__now-playing-bar .main-nowPlayingBar-container button:hover,
 .Root__now-playing-bar .main-nowPlayingBar-container [role="button"]:hover,
 .Root__now-playing-bar .volume-bar__icon-button:hover {
-    color: #ffb26f !important;
+    color: var(--player-bar-text-color, #ffb26f) !important;
+    opacity: 0.8;
 }
 
 .Root__now-playing-bar .x-progressBar-progressBarBg,
 .Root__now-playing-bar .x-progressBar-progressBar {
-    background: #202020 !important;
+    background: var(--progress-bar-background, #202020) !important;
 }
 
 .Root__now-playing-bar .x-progressBar-progressFillColor,
 .Root__now-playing-bar .x-progressBar-fillColor,
 .Root__now-playing-bar .x-progressBar-handle {
-    background: #ff8c42 !important;
+    background: var(--progress-bar-foreground, #ff8c42) !important;
 }
 
 .Root__now-playing-bar .volume-bar {
