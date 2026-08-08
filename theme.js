@@ -192,6 +192,10 @@ body.spotui-lyrics-panel #spotui-logo {
     display: flex !important;
 }
 
+body.logo-off #spotui-logo {
+    display: none !important;
+}
+
 #spotui-lyrics {
     display: none;
     flex: 1 1 auto;
@@ -1292,7 +1296,36 @@ async function execute(cmd) {
     const [command, ...args] = cleanedCmd.split(/\s+/);
     const argText = args.join(" ").trim();
 
+    function toggleLogo(state) {
+        if (state === "on") {
+            document.body.classList.remove("logo-off");
+            localStorage.setItem("spotui:logo-visible", "on");
+        } else if (state === "off") {
+            document.body.classList.add("logo-off");
+            localStorage.setItem("spotui:logo-visible", "off");
+        }
+    }
+
     if (command === "tui") {
+        if (args.includes("-l") && args.includes("-a")) {
+            const state = args[args.length - 1];
+            if (state === "off") {
+                asciiEnabled = false;
+                resetGrid();
+                try { localStorage.setItem(ANIMATION_KEY, "off"); } catch(e) {}
+            } else if (state === "on") {
+                asciiEnabled = true;
+                try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
+            }
+            return;
+        }
+        if (args[0] === "-l") {
+            const state = args[1];
+            if (state === "on" || state === "off") {
+                toggleLogo(state);
+            }
+            return;
+        }
         if (args.includes("-wp")) {
             const urlIdx = args.indexOf("-wp") + 1;
             const url = args[urlIdx];
@@ -1390,18 +1423,6 @@ async function execute(cmd) {
             applyInputColors();
             return;
         }
-        if (args.includes("-l") || args.includes("-a")) {
-            const state = args[args.length - 1];
-            if (state === "off") {
-                asciiEnabled = false;
-                resetGrid();
-                try { localStorage.setItem(ANIMATION_KEY, "off"); } catch(e) {}
-            } else if (state === "on") {
-                asciiEnabled = true;
-                try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
-            }
-            return;
-        }
         return;
     }
 
@@ -1479,6 +1500,7 @@ let aboutPanelOpen = false;
 let themePanelOpen = false;
 
 const COMMAND_LIST = [
+    { cmd: "tui -l &lt;on/off&gt;", desc: "Toggle ASCII logo visibility" },
     { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
@@ -2209,6 +2231,9 @@ function resetAllSettings() {
     asciiEnabled = true;
     try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
 
+    try { localStorage.removeItem("spotui:logo-visible"); } catch(e) {}
+    document.body.classList.remove("logo-off");
+
     localStorage.removeItem(LYRICS_COLOR_ACTIVE);
     localStorage.removeItem(LYRICS_COLOR_INACTIVE);
     localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
@@ -2232,6 +2257,10 @@ function resetAllSettings() {
 
 injectStyle();
 setTimeout(initLyricsBridge, 1000);
+
+if (localStorage.getItem("spotui:logo-visible") === "off") {
+    document.body.classList.add("logo-off");
+}
 
 if (Spicetify?.Platform) createTerminal();
 else setTimeout(createTerminal, 1500);

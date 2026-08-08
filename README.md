@@ -72,6 +72,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 
 | Command                | Description                    |
 | -----------------------| -------------------------------|
+| `tui -l <on/off>`      | Toggle ASCII logo visibility   |
 | `tui -l -a <on/off>`   | Toggle ASCII animation         |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
 | `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
