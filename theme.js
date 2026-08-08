@@ -2222,6 +2222,12 @@ function resetAllSettings() {
     localStorage.removeItem(PROGRESS_BAR_BG);
     localStorage.removeItem(PROGRESS_BAR_FG);
     applyProgressBarColors();
+
+    localStorage.removeItem(INPUT_BG);
+    localStorage.removeItem(INPUT_BG_HOVER);
+    localStorage.removeItem(INPUT_TEXT);
+    localStorage.removeItem(INPUT_BORDER);
+    applyInputColors();
 }
 
 injectStyle();
