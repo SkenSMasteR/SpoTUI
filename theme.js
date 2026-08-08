@@ -500,13 +500,13 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 body.spotui-tui-hidden #spotui-tui {
-		    display: none !important;
-		}
+			    display: none !important;
+			}
 
-		body:not(.spotui-tui-hidden) .main-topBar-container,
-		body:not(.spotui-tui-hidden) header {
-		    display: none !important;
-		}
+			body:not(.spotui-tui-hidden) .main-topBar-container,
+			body:not(.spotui-tui-hidden) header {
+			    display: none !important;
+			}
 `;
 
 const SPOTUI_ASCII_ART = [
@@ -1145,6 +1145,7 @@ function applyThemeByName(themeName) {
     script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
 
     script.onload = () => {
+        resetAllSettings();
         const themes = window.spotuiThemes || [];
         const theme = themes.find(t => t.name === themeName);
 
@@ -1556,6 +1557,7 @@ async function openThemePanel() {
 
         grid.addEventListener('click', e => {
             if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
+                resetAllSettings();
                 const commands = JSON.parse(e.target.dataset.commands);
                 commands.forEach(cmd => execute(cmd));
                 closeThemePanel();
@@ -2071,6 +2073,21 @@ function handleLyricsCommand(arg) {
     if (mode && mode !== "toggle") return;
     if (lyricsPanelOpen) { closeLyricsPanel(); }
     else { openLyricsPanel(); }
+}
+
+function resetAllSettings() {
+    const wp = document.getElementById("spotui-wallpaper");
+    if (wp) wp.remove();
+    localStorage.removeItem(WP_URL_KEY);
+    localStorage.removeItem(WP_OPACITY_KEY);
+
+    asciiEnabled = true;
+    try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
+
+    localStorage.removeItem(LYRICS_COLOR_ACTIVE);
+    localStorage.removeItem(LYRICS_COLOR_INACTIVE);
+    localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
+    applyLyricColors();
 }
 
 injectStyle();
