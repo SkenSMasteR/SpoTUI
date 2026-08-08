@@ -76,6 +76,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
 | `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
 | `tui -wp off`          | Remove wallpaper               |
+| `tui -ly -cp <active> <inactive> <light_inactive>` | Set lyrics colors (hex) |
+| `tui -ly -cp off` | Reset lyrics colors |
 | `playlist` / `list`    | Open playlist viewer           |
 | `play` / `pause` / `p` | Toggle playback                |
 | `skip`                 | Next track                     |

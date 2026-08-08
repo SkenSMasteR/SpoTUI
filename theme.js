@@ -281,7 +281,7 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
 }
 
 .spotui-lyrics-line {
-    color: #777;
+    color: var(--lyrics-color-inactive, #777);
     font-size: 17px;
     line-height: 1.45;
     padding: 10px 8px;
@@ -295,13 +295,13 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
 }
 
 .spotui-lyrics-line.near {
-    color: #b3b3b3;
+    color: var(--lyrics-color-light-inactive, #b3b3b3);
     opacity: 0.72;
     transform: scale(0.98);
 }
 
 .spotui-lyrics-line.active {
-    color: #ff8c42;
+    color: var(--lyrics-color-active, #ff8c42);
     opacity: 1;
     transform: scale(1.06);
     font-weight: 600;
@@ -1009,6 +1009,26 @@ function setWallpaper(url, opacity, save = true) {
     }
 }
 
+function applyLyricColors() {
+    try {
+        const activeColor = localStorage.getItem(LYRICS_COLOR_ACTIVE);
+        const inactiveColor = localStorage.getItem(LYRICS_COLOR_INACTIVE);
+        const lightInactiveColor = localStorage.getItem(LYRICS_COLOR_LIGHT_INACTIVE);
+
+        const root = document.documentElement;
+        if (activeColor) root.style.setProperty("--lyrics-color-active", activeColor);
+        else root.style.removeProperty("--lyrics-color-active");
+
+        if (inactiveColor) root.style.setProperty("--lyrics-color-inactive", inactiveColor);
+        else root.style.removeProperty("--lyrics-color-inactive");
+
+        if (lightInactiveColor) root.style.setProperty("--lyrics-color-light-inactive", lightInactiveColor);
+        else root.style.removeProperty("--lyrics-color-light-inactive");
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply lyric colors", e);
+    }
+}
+
 function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
@@ -1241,6 +1261,24 @@ async function execute(cmd) {
             }
             return;
         }
+        if (args.includes("-ly") && args.includes("-cp")) {
+            const cpIndex = args.indexOf("-cp");
+            if (args[cpIndex + 1] === "off") {
+                localStorage.removeItem(LYRICS_COLOR_ACTIVE);
+                localStorage.removeItem(LYRICS_COLOR_INACTIVE);
+                localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
+            } else {
+                const colorActive = args[cpIndex + 1];
+                const colorInactive = args[cpIndex + 2];
+                const colorLightInactive = args[cpIndex + 3];
+
+                if (colorActive) localStorage.setItem(LYRICS_COLOR_ACTIVE, colorActive);
+                if (colorInactive) localStorage.setItem(LYRICS_COLOR_INACTIVE, colorInactive);
+                if (colorLightInactive) localStorage.setItem(LYRICS_COLOR_LIGHT_INACTIVE, colorLightInactive);
+            }
+            applyLyricColors();
+            return;
+        }
         if (args.includes("-l") || args.includes("-a")) {
             const state = args[args.length - 1];
             if (state === "off") {
@@ -1334,6 +1372,8 @@ const COMMAND_LIST = [
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
+    { cmd: "tui -ly -cp &lt;active&gt; &lt;inactive&gt; &lt;light_inactive&gt;", desc: "Set lyrics colors (hex)" },
+    { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1733,6 +1773,9 @@ async function getPlaylists() {
 const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
 const WP_URL_KEY = "spotui:wp-url";
 const WP_OPACITY_KEY = "spotui:wp-opacity";
+const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
+const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
+const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
 
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
@@ -2043,6 +2086,7 @@ try {
     if (localStorage.getItem(WP_URL_KEY)) {
         setTimeout(() => setWallpaper(localStorage.getItem(WP_URL_KEY), localStorage.getItem(WP_OPACITY_KEY) || "1", false), 1500);
     }
+    applyLyricColors();
 } catch { }
 
 })();
