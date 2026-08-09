@@ -1,11 +1,5 @@
-$ThemeName   = "SpoTUI"
-$RepoUrl     = "https://github.com/SkenSMasteR/SpoTUI"
-$ThemesDir   = Join-Path $env:APPDATA "spicetify\Themes"
-$ThemePath   = Join-Path $ThemesDir $ThemeName
-
 $Esc   = [char]27
 $Reset = "$Esc[0m"
-$AnsiPattern = "$Esc\[[0-9;]*m"
 
 $BlockFull  = [char]0x2588
 $BlockLower = [char]0x2584
@@ -16,7 +10,7 @@ function Enable-VTMode {
     $sig = @"
 using System;
 using System.Runtime.InteropServices;
-public static class SpoTUINative {
+public static class SpoTUIInstallerNative {
     [DllImport("kernel32.dll")]
     public static extern IntPtr GetStdHandle(int nStdHandle);
     [DllImport("kernel32.dll")]
@@ -27,10 +21,10 @@ public static class SpoTUINative {
 "@
     try {
         Add-Type -TypeDefinition $sig -ErrorAction SilentlyContinue
-        $handle = [SpoTUINative]::GetStdHandle(-11)
+        $handle = [SpoTUIInstallerNative]::GetStdHandle(-11)
         $mode = 0
-        [SpoTUINative]::GetConsoleMode($handle, [ref]$mode) | Out-Null
-        [SpoTUINative]::SetConsoleMode($handle, $mode -bor 0x0004) | Out-Null
+        [SpoTUIInstallerNative]::GetConsoleMode($handle, [ref]$mode) | Out-Null
+        [SpoTUIInstallerNative]::SetConsoleMode($handle, $mode -bor 0x0004) | Out-Null
     } catch {}
 }
 Enable-VTMode
@@ -38,6 +32,8 @@ Enable-VTMode
 try {
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 } catch {}
+
+$ProgressPreference = 'SilentlyContinue'
 
 function Get-RGBCode($r, $g, $b) {
     return "$Esc[38;2;$r;$g;${b}m"
@@ -47,17 +43,8 @@ $OrangeLight = Get-RGBCode 255 140 66
 $OrangeDark  = Get-RGBCode 224 123 57
 $OrangeMid   = Get-RGBCode 240 131 61
 $GreenAnsi   = Get-RGBCode 140 255 140
-$SelectBg    = "$Esc[48;2;255;140;66m$Esc[38;2;0;0;0m"
-
-$White = "White"
-$Gray  = "DarkGray"
-$Red   = "Red"
-$Green = "Green"
-$Cyan  = "Cyan"
-
-# Tracks whether we've already attempted a winget update this session,
-# so Test-Dependencies doesn't re-run it on every menu action.
-$script:WingetUpdateAttempted = $false
+$RedAnsi     = Get-RGBCode 255 110 110
+$GrayAnsi    = Get-RGBCode 130 130 130
 
 function Get-GradientColor($index, $total) {
     $r1 = 255; $g1 = 140; $b1 = 66
@@ -78,9 +65,8 @@ function Get-AsciiArtLine($template) {
     return $out
 }
 
-function Get-HeaderLines {
-    $lines = @()
-    $lines += ""
+function Show-Header {
+    Clear-Host
     $templates = @(
         "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA    AAA    AB   BA  ",
         "  AAA    AAA   AAA    AAA AAA    AAA CAAAAAAAAAB AAA    AAA AAA  ",
@@ -91,607 +77,110 @@ function Get-HeaderLines {
         "   BA    AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  ",
         " BAAAAAAAAC   BAAAAC       CAAAAAAC     BAAAAC   AAAAAAAAC  AC   "
     )
+    Write-Host ""
     for ($i = 0; $i -lt $templates.Count; $i++) {
         $color = Get-GradientColor $i $templates.Count
         $line = Get-AsciiArtLine $templates[$i]
-        $lines += "$color$line$Reset"
+        Write-Host "$color$line$Reset"
     }
-    $lines += ""
-    $lines += "$OrangeMid                     Spicetify Theme Manager$Reset"
-    $lines += "$OrangeDark  =============================================================$Reset"
-    $lines += ""
-    return $lines
-}
-
-function Show-Header {
-    Clear-Host
-    foreach ($line in (Get-HeaderLines)) {
-        Write-Host $line
-    }
-}
-
-function Get-VisibleLength($text) {
-    $stripped = $text -replace $AnsiPattern, ""
-    return $stripped.Length
-}
-
-function Write-Frame($lines) {
-    try { [Console]::SetCursorPosition(0, 0) } catch {}
-    $width = 80
-    try { $width = $Host.UI.RawUI.WindowSize.Width } catch {}
-    foreach ($line in $lines) {
-        $visible = Get-VisibleLength $line
-        $pad = $width - $visible - 1
-        if ($pad -lt 0) { $pad = 0 }
-        Write-Host ($line + (" " * $pad))
-    }
-}
-
-function Get-ConsoleHeight {
-    $height = 30
-    try { $height = $Host.UI.RawUI.WindowSize.Height } catch {}
-    return $height
-}
-
-function Refresh-Path {
-    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    $env:Path = "$machinePath;$userPath"
-}
-
-function Update-Winget {
-    Write-Host "$OrangeMid  Updating winget...$Reset"
-
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        try {
-            $proc = Start-Process -FilePath "winget" -ArgumentList "upgrade","--id","Microsoft.AppInstaller","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru -WindowStyle Hidden
-            Write-Host "  winget upgrade exited with code $($proc.ExitCode)" -ForegroundColor $Gray
-        } catch {
-            Write-Host "  winget upgrade command failed to run." -ForegroundColor $Red
-        }
-
-        try {
-            winget source reset --force | Out-Null
-        } catch {}
-
-        return
-    }
-
-    Write-Host "  winget command not found. Installing App Installer from GitHub release..." -ForegroundColor $Gray
-    try {
-        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest"
-        $asset = $release.assets | Where-Object { $_.name -like "*.msixbundle" } | Select-Object -First 1
-
-        if (-not $asset) {
-            Write-Host "  Could not find a .msixbundle asset in the latest release." -ForegroundColor $Red
-            return
-        }
-
-        $downloadPath = Join-Path $env:TEMP $asset.name
-        Write-Host "  Downloading $($asset.name)..." -ForegroundColor $Gray
-        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $downloadPath
-
-        Write-Host "  Installing package..." -ForegroundColor $Gray
-        Add-AppxPackage -Path $downloadPath -ErrorAction Stop
-
-        Write-Host "  App Installer installed successfully." -ForegroundColor $Green
-        Remove-Item $downloadPath -Force -ErrorAction SilentlyContinue
-    }
-    catch {
-        Write-Host "  Failed to install App Installer automatically: $($_.Exception.Message)" -ForegroundColor $Red
-        Write-Host "  You can install it manually from the Microsoft Store (search 'App Installer')." -ForegroundColor $Gray
-    }
-
-    Refresh-Path
-}
-
-function Install-Dependency($name) {
-    if ($name -eq "git") {
-        if (Get-Command winget -ErrorAction SilentlyContinue) {
-            Write-Host "  Launching winget to install Git..." -ForegroundColor $Gray
-            $proc = Start-Process -FilePath "winget" -ArgumentList "install","--id","Git.Git","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru
-            Write-Host "  winget exited with code $($proc.ExitCode)" -ForegroundColor $Gray
-
-            # 0xC0000005 = access violation / winget crash. Update winget once and retry.
-            if ($proc.ExitCode -eq -1073741819 -and -not $script:WingetUpdateAttempted) {
-                Write-Host "  winget crashed. Attempting to update winget and retry..." -ForegroundColor $Red
-                $script:WingetUpdateAttempted = $true
-                Update-Winget
-
-                Write-Host "  Retrying Git install..." -ForegroundColor $Gray
-                $proc = Start-Process -FilePath "winget" -ArgumentList "install","--id","Git.Git","-e","--source","winget","--accept-package-agreements","--accept-source-agreements" -Wait -PassThru
-                Write-Host "  winget exited with code $($proc.ExitCode)" -ForegroundColor $Gray
-            }
-
-            Refresh-Path
-            $tries = 0
-            while (-not (Get-Command git -ErrorAction SilentlyContinue) -and $tries -lt 10) {
-                Start-Sleep -Seconds 1
-                Refresh-Path
-                $tries++
-            }
-        }
-        else {
-            Write-Host "  winget was not found. Install Git manually from https://git-scm.com/download/win" -ForegroundColor $Red
-        }
-    }
-    elseif ($name -eq "spicetify") {
-        $installCommand = "iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex"
-        Write-Host "  Opening a new window to install Spicetify. Waiting for it to finish..." -ForegroundColor $Gray
-        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $installCommand -Wait
-        Write-Host "  Spicetify installer window closed." -ForegroundColor $Gray
-        Refresh-Path
-    }
-}
-
-function Test-Dependencies {
-    $missing = @()
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $missing += "git" }
-    if (-not (Get-Command spicetify -ErrorAction SilentlyContinue)) { $missing += "spicetify" }
-
-    if ($missing.Count -eq 0) {
-        return $true
-    }
-
-    Write-Host "  Missing dependencies: $($missing -join ', ')" -ForegroundColor $Red
     Write-Host ""
-    $confirm = Read-Host "  Press I to install them now, or any other key to cancel"
-    if ($confirm -ne "I" -and $confirm -ne "i") {
-        return $false
-    }
-
-    foreach ($dep in $missing) {
-        Write-Host ""
-        Write-Host "$OrangeMid  Installing $dep...$Reset"
-        Install-Dependency $dep
-    }
-
-    Write-Host ""
-    Write-Host "$OrangeMid  Refreshing environment PATH...$Reset"
-    Refresh-Path
-
-    $stillMissing = @()
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $stillMissing += "git" }
-    if (-not (Get-Command spicetify -ErrorAction SilentlyContinue)) { $stillMissing += "spicetify" }
-
-    if ($stillMissing.Count -gt 0) {
-        Write-Host ""
-        Write-Host "  Still missing: $($stillMissing -join ', '). You may need to restart your terminal." -ForegroundColor $Red
-        return $false
-    }
-
-    Write-Host ""
-    Write-Host "  All dependencies installed successfully." -ForegroundColor $Green
-    return $true
-}
-
-function Get-DefaultBranch {
-    Push-Location $ThemePath
-    $ref = git symbolic-ref refs/remotes/origin/HEAD 2>$null
-    Pop-Location
-    if ($ref) {
-        $parts = $ref -split "/"
-        return $parts[$parts.Count - 1]
-    }
-    return "main"
-}
-
-function Test-IsDetached {
-    Push-Location $ThemePath
-    git symbolic-ref -q HEAD | Out-Null
-    $attached = $?
-    Pop-Location
-    return -not $attached
-}
-
-function Get-ThemeStatusDetailed {
-    if (-not (Test-Path $ThemePath)) {
-        return @{ Text = "Not Installed"; Color = $Red }
-    }
-
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        return @{ Text = "Installed"; Color = $Green }
-    }
-
-    Push-Location $ThemePath
-    git fetch origin --quiet 2>$null
-    $localHash = (git rev-parse HEAD 2>$null)
-    Pop-Location
-
-    if (Test-IsDetached) {
-        $shortHash = if ($localHash) { $localHash.Substring(0, 7) } else { "unknown" }
-        return @{ Text = "Installed (custom commit $shortHash)"; Color = $Cyan }
-    }
-
-    $branch = Get-DefaultBranch
-    Push-Location $ThemePath
-    $remoteHash = (git rev-parse "origin/$branch" 2>$null)
-    Pop-Location
-
-    if (-not $localHash -or -not $remoteHash) {
-        return @{ Text = "Installed"; Color = $Green }
-    }
-
-    if ($localHash -eq $remoteHash) {
-        return @{ Text = "Installed (up to date)"; Color = $Green }
-    }
-
-    return @{ Text = "Installed (outdated)"; Color = $Red }
-}
-
-function Install-Theme {
-    Show-Header
-    Write-Host "$OrangeLight  Installing $ThemeName...$Reset"
-    Write-Host ""
-
-    if (-not (Test-Dependencies)) {
-        Pause-Return
-        return
-    }
-
-    if (-not (Test-Path $ThemesDir)) {
-        New-Item -ItemType Directory -Path $ThemesDir -Force | Out-Null
-    }
-
-    if (Test-Path $ThemePath) {
-        Write-Host "$OrangeMid  Theme already exists locally. Pulling latest changes...$Reset"
-        Push-Location $ThemePath
-        git pull
-        Pop-Location
-    }
-    else {
-        Push-Location $ThemesDir
-        git clone $RepoUrl $ThemeName
-        Pop-Location
-    }
-
-    if (Test-Path $ThemePath) {
-        Write-Host ""
-        Write-Host "$OrangeMid  Setting current theme to $ThemeName...$Reset"
-        spicetify config current_theme $ThemeName
-
-        Write-Host "$OrangeMid  Applying Spicetify...$Reset"
-        spicetify apply
-
-        Write-Host ""
-        Write-Host "  $ThemeName installed and applied successfully." -ForegroundColor $Green
-    }
-    else {
-        Write-Host ""
-        Write-Host "  Installation failed. Check the errors above." -ForegroundColor $Red
-    }
-
-    Pause-Return
-}
-
-function Update-Theme {
-    Show-Header
-    Write-Host "$OrangeLight  Updating $ThemeName...$Reset"
-    Write-Host ""
-
-    if (-not (Test-Path $ThemePath)) {
-        Write-Host "  $ThemeName is not installed. Use Install instead." -ForegroundColor $Red
-        Pause-Return
-        return
-    }
-
-    if (-not (Test-Dependencies)) {
-        Pause-Return
-        return
-    }
-
-    if (Test-IsDetached) {
-        $branch = Get-DefaultBranch
-        Write-Host "$OrangeMid  Currently on a custom commit. Returning to $branch...$Reset"
-        Push-Location $ThemePath
-        git checkout $branch --quiet
-        Pop-Location
-    }
-
-    Push-Location $ThemePath
-    git pull
-    Pop-Location
-
-    Write-Host ""
-    Write-Host "$OrangeMid  Re-applying Spicetify...$Reset"
-    spicetify apply
-
-    Write-Host ""
-    Write-Host "  $ThemeName updated successfully." -ForegroundColor $Green
-    Pause-Return
-}
-
-function Uninstall-Theme {
-    Show-Header
-    Write-Host "$OrangeLight  Uninstalling $ThemeName...$Reset"
-    Write-Host ""
-
-    if (-not (Test-Path $ThemePath)) {
-        Write-Host "  $ThemeName is not installed." -ForegroundColor $Red
-        Pause-Return
-        return
-    }
-
-    Write-Host "  This will remove the theme folder and switch to Marketplace." -ForegroundColor $Gray
-    $confirm = Read-Host "  Type Y to confirm"
-    if ($confirm -ne "Y" -and $confirm -ne "y") {
-        Write-Host "  Cancelled." -ForegroundColor $Gray
-        Pause-Return
-        return
-    }
-
-    if (Get-Command spicetify -ErrorAction SilentlyContinue) {
-        Write-Host "$OrangeMid  Switching Spicetify theme...$Reset"
-        spicetify config current_theme SpoTUI-
-        spicetify config current_theme marketplace
-        spicetify apply
-    }
-
-    Remove-Item -Path $ThemePath -Recurse -Force
-
-    Write-Host ""
-    Write-Host "  $ThemeName has been uninstalled." -ForegroundColor $Green
-    Pause-Return
-}
-
-function Read-ArrowSelection {
-    param(
-        [string[]]$Items,
-        [int]$CurrentIndex = -1,
-        [string[]]$TitleLines
-    )
-
-    $selectedIndex = 0
-    if ($CurrentIndex -ge 0) { $selectedIndex = $CurrentIndex }
-
-    $headerLines = Get-HeaderLines
-    $overheadLines = $headerLines.Count + $TitleLines.Count + 4
-
-    $pageSize = (Get-ConsoleHeight) - $overheadLines
-    if ($pageSize -gt $Items.Count) { $pageSize = $Items.Count }
-    if ($pageSize -lt 1) { $pageSize = 1 }
-
-    Clear-Host
-    try { [Console]::CursorVisible = $false } catch {}
-
-    while ($true) {
-        $totalPages = [Math]::Ceiling($Items.Count / $pageSize)
-        if ($totalPages -lt 1) { $totalPages = 1 }
-        $currentPage = [Math]::Floor($selectedIndex / $pageSize)
-        $pageStart = $currentPage * $pageSize
-        $pageEnd = $pageStart + $pageSize - 1
-        if ($pageEnd -gt ($Items.Count - 1)) { $pageEnd = $Items.Count - 1 }
-
-        $frame = @()
-        $frame += $headerLines
-        $frame += $TitleLines
-
-        for ($i = $pageStart; $i -le $pageEnd; $i++) {
-            $prefix = if ($i -eq $CurrentIndex) { "> " } else { "  " }
-            $text = "$prefix$($Items[$i])"
-            if ($i -eq $selectedIndex) {
-                $frame += "$SelectBg$text$Reset"
-            }
-            elseif ($i -eq $CurrentIndex) {
-                $frame += "$GreenAnsi$text$Reset"
-            }
-            else {
-                $frame += $text
-            }
-        }
-
-        $linesUsed = $pageEnd - $pageStart + 1
-        for ($p = $linesUsed; $p -lt $pageSize; $p++) {
-            $frame += ""
-        }
-
-        $frame += ""
-        $frame += "$OrangeDark  =============================================================$Reset"
-        $frame += "  Up/Down to move, Enter to select, Esc to go back   Page $($currentPage + 1) of $totalPages"
-
-        Write-Frame $frame
-
-        $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        $code = $key.VirtualKeyCode
-
-        if ($code -eq 38) {
-            if ($selectedIndex -gt 0) { $selectedIndex-- } else { $selectedIndex = $Items.Count - 1 }
-        }
-        elseif ($code -eq 40) {
-            if ($selectedIndex -lt $Items.Count - 1) { $selectedIndex++ } else { $selectedIndex = 0 }
-        }
-        elseif ($code -eq 13) {
-            try { [Console]::CursorVisible = $true } catch {}
-            return $selectedIndex
-        }
-        elseif ($code -eq 27) {
-            try { [Console]::CursorVisible = $true } catch {}
-            return -1
-        }
-    }
-}
-
-function Get-CommitList {
-    Push-Location $ThemePath
-    git fetch origin --quiet 2>$null
-    $rawLog = git log --all --pretty=format:"%H|%h|%ad|%s" --date=short
-    Pop-Location
-
-    $commits = @()
-    foreach ($line in $rawLog) {
-        $parts = $line -split "\|", 4
-        if ($parts.Count -eq 4) {
-            $commits += [PSCustomObject]@{
-                FullHash  = $parts[0]
-                ShortHash = $parts[1]
-                Date      = $parts[2]
-                Subject   = $parts[3]
-            }
-        }
-    }
-    return $commits
-}
-
-function Show-CommitHistory {
-    if (-not (Test-Path $ThemePath)) {
-        Show-Header
-        Write-Host "  $ThemeName is not installed." -ForegroundColor $Red
-        Pause-Return
-        return
-    }
-
-    if (-not (Test-Dependencies)) {
-        Pause-Return
-        return
-    }
-
-    $viewing = $true
-    while ($viewing) {
-        $commits = Get-CommitList
-        if ($commits.Count -eq 0) {
-            Show-Header
-            Write-Host "  No commits found." -ForegroundColor $Red
-            Pause-Return
-            return
-        }
-
-        Push-Location $ThemePath
-        $currentHash = (git rev-parse HEAD 2>$null)
-        Pop-Location
-
-        $currentIndex = -1
-        $items = @()
-        for ($i = 0; $i -lt $commits.Count; $i++) {
-            $commit = $commits[$i]
-            $items += "$($commit.ShortHash)  $($commit.Date)  $($commit.Subject)"
-            if ($commit.FullHash -eq $currentHash) {
-                $currentIndex = $i
-            }
-        }
-        $returnLatestIndex = $items.Count
-        $items += "Return to latest version"
-        $backIndex = $items.Count
-        $items += "Back"
-
-        $titleLines = @("$OrangeLight  Commit History$Reset", "")
-
-        $selection = Read-ArrowSelection -Items $items -CurrentIndex $currentIndex -TitleLines $titleLines
-
-        if ($selection -eq -1 -or $selection -eq $backIndex) {
-            $viewing = $false
-        }
-        elseif ($selection -eq $returnLatestIndex) {
-            Update-Theme
-        }
-        elseif ($selection -ge 0 -and $selection -lt $commits.Count) {
-            Checkout-Commit $commits[$selection]
-        }
-    }
-}
-
-function Checkout-Commit($commit) {
-    Show-Header
-    Write-Host "$OrangeLight  Checking out commit $($commit.ShortHash)...$Reset"
-    Write-Host "  $($commit.Date)  $($commit.Subject)" -ForegroundColor $Gray
-    Write-Host ""
-    Write-Host "  This will switch the theme to this specific version." -ForegroundColor $Gray
-    $confirm = Read-Host "  Type Y to confirm"
-    if ($confirm -ne "Y" -and $confirm -ne "y") {
-        Write-Host "  Cancelled." -ForegroundColor $Gray
-        Pause-Return
-        return
-    }
-
-    Push-Location $ThemePath
-    git checkout $commit.FullHash --quiet
-    Pop-Location
-
-    if (Get-Command spicetify -ErrorAction SilentlyContinue) {
-        Write-Host ""
-        Write-Host "$OrangeMid  Applying Spicetify...$Reset"
-        spicetify apply
-    }
-
-    Write-Host ""
-    Write-Host "  $ThemeName is now on commit $($commit.ShortHash)." -ForegroundColor $Green
-    Pause-Return
-}
-
-function Check-ForUpdates {
-    Show-Header
-    Write-Host "$OrangeLight  Checking for updates...$Reset"
-    Write-Host ""
-
-    if (-not (Test-Path $ThemePath)) {
-        Write-Host "  $ThemeName is not installed." -ForegroundColor $Red
-        Pause-Return
-        return
-    }
-
-    if (-not (Test-Dependencies)) {
-        Pause-Return
-        return
-    }
-
-    $status = Get-ThemeStatusDetailed
-    Write-Host "  Status: " -NoNewline -ForegroundColor $White
-    Write-Host $status.Text -ForegroundColor $status.Color
-
-    if ($status.Text -eq "Installed (outdated)") {
-        Write-Host ""
-        Write-Host "  A newer version is available." -ForegroundColor $Gray
-        $confirm = Read-Host "  Type Y to update now"
-        if ($confirm -eq "Y" -or $confirm -eq "y") {
-            Update-Theme
-            return
-        }
-    }
-
-    Pause-Return
-}
-
-function Pause-Return {
-    Write-Host ""
-    Write-Host "  Press any key to return to the menu..." -ForegroundColor $Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-}
-
-function Show-Menu {
-    Show-Header
-    $status = Get-ThemeStatusDetailed
-
-    Write-Host "  Status: " -NoNewline -ForegroundColor $White
-    Write-Host $status.Text -ForegroundColor $status.Color
-    Write-Host ""
-    Write-Host "  [1] Install $ThemeName"       -ForegroundColor $White
-    Write-Host "  [2] Update $ThemeName"        -ForegroundColor $White
-    Write-Host "  [3] Uninstall $ThemeName"     -ForegroundColor $White
-    Write-Host "  [4] Commit History / Downgrade" -ForegroundColor $White
-    Write-Host "  [5] Check for Updates"        -ForegroundColor $White
-    Write-Host "  [6] Exit"                     -ForegroundColor $White
-    Write-Host ""
+    Write-Host "$OrangeMid                          Installer$Reset"
     Write-Host "$OrangeDark  =============================================================$Reset"
     Write-Host ""
-    $choice = Read-Host "  Select an option"
-    return $choice
 }
 
-$running = $true
-while ($running) {
-    $choice = Show-Menu
-    switch ($choice) {
-        "1" { Install-Theme }
-        "2" { Update-Theme }
-        "3" { Uninstall-Theme }
-        "4" { Show-CommitHistory }
-        "5" { Check-ForUpdates }
-        "6" { $running = $false }
-        default {
-            Show-Header
-            Write-Host "  Invalid option." -ForegroundColor $Red
-            Pause-Return
-        }
+$SpinnerCodes = @(0x280B,0x2819,0x2839,0x2838,0x283C,0x2834,0x2826,0x2827,0x2807,0x280F)
+$SpinnerFrames = $SpinnerCodes | ForEach-Object { [char]$_ }
+$CheckMark = [char]0x2713
+$CrossMark = [char]0x2715
+$CR = [char]13
+
+function Invoke-Step {
+    param(
+        [string]$Label,
+        [scriptblock]$Work
+    )
+
+    try { [Console]::CursorVisible = $false } catch {}
+
+    $job = Start-Job -ScriptBlock $Work
+    $frameIndex = 0
+
+    while ($job.State -eq "Running") {
+        $frame = $SpinnerFrames[$frameIndex % $SpinnerFrames.Count]
+        $color = Get-GradientColor ($frameIndex % 8) 8
+        Write-Host ($CR + "  " + $color + $frame + $Reset + "  " + $Label) -NoNewline
+        Start-Sleep -Milliseconds 80
+        $frameIndex++
     }
+
+    Receive-Job -Job $job | Out-Null
+    $failed = $job.State -eq "Failed" -or ($job.ChildJobs[0].Error.Count -gt 0)
+    Remove-Job -Job $job -Force | Out-Null
+
+    $pad = " " * 40
+    if ($failed) {
+        Write-Host ($CR + "  " + $RedAnsi + $CrossMark + $Reset + "  " + $Label + $pad)
+    }
+    else {
+        Write-Host ($CR + "  " + $GreenAnsi + $CheckMark + $Reset + "  " + $Label + $pad)
+    }
+
+    try { [Console]::CursorVisible = $true } catch {}
+    return -not $failed
 }
 
-Clear-Host
+Show-Header
+
+$targetDir  = "$env:APPDATA\spotui"
+$scriptPath = "$targetDir\install.ps1"
+$wrapperPath = "$targetDir\spotui.ps1"
+$batchPath  = "$targetDir\spotui.bat"
+
+$spotuiScriptContentBase64 = "JFRoZW1lTmFtZSAgID0gIlNwb1RVSSINCiRSZXBvVXJsICAgICA9ICJodHRwczovL2dpdGh1Yi5jb20vU2tlblNNYXN0ZVIvU3BvVFVJIg0KJFRoZW1lc0RpciAgID0gSm9pbi1QYXRoICRlbnY6QVBQREFUQSAic3BpY2V0aWZ5XFRoZW1lcyINCiRUaGVtZVBhdGggICA9IEpvaW4tUGF0aCAkVGhlbWVzRGlyICRUaGVtZU5hbWUNCg0KJEVzYyAgID0gW2NoYXJdMjcNCiRSZXNldCA9ICIkRXNjWzBtIg0KJEFuc2lQYXR0ZXJuID0gIiRFc2NcW1swLTk7XSptIg0KDQokQmxvY2tGdWxsICA9IFtjaGFyXTB4MjU4OA0KJEJsb2NrTG93ZXIgPSBbY2hhcl0weDI1ODQNCiRCbG9ja1VwcGVyID0gW2NoYXJdMHgyNTgwDQokQmxvY2tMZWZ0ICA9IFtjaGFyXTB4MjU4Qw0KDQpmdW5jdGlvbiBFbmFibGUtVlRNb2RlIHsNCiAgICAkc2lnID0gQCINCnVzaW5nIFN5c3RlbTsNCnVzaW5nIFN5c3RlbS5SdW50aW1lLkludGVyb3BTZXJ2aWNlczsNCnB1YmxpYyBzdGF0aWMgY2xhc3MgU3BvVFVJTmF0aXZlIHsNCiAgICBbRGxsSW1wb3J0KCJrZXJuZWwzMi5kbGwiKV0NCiAgICBwdWJsaWMgc3RhdGljIGV4dGVybiBJbnRQdHIgR2V0U3RkSGFuZGxlKGludCBuU3RkSGFuZGxlKTsNCiAgICBbRGxsSW1wb3J0KCJrZXJuZWwzMi5kbGwiKV0NCiAgICBwdWJsaWMgc3RhdGljIGV4dGVybiBib29sIEdldENvbnNvbGVNb2RlKEludFB0ciBoQ29uc29sZUhhbmRsZSwgb3V0IHVpbnQgbHBNb2RlKTsNCiAgICBbRGxsSW1wb3J0KCJrZXJuZWwzMi5kbGwiKV0NCiAgICBwdWJsaWMgc3RhdGljIGV4dGVybiBib29sIFNldENvbnNvbGVNb2RlKEludFB0ciBoQ29uc29sZUhhbmRsZSwgdWludCBkd01vZGUpOw0KfQ0KIkANCiAgICB0cnkgew0KICAgICAgICBBZGQtVHlwZSAtVHlwZURlZmluaXRpb24gJHNpZyAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQ0KICAgICAgICAkaGFuZGxlID0gW1Nwb1RVSU5hdGl2ZV06OkdldFN0ZEhhbmRsZSgtMTEpDQogICAgICAgICRtb2RlID0gMA0KICAgICAgICBbU3BvVFVJTmF0aXZlXTo6R2V0Q29uc29sZU1vZGUoJGhhbmRsZSwgW3JlZl0kbW9kZSkgfCBPdXQtTnVsbA0KICAgICAgICBbU3BvVFVJTmF0aXZlXTo6U2V0Q29uc29sZU1vZGUoJGhhbmRsZSwgJG1vZGUgLWJvciAweDAwMDQpIHwgT3V0LU51bGwNCiAgICB9IGNhdGNoIHt9DQp9DQpFbmFibGUtVlRNb2RlDQoNCnRyeSB7DQogICAgW0NvbnNvbGVdOjpPdXRwdXRFbmNvZGluZyA9IFtTeXN0ZW0uVGV4dC5FbmNvZGluZ106OlVURjgNCn0gY2F0Y2gge30NCg0KZnVuY3Rpb24gR2V0LVJHQkNvZGUoJHIsICRnLCAkYikgew0KICAgIHJldHVybiAiJEVzY1szODsyOyRyOyRnOyR7Yn1tIg0KfQ0KDQokT3JhbmdlTGlnaHQgPSBHZXQtUkdCQ29kZSAyNTUgMTQwIDY2DQokT3JhbmdlRGFyayAgPSBHZXQtUkdCQ29kZSAyMjQgMTIzIDU3DQokT3JhbmdlTWlkICAgPSBHZXQtUkdCQ29kZSAyNDAgMTMxIDYxDQokR3JlZW5BbnNpICAgPSBHZXQtUkdCQ29kZSAxNDAgMjU1IDE0MA0KJFNlbGVjdEJnICAgID0gIiRFc2NbNDg7MjsyNTU7MTQwOzY2bSRFc2NbMzg7MjswOzA7MG0iDQoNCiRXaGl0ZSA9ICJXaGl0ZSINCiRHcmF5ICA9ICJEYXJrR3JheSINCiRSZWQgICA9ICJSZWQiDQokR3JlZW4gPSAiR3JlZW4iDQokQ3lhbiAgPSAiQ3lhbiINCg0KIyBUcmFja3Mgd2hldGhlciB3ZSd2ZSBhbHJlYWR5IGF0dGVtcHRlZCBhIHdpbmdldCB1cGRhdGUgdGhpcyBzZXNzaW9uLA0KIyBzbyBUZXN0LURlcGVuZGVuY2llcyBkb2Vzbid0IHJlLXJ1biBpdCBvbiBldmVyeSBtZW51IGFjdGlvbi4NCiRzY3JpcHQ6V2luZ2V0VXBkYXRlQXR0ZW1wdGVkID0gJGZhbHNlDQoNCmZ1bmN0aW9uIEdldC1HcmFkaWVudENvbG9yKCRpbmRleCwgJHRvdGFsKSB7DQogICAgJHIxID0gMjU1OyAkZzEgPSAxNDA7ICRiMSA9IDY2DQogICAgJHIyID0gMjI0OyAkZzIgPSAxMjM7ICRiMiA9IDU3DQogICAgJHQgPSBpZiAoJHRvdGFsIC1sZSAxKSB7IDAgfSBlbHNlIHsgJGluZGV4IC8gKCR0b3RhbCAtIDEpIH0NCiAgICAkciA9IFtpbnRdKCRyMSArICgkcjIgLSAkcjEpICogJHQpDQogICAgJGcgPSBbaW50XSgkZzEgKyAoJGcyIC0gJGcxKSAqICR0KQ0KICAgICRiID0gW2ludF0oJGIxICsgKCRiMiAtICRiMSkgKiAkdCkNCiAgICByZXR1cm4gR2V0LVJHQkNvZGUgJHIgJGcgJGINCn0NCg0KZnVuY3Rpb24gR2V0LUFzY2lpQXJ0TGluZSgkdGVtcGxhdGUpIHsNCiAgICAkb3V0ID0gJHRlbXBsYXRlDQogICAgJG91dCA9ICRvdXQuUmVwbGFjZSgiQSIsICRCbG9ja0Z1bGwpDQogICAgJG91dCA9ICRvdXQuUmVwbGFjZSgiQiIsICRCbG9ja0xvd2VyKQ0KICAgICRvdXQgPSAkb3V0LlJlcGxhY2UoIkMiLCAkQmxvY2tVcHBlcikNCiAgICAkb3V0ID0gJG91dC5SZXBsYWNlKCJEIiwgJEJsb2NrTGVmdCkNCiAgICByZXR1cm4gJG91dA0KfQ0KDQpmdW5jdGlvbiBHZXQtSGVhZGVyTGluZXMgew0KICAgICRsaW5lcyA9IEAoKQ0KICAgICRsaW5lcyArPSAiIg0KICAgICR0ZW1wbGF0ZXMgPSBAKA0KICAgICAgICAiICAgQkFBQUFBQUFBICAgIEJBQUFBQUFBQiAgQkFBQUFBQUFCICAgICAgQUFBICAgIEFBQSAgICBBQiAgIEJBICAiLA0KICAgICAgICAiICBBQUEgICAgQUFBICAgQUFBICAgIEFBQSBBQUEgICAgQUFBIENBQUFBQUFBQUFCIEFBQSAgICBBQUEgQUFBICAiLA0KICAgICAgICAiICBBQUEgICAgQUMgICAgQUFBICAgIEFBQSBBQUEgICAgQUFBICAgIENBQUFDQ0FBIEFBQSAgICBBQUEgQUFBRCAiLA0KICAgICAgICAiICBBQUEgICAgICAgICAgQUFBICAgIEFBQSBBQUEgICAgQUFBICAgICBBQUEgICBDIEFBQSAgICBBQUEgQUFBRCAiLA0KICAgICAgICAiQ0FBQUFBQUFBQUFBIENBQUFBQUFBQUFDICBBQUEgICAgQUFBICAgICBBQUEgICAgIEFBQSAgICBBQUEgQUFBRCAiLA0KICAgICAgICAiICAgICAgICAgQUFBICAgQUFBICAgICAgICBBQUEgICAgQUFBICAgICBBQUEgICAgIEFBQSAgICBBQUEgQUFBICAiLA0KICAgICAgICAiICAgQkEgICAgQUFBICAgQUFBICAgICAgICBBQUEgICAgQUFBICAgICBBQUEgICAgIEFBQSAgICBBQUEgQUFBICAiLA0KICAgICAgICAiIEJBQUFBQUFBQUMgICBCQUFBQUMgICAgICAgQ0FBQUFBQUMgICAgIEJBQUFBQyAgIEFBQUFBQUFBQyAgQUMgICAiDQogICAgKQ0KICAgIGZvciAoJGkgPSAwOyAkaSAtbHQgJHRlbXBsYXRlcy5Db3VudDsgJGkrKykgew0KICAgICAgICAkY29sb3IgPSBHZXQtR3JhZGllbnRDb2xvciAkaSAkdGVtcGxhdGVzLkNvdW50DQogICAgICAgICRsaW5lID0gR2V0LUFzY2lpQXJ0TGluZSAkdGVtcGxhdGVzWyRpXQ0KICAgICAgICAkbGluZXMgKz0gIiRjb2xvciRsaW5lJFJlc2V0Ig0KICAgIH0NCiAgICAkbGluZXMgKz0gIiINCiAgICAkbGluZXMgKz0gIiRPcmFuZ2VNaWQgICAgICAgICAgICAgICAgICAgICBTcGljZXRpZnkgVGhlbWUgTWFuYWdlciRSZXNldCINCiAgICAkbGluZXMgKz0gIiRPcmFuZ2VEYXJrICA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09JFJlc2V0Ig0KICAgICRsaW5lcyArPSAiIg0KICAgIHJldHVybiAkbGluZXMNCn0NCg0KZnVuY3Rpb24gU2hvdy1IZWFkZXIgew0KICAgIENsZWFyLUhvc3QNCiAgICBmb3JlYWNoICgkbGluZSBpbiAoR2V0LUhlYWRlckxpbmVzKSkgew0KICAgICAgICBXcml0ZS1Ib3N0ICRsaW5lDQogICAgfQ0KfQ0KDQpmdW5jdGlvbiBHZXQtVmlzaWJsZUxlbmd0aCgkdGV4dCkgew0KICAgICRzdHJpcHBlZCA9ICR0ZXh0IC1yZXBsYWNlICRBbnNpUGF0dGVybiwgIiINCiAgICByZXR1cm4gJHN0cmlwcGVkLkxlbmd0aA0KfQ0KDQpmdW5jdGlvbiBXcml0ZS1GcmFtZSgkbGluZXMpIHsNCiAgICB0cnkgeyBbQ29uc29sZV06OlNldEN1cnNvclBvc2l0aW9uKDAsIDApIH0gY2F0Y2gge30NCiAgICAkd2lkdGggPSA4MA0KICAgIHRyeSB7ICR3aWR0aCA9ICRIb3N0LlVJLlJhd1VJLldpbmRvd1NpemUuV2lkdGggfSBjYXRjaCB7fQ0KICAgIGZvcmVhY2ggKCRsaW5lIGluICRsaW5lcykgew0KICAgICAgICAkdmlzaWJsZSA9IEdldC1WaXNpYmxlTGVuZ3RoICRsaW5lDQogICAgICAgICRwYWQgPSAkd2lkdGggLSAkdmlzaWJsZSAtIDENCiAgICAgICAgaWYgKCRwYWQgLWx0IDApIHsgJHBhZCA9IDAgfQ0KICAgICAgICBXcml0ZS1Ib3N0ICgkbGluZSArICgiICIgKiAkcGFkKSkNCiAgICB9DQp9DQoNCmZ1bmN0aW9uIEdldC1Db25zb2xlSGVpZ2h0IHsNCiAgICAkaGVpZ2h0ID0gMzANCiAgICB0cnkgeyAkaGVpZ2h0ID0gJEhvc3QuVUkuUmF3VUkuV2luZG93U2l6ZS5IZWlnaHQgfSBjYXRjaCB7fQ0KICAgIHJldHVybiAkaGVpZ2h0DQp9DQoNCmZ1bmN0aW9uIFJlZnJlc2gtUGF0aCB7DQogICAgJG1hY2hpbmVQYXRoID0gW1N5c3RlbS5FbnZpcm9ubWVudF06OkdldEVudmlyb25tZW50VmFyaWFibGUoIlBhdGgiLCAiTWFjaGluZSIpDQogICAgJHVzZXJQYXRoID0gW1N5c3RlbS5FbnZpcm9ubWVudF06OkdldEVudmlyb25tZW50VmFyaWFibGUoIlBhdGgiLCAiVXNlciIpDQogICAgJGVudjpQYXRoID0gIiRtYWNoaW5lUGF0aDskdXNlclBhdGgiDQp9DQoNCmZ1bmN0aW9uIFVwZGF0ZS1XaW5nZXQgew0KICAgIFdyaXRlLUhvc3QgIiRPcmFuZ2VNaWQgIFVwZGF0aW5nIHdpbmdldC4uLiRSZXNldCINCg0KICAgIGlmIChHZXQtQ29tbWFuZCB3aW5nZXQgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpIHsNCiAgICAgICAgdHJ5IHsNCiAgICAgICAgICAgICRwcm9jID0gU3RhcnQtUHJvY2VzcyAtRmlsZVBhdGggIndpbmdldCIgLUFyZ3VtZW50TGlzdCAidXBncmFkZSIsIi0taWQiLCJNaWNyb3NvZnQuQXBwSW5zdGFsbGVyIiwiLWUiLCItLXNvdXJjZSIsIndpbmdldCIsIi0tYWNjZXB0LXBhY2thZ2UtYWdyZWVtZW50cyIsIi0tYWNjZXB0LXNvdXJjZS1hZ3JlZW1lbnRzIiAtV2FpdCAtUGFzc1RocnUgLVdpbmRvd1N0eWxlIEhpZGRlbg0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiICB3aW5nZXQgdXBncmFkZSBleGl0ZWQgd2l0aCBjb2RlICQoJHByb2MuRXhpdENvZGUpIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgICAgIH0gY2F0Y2ggew0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiICB3aW5nZXQgdXBncmFkZSBjb21tYW5kIGZhaWxlZCB0byBydW4uIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICAgICAgfQ0KDQogICAgICAgIHRyeSB7DQogICAgICAgICAgICB3aW5nZXQgc291cmNlIHJlc2V0IC0tZm9yY2UgfCBPdXQtTnVsbA0KICAgICAgICB9IGNhdGNoIHt9DQoNCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgV3JpdGUtSG9zdCAiICB3aW5nZXQgY29tbWFuZCBub3QgZm91bmQuIEluc3RhbGxpbmcgQXBwIEluc3RhbGxlciBmcm9tIEdpdEh1YiByZWxlYXNlLi4uIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgdHJ5IHsNCiAgICAgICAgJHJlbGVhc2UgPSBJbnZva2UtUmVzdE1ldGhvZCAtVXJpICJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL21pY3Jvc29mdC93aW5nZXQtY2xpL3JlbGVhc2VzL2xhdGVzdCINCiAgICAgICAgJGFzc2V0ID0gJHJlbGVhc2UuYXNzZXRzIHwgV2hlcmUtT2JqZWN0IHsgJF8ubmFtZSAtbGlrZSAiKi5tc2l4YnVuZGxlIiB9IHwgU2VsZWN0LU9iamVjdCAtRmlyc3QgMQ0KDQogICAgICAgIGlmICgtbm90ICRhc3NldCkgew0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiICBDb3VsZCBub3QgZmluZCBhIC5tc2l4YnVuZGxlIGFzc2V0IGluIHRoZSBsYXRlc3QgcmVsZWFzZS4iIC1Gb3JlZ3JvdW5kQ29sb3IgJFJlZA0KICAgICAgICAgICAgcmV0dXJuDQogICAgICAgIH0NCg0KICAgICAgICAkZG93bmxvYWRQYXRoID0gSm9pbi1QYXRoICRlbnY6VEVNUCAkYXNzZXQubmFtZQ0KICAgICAgICBXcml0ZS1Ib3N0ICIgIERvd25sb2FkaW5nICQoJGFzc2V0Lm5hbWUpLi4uIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgICAgIEludm9rZS1XZWJSZXF1ZXN0IC1VcmkgJGFzc2V0LmJyb3dzZXJfZG93bmxvYWRfdXJsIC1PdXRGaWxlICRkb3dubG9hZFBhdGgNCg0KICAgICAgICBXcml0ZS1Ib3N0ICIgIEluc3RhbGxpbmcgcGFja2FnZS4uLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgICAgICBBZGQtQXBweFBhY2thZ2UgLVBhdGggJGRvd25sb2FkUGF0aCAtRXJyb3JBY3Rpb24gU3RvcA0KDQogICAgICAgIFdyaXRlLUhvc3QgIiAgQXBwIEluc3RhbGxlciBpbnN0YWxsZWQgc3VjY2Vzc2Z1bGx5LiIgLUZvcmVncm91bmRDb2xvciAkR3JlZW4NCiAgICAgICAgUmVtb3ZlLUl0ZW0gJGRvd25sb2FkUGF0aCAtRm9yY2UgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUNCiAgICB9DQogICAgY2F0Y2ggew0KICAgICAgICBXcml0ZS1Ib3N0ICIgIEZhaWxlZCB0byBpbnN0YWxsIEFwcCBJbnN0YWxsZXIgYXV0b21hdGljYWxseTogJCgkXy5FeGNlcHRpb24uTWVzc2FnZSkiIC1Gb3JlZ3JvdW5kQ29sb3IgJFJlZA0KICAgICAgICBXcml0ZS1Ib3N0ICIgIFlvdSBjYW4gaW5zdGFsbCBpdCBtYW51YWxseSBmcm9tIHRoZSBNaWNyb3NvZnQgU3RvcmUgKHNlYXJjaCAnQXBwIEluc3RhbGxlcicpLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgIH0NCg0KICAgIFJlZnJlc2gtUGF0aA0KfQ0KDQpmdW5jdGlvbiBJbnN0YWxsLURlcGVuZGVuY3koJG5hbWUpIHsNCiAgICBpZiAoJG5hbWUgLWVxICJnaXQiKSB7DQogICAgICAgIGlmIChHZXQtQ29tbWFuZCB3aW5nZXQgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpIHsNCiAgICAgICAgICAgIFdyaXRlLUhvc3QgIiAgTGF1bmNoaW5nIHdpbmdldCB0byBpbnN0YWxsIEdpdC4uLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgICAgICAgICAgJHByb2MgPSBTdGFydC1Qcm9jZXNzIC1GaWxlUGF0aCAid2luZ2V0IiAtQXJndW1lbnRMaXN0ICJpbnN0YWxsIiwiLS1pZCIsIkdpdC5HaXQiLCItZSIsIi0tc291cmNlIiwid2luZ2V0IiwiLS1hY2NlcHQtcGFja2FnZS1hZ3JlZW1lbnRzIiwiLS1hY2NlcHQtc291cmNlLWFncmVlbWVudHMiIC1XYWl0IC1QYXNzVGhydQ0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiICB3aW5nZXQgZXhpdGVkIHdpdGggY29kZSAkKCRwcm9jLkV4aXRDb2RlKSIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KDQogICAgICAgICAgICAjIDB4QzAwMDAwMDUgPSBhY2Nlc3MgdmlvbGF0aW9uIC8gd2luZ2V0IGNyYXNoLiBVcGRhdGUgd2luZ2V0IG9uY2UgYW5kIHJldHJ5Lg0KICAgICAgICAgICAgaWYgKCRwcm9jLkV4aXRDb2RlIC1lcSAtMTA3Mzc0MTgxOSAtYW5kIC1ub3QgJHNjcmlwdDpXaW5nZXRVcGRhdGVBdHRlbXB0ZWQpIHsNCiAgICAgICAgICAgICAgICBXcml0ZS1Ib3N0ICIgIHdpbmdldCBjcmFzaGVkLiBBdHRlbXB0aW5nIHRvIHVwZGF0ZSB3aW5nZXQgYW5kIHJldHJ5Li4uIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICAgICAgICAgICAgICAkc2NyaXB0OldpbmdldFVwZGF0ZUF0dGVtcHRlZCA9ICR0cnVlDQogICAgICAgICAgICAgICAgVXBkYXRlLVdpbmdldA0KDQogICAgICAgICAgICAgICAgV3JpdGUtSG9zdCAiICBSZXRyeWluZyBHaXQgaW5zdGFsbC4uLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgICAgICAgICAgICAgICRwcm9jID0gU3RhcnQtUHJvY2VzcyAtRmlsZVBhdGggIndpbmdldCIgLUFyZ3VtZW50TGlzdCAiaW5zdGFsbCIsIi0taWQiLCJHaXQuR2l0IiwiLWUiLCItLXNvdXJjZSIsIndpbmdldCIsIi0tYWNjZXB0LXBhY2thZ2UtYWdyZWVtZW50cyIsIi0tYWNjZXB0LXNvdXJjZS1hZ3JlZW1lbnRzIiAtV2FpdCAtUGFzc1RocnUNCiAgICAgICAgICAgICAgICBXcml0ZS1Ib3N0ICIgIHdpbmdldCBleGl0ZWQgd2l0aCBjb2RlICQoJHByb2MuRXhpdENvZGUpIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgICAgICAgICB9DQoNCiAgICAgICAgICAgIFJlZnJlc2gtUGF0aA0KICAgICAgICAgICAgJHRyaWVzID0gMA0KICAgICAgICAgICAgd2hpbGUgKC1ub3QgKEdldC1Db21tYW5kIGdpdCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgLWFuZCAkdHJpZXMgLWx0IDEwKSB7DQogICAgICAgICAgICAgICAgU3RhcnQtU2xlZXAgLVNlY29uZHMgMQ0KICAgICAgICAgICAgICAgIFJlZnJlc2gtUGF0aA0KICAgICAgICAgICAgICAgICR0cmllcysrDQogICAgICAgICAgICB9DQogICAgICAgIH0NCiAgICAgICAgZWxzZSB7DQogICAgICAgICAgICBXcml0ZS1Ib3N0ICIgIHdpbmdldCB3YXMgbm90IGZvdW5kLiBJbnN0YWxsIEdpdCBtYW51YWxseSBmcm9tIGh0dHBzOi8vZ2l0LXNjbS5jb20vZG93bmxvYWQvd2luIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICAgICAgfQ0KICAgIH0NCiAgICBlbHNlaWYgKCRuYW1lIC1lcSAic3BpY2V0aWZ5Iikgew0KICAgICAgICAkaW5zdGFsbENvbW1hbmQgPSAiaXdyIC11c2ViIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9zcGljZXRpZnkvY2xpL21haW4vaW5zdGFsbC5wczEgfCBpZXgiDQogICAgICAgIFdyaXRlLUhvc3QgIiAgT3BlbmluZyBhIG5ldyB3aW5kb3cgdG8gaW5zdGFsbCBTcGljZXRpZnkuIFdhaXRpbmcgZm9yIGl0IHRvIGZpbmlzaC4uLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgICAgICBTdGFydC1Qcm9jZXNzIC1GaWxlUGF0aCAicG93ZXJzaGVsbC5leGUiIC1Bcmd1bWVudExpc3QgIi1Ob1Byb2ZpbGUiLCAiLUV4ZWN1dGlvblBvbGljeSIsICJCeXBhc3MiLCAiLUNvbW1hbmQiLCAkaW5zdGFsbENvbW1hbmQgLVdhaXQNCiAgICAgICAgV3JpdGUtSG9zdCAiICBTcGljZXRpZnkgaW5zdGFsbGVyIHdpbmRvdyBjbG9zZWQuIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgICAgIFJlZnJlc2gtUGF0aA0KICAgIH0NCn0NCg0KZnVuY3Rpb24gVGVzdC1EZXBlbmRlbmNpZXMgew0KICAgICRtaXNzaW5nID0gQCgpDQogICAgaWYgKC1ub3QgKEdldC1Db21tYW5kIGdpdCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkpIHsgJG1pc3NpbmcgKz0gImdpdCIgfQ0KICAgIGlmICgtbm90IChHZXQtQ29tbWFuZCBzcGljZXRpZnkgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpKSB7ICRtaXNzaW5nICs9ICJzcGljZXRpZnkiIH0NCg0KICAgIGlmICgkbWlzc2luZy5Db3VudCAtZXEgMCkgew0KICAgICAgICByZXR1cm4gJHRydWUNCiAgICB9DQoNCiAgICBXcml0ZS1Ib3N0ICIgIE1pc3NpbmcgZGVwZW5kZW5jaWVzOiAkKCRtaXNzaW5nIC1qb2luICcsICcpIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICBXcml0ZS1Ib3N0ICIiDQogICAgJGNvbmZpcm0gPSBSZWFkLUhvc3QgIiAgUHJlc3MgSSB0byBpbnN0YWxsIHRoZW0gbm93LCBvciBhbnkgb3RoZXIga2V5IHRvIGNhbmNlbCINCiAgICBpZiAoJGNvbmZpcm0gLW5lICJJIiAtYW5kICRjb25maXJtIC1uZSAiaSIpIHsNCiAgICAgICAgcmV0dXJuICRmYWxzZQ0KICAgIH0NCg0KICAgIGZvcmVhY2ggKCRkZXAgaW4gJG1pc3NpbmcpIHsNCiAgICAgICAgV3JpdGUtSG9zdCAiIg0KICAgICAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTWlkICBJbnN0YWxsaW5nICRkZXAuLi4kUmVzZXQiDQogICAgICAgIEluc3RhbGwtRGVwZW5kZW5jeSAkZGVwDQogICAgfQ0KDQogICAgV3JpdGUtSG9zdCAiIg0KICAgIFdyaXRlLUhvc3QgIiRPcmFuZ2VNaWQgIFJlZnJlc2hpbmcgZW52aXJvbm1lbnQgUEFUSC4uLiRSZXNldCINCiAgICBSZWZyZXNoLVBhdGgNCg0KICAgICRzdGlsbE1pc3NpbmcgPSBAKCkNCiAgICBpZiAoLW5vdCAoR2V0LUNvbW1hbmQgZ2l0IC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlKSkgeyAkc3RpbGxNaXNzaW5nICs9ICJnaXQiIH0NCiAgICBpZiAoLW5vdCAoR2V0LUNvbW1hbmQgc3BpY2V0aWZ5IC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlKSkgeyAkc3RpbGxNaXNzaW5nICs9ICJzcGljZXRpZnkiIH0NCg0KICAgIGlmICgkc3RpbGxNaXNzaW5nLkNvdW50IC1ndCAwKSB7DQogICAgICAgIFdyaXRlLUhvc3QgIiINCiAgICAgICAgV3JpdGUtSG9zdCAiICBTdGlsbCBtaXNzaW5nOiAkKCRzdGlsbE1pc3NpbmcgLWpvaW4gJywgJykuIFlvdSBtYXkgbmVlZCB0byByZXN0YXJ0IHlvdXIgdGVybWluYWwuIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICAgICAgcmV0dXJuICRmYWxzZQ0KICAgIH0NCg0KICAgIFdyaXRlLUhvc3QgIiINCiAgICBXcml0ZS1Ib3N0ICIgIEFsbCBkZXBlbmRlbmNpZXMgaW5zdGFsbGVkIHN1Y2Nlc3NmdWxseS4iIC1Gb3JlZ3JvdW5kQ29sb3IgJEdyZWVuDQogICAgcmV0dXJuICR0cnVlDQp9DQoNCmZ1bmN0aW9uIEdldC1EZWZhdWx0QnJhbmNoIHsNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICAkcmVmID0gZ2l0IHN5bWJvbGljLXJlZiByZWZzL3JlbW90ZXMvb3JpZ2luL0hFQUQgMj4kbnVsbA0KICAgIFBvcC1Mb2NhdGlvbg0KICAgIGlmICgkcmVmKSB7DQogICAgICAgICRwYXJ0cyA9ICRyZWYgLXNwbGl0ICIvIg0KICAgICAgICByZXR1cm4gJHBhcnRzWyRwYXJ0cy5Db3VudCAtIDFdDQogICAgfQ0KICAgIHJldHVybiAibWFpbiINCn0NCg0KZnVuY3Rpb24gVGVzdC1Jc0RldGFjaGVkIHsNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICBnaXQgc3ltYm9saWMtcmVmIC1xIEhFQUQgfCBPdXQtTnVsbA0KICAgICRhdHRhY2hlZCA9ICQ/DQogICAgUG9wLUxvY2F0aW9uDQogICAgcmV0dXJuIC1ub3QgJGF0dGFjaGVkDQp9DQoNCmZ1bmN0aW9uIEdldC1UaGVtZVN0YXR1c0RldGFpbGVkIHsNCiAgICBpZiAoLW5vdCAoVGVzdC1QYXRoICRUaGVtZVBhdGgpKSB7DQogICAgICAgIHJldHVybiBAeyBUZXh0ID0gIk5vdCBJbnN0YWxsZWQiOyBDb2xvciA9ICRSZWQgfQ0KICAgIH0NCg0KICAgIGlmICgtbm90IChHZXQtQ29tbWFuZCBnaXQgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUpKSB7DQogICAgICAgIHJldHVybiBAeyBUZXh0ID0gIkluc3RhbGxlZCI7IENvbG9yID0gJEdyZWVuIH0NCiAgICB9DQoNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICBnaXQgZmV0Y2ggb3JpZ2luIC0tcXVpZXQgMj4kbnVsbA0KICAgICRsb2NhbEhhc2ggPSAoZ2l0IHJldi1wYXJzZSBIRUFEIDI+JG51bGwpDQogICAgUG9wLUxvY2F0aW9uDQoNCiAgICBpZiAoVGVzdC1Jc0RldGFjaGVkKSB7DQogICAgICAgICRzaG9ydEhhc2ggPSBpZiAoJGxvY2FsSGFzaCkgeyAkbG9jYWxIYXNoLlN1YnN0cmluZygwLCA3KSB9IGVsc2UgeyAidW5rbm93biIgfQ0KICAgICAgICByZXR1cm4gQHsgVGV4dCA9ICJJbnN0YWxsZWQgKGN1c3RvbSBjb21taXQgJHNob3J0SGFzaCkiOyBDb2xvciA9ICRDeWFuIH0NCiAgICB9DQoNCiAgICAkYnJhbmNoID0gR2V0LURlZmF1bHRCcmFuY2gNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICAkcmVtb3RlSGFzaCA9IChnaXQgcmV2LXBhcnNlICJvcmlnaW4vJGJyYW5jaCIgMj4kbnVsbCkNCiAgICBQb3AtTG9jYXRpb24NCg0KICAgIGlmICgtbm90ICRsb2NhbEhhc2ggLW9yIC1ub3QgJHJlbW90ZUhhc2gpIHsNCiAgICAgICAgcmV0dXJuIEB7IFRleHQgPSAiSW5zdGFsbGVkIjsgQ29sb3IgPSAkR3JlZW4gfQ0KICAgIH0NCg0KICAgIGlmICgkbG9jYWxIYXNoIC1lcSAkcmVtb3RlSGFzaCkgew0KICAgICAgICByZXR1cm4gQHsgVGV4dCA9ICJJbnN0YWxsZWQgKHVwIHRvIGRhdGUpIjsgQ29sb3IgPSAkR3JlZW4gfQ0KICAgIH0NCg0KICAgIHJldHVybiBAeyBUZXh0ID0gIkluc3RhbGxlZCAob3V0ZGF0ZWQpIjsgQ29sb3IgPSAkUmVkIH0NCn0NCg0KZnVuY3Rpb24gSW5zdGFsbC1UaGVtZSB7DQogICAgU2hvdy1IZWFkZXINCiAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTGlnaHQgIEluc3RhbGxpbmcgJFRoZW1lTmFtZS4uLiRSZXNldCINCiAgICBXcml0ZS1Ib3N0ICIiDQoNCiAgICBpZiAoLW5vdCAoVGVzdC1EZXBlbmRlbmNpZXMpKSB7DQogICAgICAgIFBhdXNlLVJldHVybg0KICAgICAgICByZXR1cm4NCiAgICB9DQoNCiAgICBpZiAoLW5vdCAoVGVzdC1QYXRoICRUaGVtZXNEaXIpKSB7DQogICAgICAgIE5ldy1JdGVtIC1JdGVtVHlwZSBEaXJlY3RvcnkgLVBhdGggJFRoZW1lc0RpciAtRm9yY2UgfCBPdXQtTnVsbA0KICAgIH0NCg0KICAgIGlmIChUZXN0LVBhdGggJFRoZW1lUGF0aCkgew0KICAgICAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTWlkICBUaGVtZSBhbHJlYWR5IGV4aXN0cyBsb2NhbGx5LiBQdWxsaW5nIGxhdGVzdCBjaGFuZ2VzLi4uJFJlc2V0Ig0KICAgICAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICAgICAgZ2l0IHB1bGwNCiAgICAgICAgUG9wLUxvY2F0aW9uDQogICAgfQ0KICAgIGVsc2Ugew0KICAgICAgICBQdXNoLUxvY2F0aW9uICRUaGVtZXNEaXINCiAgICAgICAgZ2l0IGNsb25lICRSZXBvVXJsICRUaGVtZU5hbWUNCiAgICAgICAgUG9wLUxvY2F0aW9uDQogICAgfQ0KDQogICAgaWYgKFRlc3QtUGF0aCAkVGhlbWVQYXRoKSB7DQogICAgICAgIFdyaXRlLUhvc3QgIiINCiAgICAgICAgV3JpdGUtSG9zdCAiJE9yYW5nZU1pZCAgU2V0dGluZyBjdXJyZW50IHRoZW1lIHRvICRUaGVtZU5hbWUuLi4kUmVzZXQiDQogICAgICAgIHNwaWNldGlmeSBjb25maWcgY3VycmVudF90aGVtZSAkVGhlbWVOYW1lDQoNCiAgICAgICAgV3JpdGUtSG9zdCAiJE9yYW5nZU1pZCAgQXBwbHlpbmcgU3BpY2V0aWZ5Li4uJFJlc2V0Ig0KICAgICAgICBzcGljZXRpZnkgYXBwbHkNCg0KICAgICAgICBXcml0ZS1Ib3N0ICIiDQogICAgICAgIFdyaXRlLUhvc3QgIiAgJFRoZW1lTmFtZSBpbnN0YWxsZWQgYW5kIGFwcGxpZWQgc3VjY2Vzc2Z1bGx5LiIgLUZvcmVncm91bmRDb2xvciAkR3JlZW4NCiAgICB9DQogICAgZWxzZSB7DQogICAgICAgIFdyaXRlLUhvc3QgIiINCiAgICAgICAgV3JpdGUtSG9zdCAiICBJbnN0YWxsYXRpb24gZmFpbGVkLiBDaGVjayB0aGUgZXJyb3JzIGFib3ZlLiIgLUZvcmVncm91bmRDb2xvciAkUmVkDQogICAgfQ0KDQogICAgUGF1c2UtUmV0dXJuDQp9DQoNCmZ1bmN0aW9uIFVwZGF0ZS1UaGVtZSB7DQogICAgU2hvdy1IZWFkZXINCiAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTGlnaHQgIFVwZGF0aW5nICRUaGVtZU5hbWUuLi4kUmVzZXQiDQogICAgV3JpdGUtSG9zdCAiIg0KDQogICAgaWYgKC1ub3QgKFRlc3QtUGF0aCAkVGhlbWVQYXRoKSkgew0KICAgICAgICBXcml0ZS1Ib3N0ICIgICRUaGVtZU5hbWUgaXMgbm90IGluc3RhbGxlZC4gVXNlIEluc3RhbGwgaW5zdGVhZC4iIC1Gb3JlZ3JvdW5kQ29sb3IgJFJlZA0KICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgaWYgKC1ub3QgKFRlc3QtRGVwZW5kZW5jaWVzKSkgew0KICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgaWYgKFRlc3QtSXNEZXRhY2hlZCkgew0KICAgICAgICAkYnJhbmNoID0gR2V0LURlZmF1bHRCcmFuY2gNCiAgICAgICAgV3JpdGUtSG9zdCAiJE9yYW5nZU1pZCAgQ3VycmVudGx5IG9uIGEgY3VzdG9tIGNvbW1pdC4gUmV0dXJuaW5nIHRvICRicmFuY2guLi4kUmVzZXQiDQogICAgICAgIFB1c2gtTG9jYXRpb24gJFRoZW1lUGF0aA0KICAgICAgICBnaXQgY2hlY2tvdXQgJGJyYW5jaCAtLXF1aWV0DQogICAgICAgIFBvcC1Mb2NhdGlvbg0KICAgIH0NCg0KICAgIFB1c2gtTG9jYXRpb24gJFRoZW1lUGF0aA0KICAgIGdpdCBwdWxsDQogICAgUG9wLUxvY2F0aW9uDQoNCiAgICBXcml0ZS1Ib3N0ICIiDQogICAgV3JpdGUtSG9zdCAiJE9yYW5nZU1pZCAgUmUtYXBwbHlpbmcgU3BpY2V0aWZ5Li4uJFJlc2V0Ig0KICAgIHNwaWNldGlmeSBhcHBseQ0KDQogICAgV3JpdGUtSG9zdCAiIg0KICAgIFdyaXRlLUhvc3QgIiAgJFRoZW1lTmFtZSB1cGRhdGVkIHN1Y2Nlc3NmdWxseS4iIC1Gb3JlZ3JvdW5kQ29sb3IgJEdyZWVuDQogICAgUGF1c2UtUmV0dXJuDQp9DQoNCmZ1bmN0aW9uIFVuaW5zdGFsbC1UaGVtZSB7DQogICAgU2hvdy1IZWFkZXINCiAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTGlnaHQgIFVuaW5zdGFsbGluZyAkVGhlbWVOYW1lLi4uJFJlc2V0Ig0KICAgIFdyaXRlLUhvc3QgIiINCg0KICAgIGlmICgtbm90IChUZXN0LVBhdGggJFRoZW1lUGF0aCkpIHsNCiAgICAgICAgV3JpdGUtSG9zdCAiICAkVGhlbWVOYW1lIGlzIG5vdCBpbnN0YWxsZWQuIiAtRm9yZWdyb3VuZENvbG9yICRSZWQNCiAgICAgICAgUGF1c2UtUmV0dXJuDQogICAgICAgIHJldHVybg0KICAgIH0NCg0KICAgIFdyaXRlLUhvc3QgIiAgVGhpcyB3aWxsIHJlbW92ZSB0aGUgdGhlbWUgZm9sZGVyIGFuZCBzd2l0Y2ggdG8gTWFya2V0cGxhY2UuIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgJGNvbmZpcm0gPSBSZWFkLUhvc3QgIiAgVHlwZSBZIHRvIGNvbmZpcm0iDQogICAgaWYgKCRjb25maXJtIC1uZSAiWSIgLWFuZCAkY29uZmlybSAtbmUgInkiKSB7DQogICAgICAgIFdyaXRlLUhvc3QgIiAgQ2FuY2VsbGVkLiIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgaWYgKEdldC1Db21tYW5kIHNwaWNldGlmeSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSkgew0KICAgICAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTWlkICBTd2l0Y2hpbmcgU3BpY2V0aWZ5IHRoZW1lLi4uJFJlc2V0Ig0KICAgICAgICBzcGljZXRpZnkgY29uZmlnIGN1cnJlbnRfdGhlbWUgU3BvVFVJLQ0KICAgICAgICBzcGljZXRpZnkgY29uZmlnIGN1cnJlbnRfdGhlbWUgbWFya2V0cGxhY2UNCiAgICAgICAgc3BpY2V0aWZ5IGFwcGx5DQogICAgfQ0KDQogICAgUmVtb3ZlLUl0ZW0gLVBhdGggJFRoZW1lUGF0aCAtUmVjdXJzZSAtRm9yY2UNCg0KICAgIFdyaXRlLUhvc3QgIiINCiAgICBXcml0ZS1Ib3N0ICIgICRUaGVtZU5hbWUgaGFzIGJlZW4gdW5pbnN0YWxsZWQuIiAtRm9yZWdyb3VuZENvbG9yICRHcmVlbg0KICAgIFBhdXNlLVJldHVybg0KfQ0KDQpmdW5jdGlvbiBSZWFkLUFycm93U2VsZWN0aW9uIHsNCiAgICBwYXJhbSgNCiAgICAgICAgW3N0cmluZ1tdXSRJdGVtcywNCiAgICAgICAgW2ludF0kQ3VycmVudEluZGV4ID0gLTEsDQogICAgICAgIFtzdHJpbmdbXV0kVGl0bGVMaW5lcw0KICAgICkNCg0KICAgICRzZWxlY3RlZEluZGV4ID0gMA0KICAgIGlmICgkQ3VycmVudEluZGV4IC1nZSAwKSB7ICRzZWxlY3RlZEluZGV4ID0gJEN1cnJlbnRJbmRleCB9DQoNCiAgICAkaGVhZGVyTGluZXMgPSBHZXQtSGVhZGVyTGluZXMNCiAgICAkb3ZlcmhlYWRMaW5lcyA9ICRoZWFkZXJMaW5lcy5Db3VudCArICRUaXRsZUxpbmVzLkNvdW50ICsgNA0KDQogICAgJHBhZ2VTaXplID0gKEdldC1Db25zb2xlSGVpZ2h0KSAtICRvdmVyaGVhZExpbmVzDQogICAgaWYgKCRwYWdlU2l6ZSAtZ3QgJEl0ZW1zLkNvdW50KSB7ICRwYWdlU2l6ZSA9ICRJdGVtcy5Db3VudCB9DQogICAgaWYgKCRwYWdlU2l6ZSAtbHQgMSkgeyAkcGFnZVNpemUgPSAxIH0NCg0KICAgIENsZWFyLUhvc3QNCiAgICB0cnkgeyBbQ29uc29sZV06OkN1cnNvclZpc2libGUgPSAkZmFsc2UgfSBjYXRjaCB7fQ0KDQogICAgd2hpbGUgKCR0cnVlKSB7DQogICAgICAgICR0b3RhbFBhZ2VzID0gW01hdGhdOjpDZWlsaW5nKCRJdGVtcy5Db3VudCAvICRwYWdlU2l6ZSkNCiAgICAgICAgaWYgKCR0b3RhbFBhZ2VzIC1sdCAxKSB7ICR0b3RhbFBhZ2VzID0gMSB9DQogICAgICAgICRjdXJyZW50UGFnZSA9IFtNYXRoXTo6Rmxvb3IoJHNlbGVjdGVkSW5kZXggLyAkcGFnZVNpemUpDQogICAgICAgICRwYWdlU3RhcnQgPSAkY3VycmVudFBhZ2UgKiAkcGFnZVNpemUNCiAgICAgICAgJHBhZ2VFbmQgPSAkcGFnZVN0YXJ0ICsgJHBhZ2VTaXplIC0gMQ0KICAgICAgICBpZiAoJHBhZ2VFbmQgLWd0ICgkSXRlbXMuQ291bnQgLSAxKSkgeyAkcGFnZUVuZCA9ICRJdGVtcy5Db3VudCAtIDEgfQ0KDQogICAgICAgICRmcmFtZSA9IEAoKQ0KICAgICAgICAkZnJhbWUgKz0gJGhlYWRlckxpbmVzDQogICAgICAgICRmcmFtZSArPSAkVGl0bGVMaW5lcw0KDQogICAgICAgIGZvciAoJGkgPSAkcGFnZVN0YXJ0OyAkaSAtbGUgJHBhZ2VFbmQ7ICRpKyspIHsNCiAgICAgICAgICAgICRwcmVmaXggPSBpZiAoJGkgLWVxICRDdXJyZW50SW5kZXgpIHsgIj4gIiB9IGVsc2UgeyAiICAiIH0NCiAgICAgICAgICAgICR0ZXh0ID0gIiRwcmVmaXgkKCRJdGVtc1skaV0pIg0KICAgICAgICAgICAgaWYgKCRpIC1lcSAkc2VsZWN0ZWRJbmRleCkgew0KICAgICAgICAgICAgICAgICRmcmFtZSArPSAiJFNlbGVjdEJnJHRleHQkUmVzZXQiDQogICAgICAgICAgICB9DQogICAgICAgICAgICBlbHNlaWYgKCRpIC1lcSAkQ3VycmVudEluZGV4KSB7DQogICAgICAgICAgICAgICAgJGZyYW1lICs9ICIkR3JlZW5BbnNpJHRleHQkUmVzZXQiDQogICAgICAgICAgICB9DQogICAgICAgICAgICBlbHNlIHsNCiAgICAgICAgICAgICAgICAkZnJhbWUgKz0gJHRleHQNCiAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KDQogICAgICAgICRsaW5lc1VzZWQgPSAkcGFnZUVuZCAtICRwYWdlU3RhcnQgKyAxDQogICAgICAgIGZvciAoJHAgPSAkbGluZXNVc2VkOyAkcCAtbHQgJHBhZ2VTaXplOyAkcCsrKSB7DQogICAgICAgICAgICAkZnJhbWUgKz0gIiINCiAgICAgICAgfQ0KDQogICAgICAgICRmcmFtZSArPSAiIg0KICAgICAgICAkZnJhbWUgKz0gIiRPcmFuZ2VEYXJrICA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09JFJlc2V0Ig0KICAgICAgICAkZnJhbWUgKz0gIiAgVXAvRG93biB0byBtb3ZlLCBFbnRlciB0byBzZWxlY3QsIEVzYyB0byBnbyBiYWNrICAgUGFnZSAkKCRjdXJyZW50UGFnZSArIDEpIG9mICR0b3RhbFBhZ2VzIg0KDQogICAgICAgIFdyaXRlLUZyYW1lICRmcmFtZQ0KDQogICAgICAgICRrZXkgPSAkSG9zdC5VSS5SYXdVSS5SZWFkS2V5KCJOb0VjaG8sSW5jbHVkZUtleURvd24iKQ0KICAgICAgICAkY29kZSA9ICRrZXkuVmlydHVhbEtleUNvZGUNCg0KICAgICAgICBpZiAoJGNvZGUgLWVxIDM4KSB7DQogICAgICAgICAgICBpZiAoJHNlbGVjdGVkSW5kZXggLWd0IDApIHsgJHNlbGVjdGVkSW5kZXgtLSB9IGVsc2UgeyAkc2VsZWN0ZWRJbmRleCA9ICRJdGVtcy5Db3VudCAtIDEgfQ0KICAgICAgICB9DQogICAgICAgIGVsc2VpZiAoJGNvZGUgLWVxIDQwKSB7DQogICAgICAgICAgICBpZiAoJHNlbGVjdGVkSW5kZXggLWx0ICRJdGVtcy5Db3VudCAtIDEpIHsgJHNlbGVjdGVkSW5kZXgrKyB9IGVsc2UgeyAkc2VsZWN0ZWRJbmRleCA9IDAgfQ0KICAgICAgICB9DQogICAgICAgIGVsc2VpZiAoJGNvZGUgLWVxIDEzKSB7DQogICAgICAgICAgICB0cnkgeyBbQ29uc29sZV06OkN1cnNvclZpc2libGUgPSAkdHJ1ZSB9IGNhdGNoIHt9DQogICAgICAgICAgICByZXR1cm4gJHNlbGVjdGVkSW5kZXgNCiAgICAgICAgfQ0KICAgICAgICBlbHNlaWYgKCRjb2RlIC1lcSAyNykgew0KICAgICAgICAgICAgdHJ5IHsgW0NvbnNvbGVdOjpDdXJzb3JWaXNpYmxlID0gJHRydWUgfSBjYXRjaCB7fQ0KICAgICAgICAgICAgcmV0dXJuIC0xDQogICAgICAgIH0NCiAgICB9DQp9DQoNCmZ1bmN0aW9uIEdldC1Db21taXRMaXN0IHsNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICBnaXQgZmV0Y2ggb3JpZ2luIC0tcXVpZXQgMj4kbnVsbA0KICAgICRyYXdMb2cgPSBnaXQgbG9nIC0tYWxsIC0tcHJldHR5PWZvcm1hdDoiJUh8JWh8JWFkfCVzIiAtLWRhdGU9c2hvcnQNCiAgICBQb3AtTG9jYXRpb24NCg0KICAgICRjb21taXRzID0gQCgpDQogICAgZm9yZWFjaCAoJGxpbmUgaW4gJHJhd0xvZykgew0KICAgICAgICAkcGFydHMgPSAkbGluZSAtc3BsaXQgIlx8IiwgNA0KICAgICAgICBpZiAoJHBhcnRzLkNvdW50IC1lcSA0KSB7DQogICAgICAgICAgICAkY29tbWl0cyArPSBbUFNDdXN0b21PYmplY3RdQHsNCiAgICAgICAgICAgICAgICBGdWxsSGFzaCAgPSAkcGFydHNbMF0NCiAgICAgICAgICAgICAgICBTaG9ydEhhc2ggPSAkcGFydHNbMV0NCiAgICAgICAgICAgICAgICBEYXRlICAgICAgPSAkcGFydHNbMl0NCiAgICAgICAgICAgICAgICBTdWJqZWN0ICAgPSAkcGFydHNbM10NCiAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KICAgIH0NCiAgICByZXR1cm4gJGNvbW1pdHMNCn0NCg0KZnVuY3Rpb24gU2hvdy1Db21taXRIaXN0b3J5IHsNCiAgICBpZiAoLW5vdCAoVGVzdC1QYXRoICRUaGVtZVBhdGgpKSB7DQogICAgICAgIFNob3ctSGVhZGVyDQogICAgICAgIFdyaXRlLUhvc3QgIiAgJFRoZW1lTmFtZSBpcyBub3QgaW5zdGFsbGVkLiIgLUZvcmVncm91bmRDb2xvciAkUmVkDQogICAgICAgIFBhdXNlLVJldHVybg0KICAgICAgICByZXR1cm4NCiAgICB9DQoNCiAgICBpZiAoLW5vdCAoVGVzdC1EZXBlbmRlbmNpZXMpKSB7DQogICAgICAgIFBhdXNlLVJldHVybg0KICAgICAgICByZXR1cm4NCiAgICB9DQoNCiAgICAkdmlld2luZyA9ICR0cnVlDQogICAgd2hpbGUgKCR2aWV3aW5nKSB7DQogICAgICAgICRjb21taXRzID0gR2V0LUNvbW1pdExpc3QNCiAgICAgICAgaWYgKCRjb21taXRzLkNvdW50IC1lcSAwKSB7DQogICAgICAgICAgICBTaG93LUhlYWRlcg0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiICBObyBjb21taXRzIGZvdW5kLiIgLUZvcmVncm91bmRDb2xvciAkUmVkDQogICAgICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgICAgIHJldHVybg0KICAgICAgICB9DQoNCiAgICAgICAgUHVzaC1Mb2NhdGlvbiAkVGhlbWVQYXRoDQogICAgICAgICRjdXJyZW50SGFzaCA9IChnaXQgcmV2LXBhcnNlIEhFQUQgMj4kbnVsbCkNCiAgICAgICAgUG9wLUxvY2F0aW9uDQoNCiAgICAgICAgJGN1cnJlbnRJbmRleCA9IC0xDQogICAgICAgICRpdGVtcyA9IEAoKQ0KICAgICAgICBmb3IgKCRpID0gMDsgJGkgLWx0ICRjb21taXRzLkNvdW50OyAkaSsrKSB7DQogICAgICAgICAgICAkY29tbWl0ID0gJGNvbW1pdHNbJGldDQogICAgICAgICAgICAkaXRlbXMgKz0gIiQoJGNvbW1pdC5TaG9ydEhhc2gpICAkKCRjb21taXQuRGF0ZSkgICQoJGNvbW1pdC5TdWJqZWN0KSINCiAgICAgICAgICAgIGlmICgkY29tbWl0LkZ1bGxIYXNoIC1lcSAkY3VycmVudEhhc2gpIHsNCiAgICAgICAgICAgICAgICAkY3VycmVudEluZGV4ID0gJGkNCiAgICAgICAgICAgIH0NCiAgICAgICAgfQ0KICAgICAgICAkcmV0dXJuTGF0ZXN0SW5kZXggPSAkaXRlbXMuQ291bnQNCiAgICAgICAgJGl0ZW1zICs9ICJSZXR1cm4gdG8gbGF0ZXN0IHZlcnNpb24iDQogICAgICAgICRiYWNrSW5kZXggPSAkaXRlbXMuQ291bnQNCiAgICAgICAgJGl0ZW1zICs9ICJCYWNrIg0KDQogICAgICAgICR0aXRsZUxpbmVzID0gQCgiJE9yYW5nZUxpZ2h0ICBDb21taXQgSGlzdG9yeSRSZXNldCIsICIiKQ0KDQogICAgICAgICRzZWxlY3Rpb24gPSBSZWFkLUFycm93U2VsZWN0aW9uIC1JdGVtcyAkaXRlbXMgLUN1cnJlbnRJbmRleCAkY3VycmVudEluZGV4IC1UaXRsZUxpbmVzICR0aXRsZUxpbmVzDQoNCiAgICAgICAgaWYgKCRzZWxlY3Rpb24gLWVxIC0xIC1vciAkc2VsZWN0aW9uIC1lcSAkYmFja0luZGV4KSB7DQogICAgICAgICAgICAkdmlld2luZyA9ICRmYWxzZQ0KICAgICAgICB9DQogICAgICAgIGVsc2VpZiAoJHNlbGVjdGlvbiAtZXEgJHJldHVybkxhdGVzdEluZGV4KSB7DQogICAgICAgICAgICBVcGRhdGUtVGhlbWUNCiAgICAgICAgfQ0KICAgICAgICBlbHNlaWYgKCRzZWxlY3Rpb24gLWdlIDAgLWFuZCAkc2VsZWN0aW9uIC1sdCAkY29tbWl0cy5Db3VudCkgew0KICAgICAgICAgICAgQ2hlY2tvdXQtQ29tbWl0ICRjb21taXRzWyRzZWxlY3Rpb25dDQogICAgICAgIH0NCiAgICB9DQp9DQoNCmZ1bmN0aW9uIENoZWNrb3V0LUNvbW1pdCgkY29tbWl0KSB7DQogICAgU2hvdy1IZWFkZXINCiAgICBXcml0ZS1Ib3N0ICIkT3JhbmdlTGlnaHQgIENoZWNraW5nIG91dCBjb21taXQgJCgkY29tbWl0LlNob3J0SGFzaCkuLi4kUmVzZXQiDQogICAgV3JpdGUtSG9zdCAiICAkKCRjb21taXQuRGF0ZSkgICQoJGNvbW1pdC5TdWJqZWN0KSIgLUZvcmVncm91bmRDb2xvciAkR3JheQ0KICAgIFdyaXRlLUhvc3QgIiINCiAgICBXcml0ZS1Ib3N0ICIgIFRoaXMgd2lsbCBzd2l0Y2ggdGhlIHRoZW1lIHRvIHRoaXMgc3BlY2lmaWMgdmVyc2lvbi4iIC1Gb3JlZ3JvdW5kQ29sb3IgJEdyYXkNCiAgICAkY29uZmlybSA9IFJlYWQtSG9zdCAiICBUeXBlIFkgdG8gY29uZmlybSINCiAgICBpZiAoJGNvbmZpcm0gLW5lICJZIiAtYW5kICRjb25maXJtIC1uZSAieSIpIHsNCiAgICAgICAgV3JpdGUtSG9zdCAiICBDYW5jZWxsZWQuIiAtRm9yZWdyb3VuZENvbG9yICRHcmF5DQogICAgICAgIFBhdXNlLVJldHVybg0KICAgICAgICByZXR1cm4NCiAgICB9DQoNCiAgICBQdXNoLUxvY2F0aW9uICRUaGVtZVBhdGgNCiAgICBnaXQgY2hlY2tvdXQgJGNvbW1pdC5GdWxsSGFzaCAtLXF1aWV0DQogICAgUG9wLUxvY2F0aW9uDQoNCiAgICBpZiAoR2V0LUNvbW1hbmQgc3BpY2V0aWZ5IC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlKSB7DQogICAgICAgIFdyaXRlLUhvc3QgIiINCiAgICAgICAgV3JpdGUtSG9zdCAiJE9yYW5nZU1pZCAgQXBwbHlpbmcgU3BpY2V0aWZ5Li4uJFJlc2V0Ig0KICAgICAgICBzcGljZXRpZnkgYXBwbHkNCiAgICB9DQoNCiAgICBXcml0ZS1Ib3N0ICIiDQogICAgV3JpdGUtSG9zdCAiICAkVGhlbWVOYW1lIGlzIG5vdyBvbiBjb21taXQgJCgkY29tbWl0LlNob3J0SGFzaCkuIiAtRm9yZWdyb3VuZENvbG9yICRHcmVlbg0KICAgIFBhdXNlLVJldHVybg0KfQ0KDQpmdW5jdGlvbiBDaGVjay1Gb3JVcGRhdGVzIHsNCiAgICBTaG93LUhlYWRlcg0KICAgIFdyaXRlLUhvc3QgIiRPcmFuZ2VMaWdodCAgQ2hlY2tpbmcgZm9yIHVwZGF0ZXMuLi4kUmVzZXQiDQogICAgV3JpdGUtSG9zdCAiIg0KDQogICAgaWYgKC1ub3QgKFRlc3QtUGF0aCAkVGhlbWVQYXRoKSkgew0KICAgICAgICBXcml0ZS1Ib3N0ICIgICRUaGVtZU5hbWUgaXMgbm90IGluc3RhbGxlZC4iIC1Gb3JlZ3JvdW5kQ29sb3IgJFJlZA0KICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgaWYgKC1ub3QgKFRlc3QtRGVwZW5kZW5jaWVzKSkgew0KICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgcmV0dXJuDQogICAgfQ0KDQogICAgJHN0YXR1cyA9IEdldC1UaGVtZVN0YXR1c0RldGFpbGVkDQogICAgV3JpdGUtSG9zdCAiICBTdGF0dXM6ICIgLU5vTmV3bGluZSAtRm9yZWdyb3VuZENvbG9yICRXaGl0ZQ0KICAgIFdyaXRlLUhvc3QgJHN0YXR1cy5UZXh0IC1Gb3JlZ3JvdW5kQ29sb3IgJHN0YXR1cy5Db2xvcg0KDQogICAgaWYgKCRzdGF0dXMuVGV4dCAtZXEgIkluc3RhbGxlZCAob3V0ZGF0ZWQpIikgew0KICAgICAgICBXcml0ZS1Ib3N0ICIiDQogICAgICAgIFdyaXRlLUhvc3QgIiAgQSBuZXdlciB2ZXJzaW9uIGlzIGF2YWlsYWJsZS4iIC1Gb3JlZ3JvdW5kQ29sb3IgJEdyYXkNCiAgICAgICAgJGNvbmZpcm0gPSBSZWFkLUhvc3QgIiAgVHlwZSBZIHRvIHVwZGF0ZSBub3ciDQogICAgICAgIGlmICgkY29uZmlybSAtZXEgIlkiIC1vciAkY29uZmlybSAtZXEgInkiKSB7DQogICAgICAgICAgICBVcGRhdGUtVGhlbWUNCiAgICAgICAgICAgIHJldHVybg0KICAgICAgICB9DQogICAgfQ0KDQogICAgUGF1c2UtUmV0dXJuDQp9DQoNCmZ1bmN0aW9uIFBhdXNlLVJldHVybiB7DQogICAgV3JpdGUtSG9zdCAiIg0KICAgIFdyaXRlLUhvc3QgIiAgUHJlc3MgYW55IGtleSB0byByZXR1cm4gdG8gdGhlIG1lbnUuLi4iIC1Gb3JlZ3JvdW5kQ29sb3IgJEdyYXkNCiAgICAkbnVsbCA9ICRIb3N0LlVJLlJhd1VJLlJlYWRLZXkoIk5vRWNobyxJbmNsdWRlS2V5RG93biIpDQp9DQoNCmZ1bmN0aW9uIFNob3ctTWVudSB7DQogICAgU2hvdy1IZWFkZXINCiAgICAkc3RhdHVzID0gR2V0LVRoZW1lU3RhdHVzRGV0YWlsZWQNCg0KICAgIFdyaXRlLUhvc3QgIiAgU3RhdHVzOiAiIC1Ob05ld2xpbmUgLUZvcmVncm91bmRDb2xvciAkV2hpdGUNCiAgICBXcml0ZS1Ib3N0ICRzdGF0dXMuVGV4dCAtRm9yZWdyb3VuZENvbG9yICRzdGF0dXMuQ29sb3INCiAgICBXcml0ZS1Ib3N0ICIiDQogICAgV3JpdGUtSG9zdCAiICBbMV0gSW5zdGFsbCAkVGhlbWVOYW1lIiAgICAgICAtRm9yZWdyb3VuZENvbG9yICRXaGl0ZQ0KICAgIFdyaXRlLUhvc3QgIiAgWzJdIFVwZGF0ZSAkVGhlbWVOYW1lIiAgICAgICAgLUZvcmVncm91bmRDb2xvciAkV2hpdGUNCiAgICBXcml0ZS1Ib3N0ICIgIFszXSBVbmluc3RhbGwgJFRoZW1lTmFtZSIgICAgIC1Gb3JlZ3JvdW5kQ29sb3IgJFdoaXRlDQogICAgV3JpdGUtSG9zdCAiICBbNF0gQ29tbWl0IEhpc3RvcnkgLyBEb3duZ3JhZGUiIC1Gb3JlZ3JvdW5kQ29sb3IgJFdoaXRlDQogICAgV3JpdGUtSG9zdCAiICBbNV0gQ2hlY2sgZm9yIFVwZGF0ZXMiICAgICAgICAtRm9yZWdyb3VuZENvbG9yICRXaGl0ZQ0KICAgIFdyaXRlLUhvc3QgIiAgWzZdIEV4aXQiICAgICAgICAgICAgICAgICAgICAgLUZvcmVncm91bmRDb2xvciAkV2hpdGUNCiAgICBXcml0ZS1Ib3N0ICIiDQogICAgV3JpdGUtSG9zdCAiJE9yYW5nZURhcmsgID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0kUmVzZXQiDQogICAgV3JpdGUtSG9zdCAiIg0KICAgICRjaG9pY2UgPSBSZWFkLUhvc3QgIiAgU2VsZWN0IGFuIG9wdGlvbiINCiAgICByZXR1cm4gJGNob2ljZQ0KfQ0KDQokcnVubmluZyA9ICR0cnVlDQp3aGlsZSAoJHJ1bm5pbmcpIHsNCiAgICAkY2hvaWNlID0gU2hvdy1NZW51DQogICAgc3dpdGNoICgkY2hvaWNlKSB7DQogICAgICAgICIxIiB7IEluc3RhbGwtVGhlbWUgfQ0KICAgICAgICAiMiIgeyBVcGRhdGUtVGhlbWUgfQ0KICAgICAgICAiMyIgeyBVbmluc3RhbGwtVGhlbWUgfQ0KICAgICAgICAiNCIgeyBTaG93LUNvbW1pdEhpc3RvcnkgfQ0KICAgICAgICAiNSIgeyBDaGVjay1Gb3JVcGRhdGVzIH0NCiAgICAgICAgIjYiIHsgJHJ1bm5pbmcgPSAkZmFsc2UgfQ0KICAgICAgICBkZWZhdWx0IHsNCiAgICAgICAgICAgIFNob3ctSGVhZGVyDQogICAgICAgICAgICBXcml0ZS1Ib3N0ICIgIEludmFsaWQgb3B0aW9uLiIgLUZvcmVncm91bmRDb2xvciAkUmVkDQogICAgICAgICAgICBQYXVzZS1SZXR1cm4NCiAgICAgICAgfQ0KICAgIH0NCn0NCg0KQ2xlYXItSG9zdA=="
+
+$ok = $true
+
+$ok = (Invoke-Step "Creating install directory" {
+    if (-not (Test-Path $using:targetDir)) {
+        New-Item -ItemType Directory -Path $using:targetDir -Force | Out-Null
+    }
+}) -and $ok
+
+$ok = (Invoke-Step "Writing SpoTUI script" {
+    $decodedContent = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($using:spotuiScriptContentBase64))
+    Set-Content -Path $using:scriptPath -Value $decodedContent
+}) -and $ok
+
+$ok = (Invoke-Step "Creating wrapper script" {
+    $wrapperContent = '& "' + $using:scriptPath + '" @args'
+    Set-Content -Path $using:wrapperPath -Value $wrapperContent
+}) -and $ok
+
+$ok = (Invoke-Step "Updating PATH" {
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($userPath -notlike "*$using:targetDir*") {
+        [Environment]::SetEnvironmentVariable("Path", "$userPath;$using:targetDir", "User")
+    }
+}) -and $ok
+
+$env:Path = "$env:Path;$targetDir"
+
+$ok = (Invoke-Step "Creating launcher" {
+    $batchContent = '@echo off' + [Environment]::NewLine + 'powershell -ExecutionPolicy Bypass -File "' + $using:wrapperPath + '" %*'
+    Set-Content -Path $using:batchPath -Value $batchContent
+}) -and $ok
+
+Write-Host ""
+Write-Host "$OrangeDark  =============================================================$Reset"
+Write-Host ""
+
+if ($ok) {
+    Write-Host ("  " + $GreenAnsi + $CheckMark + "  SpoTUI installed successfully." + $Reset)
+    Write-Host ("  " + $GrayAnsi + "   Open a new terminal and run: spotui" + $Reset)
+}
+else {
+    Write-Host ("  " + $RedAnsi + $CrossMark + "  Installation finished with errors. See above." + $Reset)
+}
+
+Write-Host ""
