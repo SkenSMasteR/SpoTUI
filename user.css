@@ -353,6 +353,12 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine {
     line-height: 1.55 !important;
 }
 
+body.logo-on.spotui-lyrics-open .Root__right-sidebar {
+    height: 85% !important;
+    top: auto !important;
+    bottom: 0 !important;
+}
+
 .Root__main-view,
 .main-view-container,
 .main-buddy-list,

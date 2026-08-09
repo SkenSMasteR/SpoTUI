@@ -196,6 +196,11 @@ body.logo-off #spotui-logo {
     display: none !important;
 }
 
+body.logo-on.spotui-lyrics-panel #spotui-lyrics {
+    height: 80vh !important;
+    margin-top: 15vh !important;
+}
+
 #spotui-lyrics {
     display: none;
     flex: 1 1 auto;
@@ -260,7 +265,7 @@ body.spotui-lyrics-panel #spotui-lyrics.spotui-lyrics-active {
 .spotui-lyrics-lines {
     height: 100%;
     overflow-y: auto;
-    padding: 18vh 28px;
+    padding: 10vh 28px;
     scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -1299,8 +1304,10 @@ async function execute(cmd) {
     function toggleLogo(state) {
         if (state === "on") {
             document.body.classList.remove("logo-off");
+            document.body.classList.add("logo-on");
             localStorage.setItem("spotui:logo-visible", "on");
         } else if (state === "off") {
+            document.body.classList.remove("logo-on");
             document.body.classList.add("logo-off");
             localStorage.setItem("spotui:logo-visible", "off");
         }
@@ -2260,6 +2267,8 @@ setTimeout(initLyricsBridge, 1000);
 
 if (localStorage.getItem("spotui:logo-visible") === "off") {
     document.body.classList.add("logo-off");
+} else {
+    document.body.classList.add("logo-on");
 }
 
 if (Spicetify?.Platform) createTerminal();
