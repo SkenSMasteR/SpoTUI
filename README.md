@@ -109,16 +109,6 @@ You can add your own theme to the theme browser by visiting [spotui.root.sx](htt
 
 **Note**: You can only submit one theme every 24 hours.
 
-
-
-## Notable forks of my project
-<details>
-<summary>SouRyan</summary>
-SouRyan - https://github.com/SouRyan/SpoTUI-By-SouRyan
-</details>
-
-
-
 ## Author
 
 SkenS - https://github.com/SkenSMasteR
