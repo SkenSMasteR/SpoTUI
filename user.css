@@ -41,7 +41,7 @@ body.spotui-spotify-enabled .Root__right-sidebar,
 body.spotui-spotify-enabled .main-buddy-list,
 body.spotui-spotify-enabled .main-nowPlayingView-section,
 body.spotui-spotify-enabled .main-trackList-trackList {
-    display: flex !important;
+    display: revert !important;
 }
 
 body.spotui-spotify-enabled .Root__globalNav {
