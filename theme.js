@@ -1188,8 +1188,16 @@ function applyPlayerBarColors() {
         if (bg) root.style.setProperty("--player-bar-background", bg);
         else root.style.removeProperty("--player-bar-background");
 
-        if (border) root.style.setProperty("--player-bar-border-color", border);
-        else root.style.removeProperty("--player-bar-border-color");
+        if (border) {
+            root.style.setProperty("--player-bar-border-color", border);
+            root.style.setProperty("--spotui-accent", border);
+            const rgb = border.replace("#", "").match(/.{1,2}/g)?.map((part) => parseInt(part, 16)).join(", ");
+            if (rgb) root.style.setProperty("--spotui-accent-rgb", rgb);
+        } else {
+            root.style.removeProperty("--player-bar-border-color");
+            root.style.removeProperty("--spotui-accent");
+            root.style.removeProperty("--spotui-accent-rgb");
+        }
 
         if (text) root.style.setProperty("--player-bar-text-color", text);
         else root.style.removeProperty("--player-bar-text-color");

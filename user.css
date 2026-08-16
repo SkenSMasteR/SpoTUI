@@ -47,10 +47,15 @@ body.spotui-spotify-enabled .main-trackList-trackList {
     display: revert !important;
 }
 
+body.spotui-spotify-enabled {
+    --spotui-accent: var(--player-bar-border-color, var(--spotui-accent, #ff8c42)) !important;
+    --spotui-accent-rgb: 255, 140, 66 !important;
+}
+
 body.spotui-spotify-enabled .Root__globalNav {
     background: #000 !important;
-    border-bottom: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 -1px 0 rgba(255, 140, 66, 0.18) !important;
+    border-bottom: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 -1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
     color: #ddd !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
@@ -83,7 +88,7 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-navLink,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtons button,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer button,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [role="button"] {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
     border-radius: 0 !important;
 }
 
@@ -91,26 +96,27 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-navLink:hover,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtons button:hover,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer button:hover,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [role="button"]:hover {
-    color: #ffb26f !important;
+    color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
+}
 }
 
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer {
     background: #000 !important;
-    border: 1px solid #ff8c42 !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
     border-radius: 0 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.15) !important;
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.15) !important;
 }
 
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText,
 body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper input {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
     background: transparent !important;
     border: none !important;
     outline: none !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
-    caret-color: #ff8c42 !important;
+    caret-color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText::placeholder,
@@ -151,8 +157,8 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
     align-items: center !important;
     justify-content: space-between !important;
     background: var(--player-bar-background, #000) !important;
-    border-top: 1px solid var(--player-bar-border-color, #ff8c42);
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.18);
+    border-top: 1px solid var(--player-bar-border-color, var(--spotui-accent, #ff8c42));
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18);
     color: var(--player-bar-text-color, #ddd) !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
@@ -183,7 +189,7 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 }
 
 .Root__now-playing-bar .main-trackInfo-name {
-    color: var(--player-bar-text-color, #ff8c42) !important;
+    color: var(--player-bar-text-color, var(--spotui-accent, #ff8c42)) !important;
     font-family: inherit !important;
     letter-spacing: 0.02em;
 }
@@ -199,13 +205,13 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 .Root__now-playing-bar .main-nowPlayingBar-container [role="button"],
 .Root__now-playing-bar .volume-bar__icon-button {
     border-radius: 0 !important;
-    color: var(--player-bar-text-color, #ff8c42) !important;
+    color: var(--player-bar-text-color, var(--spotui-accent, #ff8c42)) !important;
 }
 
 .Root__now-playing-bar .main-nowPlayingBar-container button:hover,
 .Root__now-playing-bar .main-nowPlayingBar-container [role="button"]:hover,
 .Root__now-playing-bar .volume-bar__icon-button:hover {
-    color: var(--player-bar-text-color, #ffb26f) !important;
+    color: var(--player-bar-text-color, color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white)) !important;
     opacity: 0.8;
 }
 
@@ -217,11 +223,11 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 .Root__now-playing-bar .x-progressBar-progressFillColor,
 .Root__now-playing-bar .x-progressBar-fillColor,
 .Root__now-playing-bar .x-progressBar-handle {
-    background: var(--progress-bar-foreground, #ff8c42) !important;
+    background: var(--progress-bar-foreground, var(--spotui-accent, #ff8c42)) !important;
 }
 
 .Root__now-playing-bar .volume-bar {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
 }
 
 .Root__now-playing-bar .volume-bar__slider-container {
@@ -256,8 +262,8 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsContainer {
     background: #000 !important;
     color: #ddd !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
-    border-top: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.18) !important;
+    border-top: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
 }
 
 body.spotui-lyrics-open .main-nowPlayingView-lyricsContent,
@@ -292,18 +298,18 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsContainer::-webkit-scrollb
 }
 
 body.spotui-lyrics-open .main-nowPlayingBar-lyricsButton {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
     border-radius: 0 !important;
 }
 
 body.spotui-lyrics-open .main-nowPlayingBar-lyricsButton:hover {
-    color: #ffb26f !important;
+    color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
 }
 
 body.spotui-lyrics-open .main-nowPlayingView-lyricsTitle,
 body.spotui-lyrics-open .lyrics-lyricsContent-provider,
 body.spotui-lyrics-open .lyrics-lyricsContainer-Provider {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
     font-family: inherit !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -322,7 +328,7 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine a {
 body.spotui-lyrics-open .lyrics-lyricsContent-active,
 body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine-active,
 body.spotui-lyrics-open .lyrics-lyricsContainer-Karaoke-WordActive {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-lyrics-open .lyrics-lyricsContent-previous,
@@ -334,7 +340,7 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine-past {
 body.spotui-lyrics-open .main-nowPlayingView-lyricsGradient,
 body.spotui-lyrics-open .lyrics-lyrics-background,
 body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsBackground {
-    background: linear-gradient(180deg, rgba(255, 140, 66, 0.12), rgba(0, 0, 0, 0)) !important;
+    background: linear-gradient(180deg, rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.12), rgba(0, 0, 0, 0)) !important;
 }
 
 body.spotui-lyrics-open .main-nowPlayingView-lyricsControls button,
@@ -342,14 +348,14 @@ body.spotui-lyrics-open .main-nowPlayingView-lyricsControls [role="button"],
 body.spotui-lyrics-open .lyrics-config-button,
 body.spotui-lyrics-open .lyrics-config-button-container button {
     border-radius: 0 !important;
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-lyrics-open .main-nowPlayingView-lyricsControls button:hover,
 body.spotui-lyrics-open .main-nowPlayingView-lyricsControls [role="button"]:hover,
 body.spotui-lyrics-open .lyrics-config-button:hover,
 body.spotui-lyrics-open .lyrics-config-button-container button:hover {
-    color: #ffb26f !important;
+    color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
 }
 
 body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsLine {
@@ -368,8 +374,8 @@ body.logo-on.spotui-lyrics-open .Root__right-sidebar {
 .Root__nav-bar,
 .Root__right-sidebar {
     background: #000 !important;
-    border: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 0 0 1px rgba(255, 140, 66, 0.18) !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 0 0 1px rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
     color: #ddd !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
     border-radius: 0 !important;
@@ -416,9 +422,9 @@ body.spotui-spotify-enabled .main-topBar-searchBar,
 body.spotui-spotify-enabled .search-modal-searchBar,
 body.spotui-spotify-enabled .collection-searchBar-searchBar {
     background: #000 !important;
-    border: 1px solid #ff8c42 !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
     border-radius: 0 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.15) !important;
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.15) !important;
 }
 
 body.spotui-spotify-enabled .main-globalNav-searchInputContainer,
@@ -431,12 +437,12 @@ body.spotui-spotify-enabled .search-modal-searchBar {
 body.spotui-spotify-enabled .x-searchInput-searchInputInput,
 body.spotui-spotify-enabled .main-globalNav-searchInputText,
 body.spotui-spotify-enabled .search-modal-searchBar input {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
     background: transparent !important;
     border: none !important;
     outline: none !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
-    caret-color: #ff8c42 !important;
+    caret-color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-spotify-enabled .x-searchInput-searchInputInput::placeholder,
@@ -448,12 +454,12 @@ body.spotui-spotify-enabled .search-modal-searchBar input::placeholder {
 body.spotui-spotify-enabled .x-searchInput-searchInputSearchIcon,
 body.spotui-spotify-enabled .x-searchInput-searchInputClearButton,
 body.spotui-spotify-enabled .x-searchInput-searchInputClearIcon {
-    color: #ff8c42 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-spotify-enabled .x-searchInput-searchInputClearButton:hover,
 body.spotui-spotify-enabled .x-searchInput-searchInputSearchIcon:hover {
-    color: #ffb26f !important;
+    color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
 }
 
 body.spotui-lyrics-open #spotui-tui {
@@ -510,13 +516,13 @@ button,
     --spice-card: #000000 !important;
     --spice-shadow: transparent !important;
     --spice-selected-row: #2a2a2a !important;
-    --spice-button: #ff8c42 !important;
-    --spice-button-active: #ffb26f !important;
+    --spice-button: var(--spotui-accent, #ff8c42) !important;
+    --spice-button-active: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
     --spice-button-disabled: #555555 !important;
-    --spice-tab-active: #ff8c42 !important;
+    --spice-tab-active: var(--spotui-accent, #ff8c42) !important;
     --spice-notification: #000000 !important;
     --spice-notification-error: #ff5555 !important;
-    --spice-misc: #ff8c42 !important;
+    --spice-misc: var(--spotui-accent, #ff8c42) !important;
     --spice-text: #dddddd !important;
     --spice-subtext: #b3b3b3 !important;
 
@@ -532,7 +538,7 @@ button,
 
     --text-base: #dddddd !important;
     --text-subdued: #b3b3b3 !important;
-    --text-bright-accent: #ff8c42 !important;
+    --text-bright-accent: var(--spotui-accent, #ff8c42) !important;
 
     --encore-bg-base: #000000 !important;
     --encore-bg-press: #222222 !important;
@@ -540,7 +546,7 @@ button,
     --encore-bg-tinted-press: #222222 !important;
     --encore-text-base: #dddddd !important;
     --encore-text-subdued: #b3b3b3 !important;
-    --encore-text-bright-accent: #ff8c42 !important;
+    --encore-text-bright-accent: var(--spotui-accent, #ff8c42) !important;
 
     --encore-internal-color-bg-base: #000000 !important;
     --encore-internal-color-bg-canvas: #000000 !important;
@@ -548,17 +554,17 @@ button,
     --encore-internal-color-bg-elevated: #000000 !important;
     --encore-internal-color-text-base: #dddddd !important;
     --encore-internal-color-text-subdued: #b3b3b3 !important;
-    --encore-internal-color-text-bright-accent: #ff8c42 !important;
-    --encore-internal-color-text-positive: #ff8c42 !important;
-    --encore-internal-color-text-warning: #ff8c42 !important;
-    --encore-internal-color-text-announcement: #ff8c42 !important;
+    --encore-internal-color-text-bright-accent: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-text-positive: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-text-warning: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-text-announcement: var(--spotui-accent, #ff8c42) !important;
 
-    --encore-internal-color-essential-base: #ff8c42 !important;
-    --encore-internal-color-essential-subdued: #ffb26f !important;
-    --encore-internal-color-essential-bright-accent: #ff8c42 !important;
-    --encore-internal-color-essential-positive: #ff8c42 !important;
-    --encore-internal-color-essential-warning: #ff8c42 !important;
-    --encore-internal-color-decorative-base: #ff8c42 !important;
+    --encore-internal-color-essential-base: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-essential-subdued: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
+    --encore-internal-color-essential-bright-accent: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-essential-positive: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-essential-warning: var(--spotui-accent, #ff8c42) !important;
+    --encore-internal-color-decorative-base: var(--spotui-accent, #ff8c42) !important;
     --encore-internal-color-decorative-subdued: #111111 !important;
 }
 
@@ -599,20 +605,20 @@ body.spotui-spotify-enabled .Root__main-view,
 body.spotui-spotify-enabled .Root__right-sidebar,
 body.spotui-spotify-enabled .main-buddy-list,
 body.spotui-spotify-enabled .main-yourLibraryX-libraryContainer {
-    border: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 0 0 1px rgba(255, 140, 66, 0.18) !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 0 0 1px rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
     box-sizing: border-box !important;
 }
 
 body.spotui-spotify-enabled .Root__globalNav {
-    border-bottom: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 -1px 0 rgba(255, 140, 66, 0.18) !important;
+    border-bottom: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 -1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
     box-sizing: border-box !important;
 }
 
 body.spotui-spotify-enabled .Root__now-playing-bar {
-    border-top: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.18) !important;
+    border-top: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
     box-sizing: border-box !important;
 }
 
@@ -621,10 +627,10 @@ body.spotui-spotify-enabled .main-trackList-trackListRow:hover,
 body.spotui-spotify-enabled .main-yourLibraryX-listItem:hover,
 body.spotui-spotify-enabled [role="row"]:hover,
 body.spotui-spotify-enabled .HqUgEQOPyVcDu2NW:hover {
-    background-color: #ff8c42 !important;
-    background: #ff8c42 !important;
-    --box-hover-background-color: #ff8c42 !important;
-    --box-active-background-color: #ff8c42 !important;
+    background-color: var(--spotui-accent, #ff8c42) !important;
+    background: var(--spotui-accent, #ff8c42) !important;
+    --box-hover-background-color: var(--spotui-accent, #ff8c42) !important;
+    --box-active-background-color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-spotify-enabled .e-10451-box--interactive:hover *,
@@ -651,8 +657,8 @@ body.spotui-search-mode .Root__globalNav .main-globalNav-searchSection {
 body.spotui-search-mode .Root__globalNav .main-globalNav-searchContainer {
     width: 100% !important;
     background: #000 !important;
-    border: 1px solid #ff8c42 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 140, 66, 0.15) !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.15) !important;
 }
 
 body.spotui-search-mode #spotui-back-btn {
