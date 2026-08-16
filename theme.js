@@ -47,12 +47,150 @@ body.spotui-lyrics-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
-body.spotui-about-panel #spotui-logo {
+body.spotui-about-panel #spotui-logo,
+body.spotui-onboarding-panel #spotui-logo {
     top: 12px;
     transform: translate(-50%, 0) scale(0.6);
     opacity: 0.8;
     z-index: 2;
     background-color: transparent;
+}
+
+#spotui-onboarding-panel {
+    display: none;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 18px;
+    padding: 30px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    border: 1px solid rgba(255, 140, 66, 0.3);
+    border-radius: 6px;
+    background: transparent;
+}
+
+body.spotui-onboarding-panel #spotui-onboarding-panel {
+    display: flex;
+}
+
+.spotui-onboarding-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 100%;
+}
+
+.spotui-onboarding-copy h2 {
+    margin: 0 0 8px;
+    color: #ff8c42;
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.spotui-onboarding-kicker {
+    color: #b3b3b3;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.spotui-onboarding-copy p,
+.spotui-onboarding-primer,
+.spotui-onboarding-actions,
+.spotui-onboarding-callout {
+    color: #ddd;
+}
+
+.spotui-onboarding-copy code,
+.spotui-onboarding-primer code,
+.spotui-onboarding-callout code {
+    color: #ff8c42;
+    background: rgba(255, 140, 66, 0.12);
+    border: 1px solid rgba(255, 140, 66, 0.22);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.spotui-onboarding-copy code {
+    white-space: nowrap;
+}
+
+.spotui-onboarding-copy p code,
+.spotui-onboarding-callout code {
+    display: inline-block;
+    line-height: 1.2;
+}
+
+.spotui-onboarding-primer {
+    border: 1px solid rgba(255, 140, 66, 0.2);
+    border-radius: 6px;
+    padding: 16px;
+    display: grid;
+    gap: 8px;
+}
+
+.spotui-onboarding-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.spotui-onboarding-actions.centered {
+    justify-content: center;
+    margin-top: auto;
+}
+
+.spotui-onboarding-callout {
+    margin-top: auto;
+    align-self: flex-start;
+    max-width: 280px;
+    border: 1px solid rgba(255, 140, 66, 0.28);
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.spotui-onboarding-callout .arrow {
+    color: #ff8c42;
+    font-size: 24px;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.spotui-onboarding-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    padding: 0;
+}
+
+.spotui-onboarding-theme {
+    border: 1px solid rgba(255, 140, 66, 0.35);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.35);
+    color: #ddd;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.spotui-onboarding-theme img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+}
+
+.spotui-onboarding-theme span {
+    padding: 10px 12px;
+    font-family: "JetBrains Mono", monospace;
+    color: #ff8c42;
 }
 
 body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
@@ -1209,27 +1347,262 @@ function initLyricsBridge() {
     }
 }
 
-function applyThemeByName(themeName) {
-    const script = document.createElement('script');
+function applyThemeByName(themeName, opts = {}) {
+    const skipNonTui = Boolean(opts.skipNonTui);
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
+
+        script.onload = () => {
+            try {
+                resetAllSettings();
+                const themes = window.spotuiThemes || [];
+                const theme = themes.find((t) => t.name === themeName);
+
+                if (theme && theme.commands) {
+                    theme.commands.forEach((cmd, idx) => {
+                        const text = String(cmd || "").trim();
+                        if (skipNonTui && !text.startsWith("tui")) return;
+                        setTimeout(() => execute(cmd, { bypassOnboarding: skipNonTui }), idx * 120);
+                    });
+                }
+                resolve(theme || null);
+            } catch (err) {
+                reject(err);
+            } finally {
+                document.body.removeChild(script);
+            }
+        };
+
+        script.onerror = () => {
+            document.body.removeChild(script);
+            reject(new Error("Failed to load themes"));
+        };
+
+        document.body.appendChild(script);
+    });
+}
+
+function encodeThemeName(name) {
+    try {
+        return btoa(unescape(encodeURIComponent(String(name || ""))));
+    } catch (e) {
+        return "";
+    }
+}
+
+function getThemeSelectionList(themes, showAll = false) {
+    if (showAll) return themes;
+
+    const curated = themes.filter((theme) => {
+        const themeId = String(theme?.id || "");
+        const encodedName = encodeThemeName(theme?.name);
+        return FIRST_BOOT_THEME_IDS.has(themeId) || FIRST_BOOT_THEME_IDS.has(encodedName);
+    });
+
+    if (curated.length) return curated;
+    return themes.slice(0, 3);
+}
+
+function markLaunched() {
+    try { localStorage.setItem(LAUNCHED_KEY, "1"); } catch (e) {}
+}
+
+function isFirstBoot() {
+    try { return localStorage.getItem(LAUNCHED_KEY) !== "1"; } catch (e) { return true; }
+}
+
+function closeOnboardingPanel() {
+    onboardingPanelOpen = false;
+    onboardingStage = "commands";
+    onboardingShowAllThemes = false;
+    document.body.classList.remove("spotui-onboarding-panel");
+    const panel = document.getElementById("spotui-onboarding-panel");
+    if (panel) panel.hidden = true;
+    const input = document.getElementById("spotui-input");
+    if (input) input.focus();
+    document.removeEventListener("keydown", handleGlobalEsc);
+}
+
+function showRestartPopup(message = "Wait 5 seconds and relaunch Spotify", persistSession = false) {
+    const existing = document.getElementById("spotui-restart-popup");
+    if (existing) existing.remove();
+
+    const popup = document.createElement("div");
+    popup.id = "spotui-restart-popup";
+    popup.textContent = message;
+    popup.style.position = "fixed";
+    popup.style.left = "50%";
+    popup.style.bottom = "120px";
+    popup.style.transform = "translateX(-50%)";
+    popup.style.zIndex = "10000";
+    popup.style.background = "rgba(0,0,0,0.92)";
+    popup.style.border = "1px solid #ff8c42";
+    popup.style.borderRadius = "6px";
+    popup.style.padding = "12px 16px";
+    popup.style.color = "#ff8c42";
+    popup.style.fontFamily = "\"JetBrains Mono\", monospace";
+    popup.style.fontSize = "14px";
+    popup.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+    document.body.appendChild(popup);
+    if (persistSession) {
+        try { sessionStorage.setItem("spotui:restart-popup", message); } catch (e) {}
+    }
+}
+
+function openOnboardingPanel() {
+    if (onboardingPanelOpen) return;
+    closeActivePanel();
+    onboardingPanelOpen = true;
+    document.body.classList.add("spotui-onboarding-panel");
+    const panel = document.getElementById("spotui-onboarding-panel");
+    if (panel) panel.hidden = false;
+    const input = document.getElementById("spotui-input");
+    if (input) input.blur();
+    document.addEventListener("keydown", handleGlobalEsc);
+}
+
+function renderOnboardingPanel() {
+    const panel = document.getElementById("spotui-onboarding-panel");
+    if (!panel) return;
+
+    panel.innerHTML = "<p>Loading first boot...</p>";
+
+    const script = document.createElement("script");
     script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
 
     script.onload = () => {
-        resetAllSettings();
-        const themes = window.spotuiThemes || [];
-        const theme = themes.find(t => t.name === themeName);
+        const themes = getThemeSelectionList(window.spotuiThemes || [], onboardingShowAllThemes);
+        const themeCards = themes.map((theme) => `
+            <button class="spotui-onboarding-theme" data-theme-name="${theme.name}">
+                <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
+                <span>${theme.name}</span>
+            </button>
+        `).join("");
 
-        if (theme && theme.commands) {
-            theme.commands.forEach(cmd => execute(cmd));
+        if (onboardingStage === "commands") {
+            panel.innerHTML = `
+                <div class="spotui-onboarding-stage">
+                    <div class="spotui-onboarding-copy">
+                        <div class="spotui-onboarding-kicker">Onboarding · stage 1</div>
+                        <h2>Learn commands.</h2>
+                        <p>These are some of the most common commands you can use, try them out!</p>
+                    </div>
+                    <div class="spotui-onboarding-primer">
+                        <div class="help-item"><span class="command">p</span><span class="description">Play / pause</span></div>
+                        <div class="help-item"><span class="command">v 50</span><span class="description">Set volume to 50%</span></div>
+                        <div class="help-item"><span class="command">loop</span><span class="description">Loop current playlist</span></div>
+                    </div>
+                    <div class="spotui-onboarding-callout">
+                        <div class="arrow">↙</div>
+                        <div>Enter <code>p</code> to play and pause.</div>
+                    </div>
+                    <div class="spotui-onboarding-actions centered">
+                        <button id="spotui-onboarding-next" class="spotui-control-btn">Next</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById("spotui-onboarding-next")?.addEventListener("click", () => {
+                onboardingStage = "themes";
+                renderOnboardingPanel();
+            });
+        } else if (onboardingStage === "themes") {
+            panel.innerHTML = `
+                <div class="spotui-onboarding-stage">
+                    <div class="spotui-onboarding-copy">
+                        <div class="spotui-onboarding-kicker">Onboarding · stage 2</div>
+                        <h2>Pick theme.</h2>
+                        <p>These are some of the most popular themes. Choose the one that fits your style!</p>
+                        <p>You dont like the top 3? Click "View all" to see more themes.</p>
+                        <p>Don't worry, you can change theme any time with <code>theme</code>.</p>
+                    </div>
+                    <div class="theme-grid spotui-onboarding-grid">${themeCards}</div>
+                    <div class="spotui-onboarding-actions centered">
+                        <button id="spotui-onboarding-view-all" class="spotui-control-btn">View all</button>
+                    </div>
+                </div>
+            `;
+            panel.querySelectorAll(".spotui-onboarding-theme").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const themeName = button.dataset.themeName;
+                    if (!themeName) return;
+                    onboardingStage = "theme-picked";
+                    renderOnboardingPanel();
+                    setTimeout(() => {
+                        applyThemeByName(themeName, { skipNonTui: true }).catch(() => {});
+                    }, 50);
+                });
+            });
+            const viewAllBtn = document.getElementById("spotui-onboarding-view-all");
+            if (viewAllBtn && !onboardingShowAllThemes) {
+                viewAllBtn.addEventListener("click", () => {
+                    onboardingShowAllThemes = true;
+                    renderOnboardingPanel();
+                });
+            } else if (viewAllBtn) {
+                viewAllBtn.remove();
+            }
+        } else if (onboardingStage === "theme-picked") {
+            panel.innerHTML = `
+                <div class="spotui-onboarding-stage">
+                    <div class="spotui-onboarding-copy">
+                        <div class="spotui-onboarding-kicker">Onboarding · stage 3</div>
+                        <h2>Theme applied.</h2>
+                        <p>You can change theme any time with <code>theme</code>.</p>
+                    </div>
+                    <div class="spotui-onboarding-actions centered">
+                        <button id="spotui-onboarding-continue" class="spotui-control-btn">Continue</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById("spotui-onboarding-continue")?.addEventListener("click", () => {
+                onboardingStage = "done";
+                renderOnboardingPanel();
+            });
+        } else {
+            markLaunched();
+            panel.innerHTML = `
+                <div class="spotui-onboarding-stage">
+                    <div class="spotui-onboarding-copy">
+                        <div class="spotui-onboarding-kicker">Onboarding · stage 4</div>
+                        <h2>Ready.</h2>
+                        <p>Enter <code>list</code> or <code>playlist</code> to open menu for playlists.</p>
+                        <br>
+                        <p>Note: You must run one of the commands above to finish onboarding!</p>
+                        <p>After finishing onboarding, feel free to explore all the commands with <code>help</code>.</p>
+                    </div>
+                </div>
+            `;
         }
 
         document.body.removeChild(script);
     };
 
     script.onerror = () => {
+        panel.innerHTML = `
+            <div class="spotui-onboarding-copy">
+                <div class="spotui-onboarding-kicker">Onboarding · stage 5</div>
+                <h2>Theme feed failed.</h2>
+                <p>Try again in a moment. Launch stays locked until theme pick works.</p>
+                <p>This may happen if you have been ratelimited, wait a few seconds and click the retry button below.</p>
+            </div>
+            <div class="spotui-onboarding-actions centered">
+                <button id="spotui-onboarding-retry" class="spotui-control-btn">Retry</button>
+            </div>
+        `;
+        document.getElementById("spotui-onboarding-retry")?.addEventListener("click", () => renderOnboardingPanel());
         document.body.removeChild(script);
     };
 
     document.body.appendChild(script);
+}
+
+async function launchFirstBootIfNeeded() {
+    if (!isFirstBoot()) return;
+    openOnboardingPanel();
+    onboardingStage = "commands";
+    onboardingShowAllThemes = false;
+    renderOnboardingPanel();
 }
 
 function createTerminal() {
@@ -1256,6 +1629,7 @@ function createTerminal() {
 <div id="spotui-help-panel" hidden></div>
 <div id="spotui-about-panel" hidden></div>
 <div id="spotui-theme-panel" hidden></div>
+<div id="spotui-onboarding-panel" hidden></div>
 <div id="spotui-footer">
 <span class="prompt">></span>
 <input id="spotui-input" autofocus placeholder="type help for a list of commands">
@@ -1295,11 +1669,19 @@ async function runPlayerAction(actionName, promiseFn, successMsg) {
     } catch (err) {}
 }
 
-async function execute(cmd) {
+function getAllowedOnboardingCommands() {
+    if (!onboardingPanelOpen) return null;
+    if (onboardingStage === "done") return new Set(["p", "v", "loop", "list", "playlist"]);
+    return new Set(["p", "v", "loop"]);
+}
+
+async function execute(cmd, opts = {}) {
     const rawCmd = cmd.trim();
     const cleanedCmd = rawCmd.startsWith("/") || rawCmd.startsWith(".") ? rawCmd.slice(1).trim() : rawCmd;
     const [command, ...args] = cleanedCmd.split(/\s+/);
     const argText = args.join(" ").trim();
+    const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
+    if (allowedOnboardingCommands && !allowedOnboardingCommands.has(command)) return;
 
     function toggleLogo(state) {
         if (state === "on") {
@@ -1430,6 +1812,17 @@ async function execute(cmd) {
             applyInputColors();
             return;
         }
+        if (args[0] === "restore") {
+            const fullRestore = args[1] === "-full";
+            const launchedValue = localStorage.getItem(LAUNCHED_KEY);
+            localStorage.clear();
+            if (!fullRestore && launchedValue !== null) {
+                localStorage.setItem(LAUNCHED_KEY, launchedValue);
+            }
+            showRestartPopup("Wait 5 seconds and relaunch Spotify", true);
+            setTimeout(() => location.reload(), 100);
+            return;
+        }
         return;
     }
 
@@ -1505,6 +1898,9 @@ let activePane = 'playlist';
 let helpPanelOpen = false;
 let aboutPanelOpen = false;
 let themePanelOpen = false;
+let onboardingPanelOpen = false;
+let onboardingStage = "commands";
+let onboardingShowAllThemes = false;
 
 const COMMAND_LIST = [
     { cmd: "tui -l &lt;on/off&gt;", desc: "Toggle ASCII logo visibility" },
@@ -1537,10 +1933,13 @@ const COMMAND_LIST = [
 ];
 
 function handleGlobalEsc(e) {
-    if (e.key === "Escape") {
+    if (e.key !== "Escape") return;
+    if (onboardingPanelOpen) {
         e.preventDefault();
-        closeActivePanel();
+        return;
     }
+    e.preventDefault();
+    closeActivePanel();
 }
 
 function closeActivePanel() {
@@ -1549,6 +1948,7 @@ function closeActivePanel() {
     if (lyricsPanelOpen) closeLyricsPanel();
     if (playlistPanelOpen) closePlaylistPanel();
     if (themePanelOpen) closeThemePanel();
+    if (onboardingPanelOpen) closeOnboardingPanel();
 }
 
 function setPanelState(panelId, className, openVarName, targetState) {
@@ -1556,6 +1956,7 @@ function setPanelState(panelId, className, openVarName, targetState) {
         'helpPanelOpen': () => helpPanelOpen = targetState,
         'aboutPanelOpen': () => aboutPanelOpen = targetState,
         'themePanelOpen': () => themePanelOpen = targetState,
+        'onboardingPanelOpen': () => onboardingPanelOpen = targetState,
     };
     if (panels[openVarName]) panels[openVarName]();
     document.body.classList.toggle(className, targetState);
@@ -1932,6 +2333,12 @@ const INPUT_BG = "spotui:input-bg";
 const INPUT_BG_HOVER = "spotui:input-bg-hover";
 const INPUT_TEXT = "spotui:input-text";
 const INPUT_BORDER = "spotui:input-border";
+const LAUNCHED_KEY = "spotui:launched";
+const FIRST_BOOT_THEME_IDS = new Set([
+    "U3BvVFVJIC0gRGVmYXVsdA==",
+    "QXR0YWNrIG9uIFRpdGFuIFBsdXM=",
+    "SURL",
+]);
 
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
@@ -2273,6 +2680,15 @@ if (localStorage.getItem("spotui:logo-visible") === "off") {
 
 if (Spicetify?.Platform) createTerminal();
 else setTimeout(createTerminal, 1500);
+
+try {
+    const restartMessage = sessionStorage.getItem("spotui:restart-popup");
+    if (restartMessage) {
+        showRestartPopup(restartMessage, false);
+    }
+} catch (e) {}
+
+setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
 try {
     if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
