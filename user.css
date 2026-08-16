@@ -34,7 +34,10 @@ body.spotui-spotify-enabled .main-view-container {
 
 body.spotui-spotify-enabled .Root__nav-bar,
 body.spotui-spotify-enabled .main-topBar-container,
-body.spotui-spotify-enabled .Root__globalNav,
+body.spotui-spotify-enabled .Root__globalNav {
+    display: flex !important;
+}
+
 body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist,
 body.spotui-spotify-enabled .main-yourLibraryX-entryPoints,
 body.spotui-spotify-enabled .Root__right-sidebar,
@@ -516,7 +519,7 @@ button,
     --spice-misc: #ff8c42 !important;
     --spice-text: #dddddd !important;
     --spice-subtext: #b3b3b3 !important;
-    
+
     --background-base: #000000 !important;
     --background-highlight: #111111 !important;
     --background-press: #222222 !important;
@@ -526,7 +529,7 @@ button,
     --background-tinted-base: #000000 !important;
     --background-tinted-highlight: #111111 !important;
     --background-tinted-press: #222222 !important;
-    
+
     --text-base: #dddddd !important;
     --text-subdued: #b3b3b3 !important;
     --text-bright-accent: #ff8c42 !important;
@@ -538,7 +541,7 @@ button,
     --encore-text-base: #dddddd !important;
     --encore-text-subdued: #b3b3b3 !important;
     --encore-text-bright-accent: #ff8c42 !important;
-    
+
     --encore-internal-color-bg-base: #000000 !important;
     --encore-internal-color-bg-canvas: #000000 !important;
     --encore-internal-color-bg-press: #222222 !important;
@@ -549,7 +552,7 @@ button,
     --encore-internal-color-text-positive: #ff8c42 !important;
     --encore-internal-color-text-warning: #ff8c42 !important;
     --encore-internal-color-text-announcement: #ff8c42 !important;
-    
+
     --encore-internal-color-essential-base: #ff8c42 !important;
     --encore-internal-color-essential-subdued: #ffb26f !important;
     --encore-internal-color-essential-bright-accent: #ff8c42 !important;
