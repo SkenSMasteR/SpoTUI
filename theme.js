@@ -6,7 +6,7 @@ const THEME_HOST = "https://spotui.root.sx/";
 const style = `
 #spotui-tui {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 90px;
+    top: 0; left: 0; right: 0; bottom: 4.75rem;
     width: 100vw;
     background: #000;
     color: #ddd;
