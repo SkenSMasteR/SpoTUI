@@ -98,7 +98,6 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer but
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [role="button"]:hover {
     color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
 }
-}
 
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer {
