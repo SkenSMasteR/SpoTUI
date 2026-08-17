@@ -288,6 +288,19 @@ body.spotui-lyrics-open .lyrics-lyricsContainer-LyricsContainer {
     -ms-overflow-style: none !important;
 }
 
+*,
+*::before,
+*::after {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+}
+
 body.spotui-lyrics-open .main-nowPlayingView-lyricsContent::-webkit-scrollbar,
 body.spotui-lyrics-open .main-lyricsCinema-container::-webkit-scrollbar,
 body.spotui-lyrics-open .lyrics-lyrics-container::-webkit-scrollbar,
