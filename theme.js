@@ -847,12 +847,22 @@ function loadThemeFeed(onLoad, onError) {
             const script = document.createElement("script");
             script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
             script.onload = () => {
-                document.body.removeChild(script);
-                resolve();
+                try {
+                    if (window.spotuiThemes && window.spotuiThemes.length) {
+                        resolve();
+                    } else {
+                        reject(new Error("Theme feed loaded but empty"));
+                    }
+                } finally {
+                    script.remove();
+                }
             };
             script.onerror = () => {
-                document.body.removeChild(script);
-                reject(new Error("Failed to load themes"));
+                try {
+                    reject(new Error("Failed to load themes"));
+                } finally {
+                    script.remove();
+                }
             };
             document.body.appendChild(script);
         });
