@@ -1484,18 +1484,26 @@ function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
     return new Promise((resolve, reject) => {
         loadThemeFeed(
-            () => {
+            async () => {
                 try {
                     resetAllSettings();
                     const themes = window.spotuiThemes || [];
                     const theme = themes.find((t) => t.name === themeName);
 
                     if (theme && theme.commands) {
+                        const pending = [];
                         theme.commands.forEach((cmd, idx) => {
                             const text = String(cmd || "").trim();
                             if (skipNonTui && !text.startsWith("tui")) return;
-                            setTimeout(() => execute(cmd, { bypassOnboarding: skipNonTui }), idx * 120);
+                            pending.push(
+                                new Promise((res, rej) => {
+                                    setTimeout(() => {
+                                        execute(cmd, { bypassOnboarding: skipNonTui }).then(res, rej);
+                                    }, idx * 120);
+                                })
+                            );
                         });
+                        await Promise.all(pending);
                     }
                     resolve(theme || null);
                 } catch (err) {
