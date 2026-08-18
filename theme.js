@@ -805,6 +805,12 @@ function storageRemove(key) {
     } catch (e) {}
 }
 
+function storageClear() {
+    try {
+        localStorage.clear();
+    } catch (e) {}
+}
+
 function getCharColor(row, col, totalRows, totalCols) {
     const normRow = row / Math.max(totalRows - 1, 1);
     const normCol = col / Math.max(totalCols - 1, 1);
@@ -1972,7 +1978,7 @@ async function execute(cmd, opts = {}) {
         if (args[0] === "restore") {
             const fullRestore = args[1] === "-full";
             const launchedValue = storageGet(LAUNCHED_KEY);
-            localStorage.clear();
+            storageClear();
             if (!fullRestore && launchedValue !== null) {
                 storageSet(LAUNCHED_KEY, launchedValue);
             }
