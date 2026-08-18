@@ -1,10 +1,31 @@
 
 (function () {
-const ANIMATION_KEY = "spotui:ascii-animation";
 const THEME_HOST = "https://spotui.root.sx/";
 
-const style = `
-#spotui-tui {
+const ANIMATION_KEY = "spotui:ascii-animation";
+const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
+const WP_URL_KEY = "spotui:wp-url";
+const WP_OPACITY_KEY = "spotui:wp-opacity";
+const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
+const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
+const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
+const PLAYER_BAR_BG = "spotui:player-bar-bg";
+const PLAYER_BAR_BORDER = "spotui:player-bar-border";
+const PLAYER_BAR_TEXT = "spotui:player-bar-text";
+const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
+const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
+const INPUT_BG = "spotui:input-bg";
+const INPUT_BG_HOVER = "spotui:input-bg-hover";
+const INPUT_TEXT = "spotui:input-text";
+const INPUT_BORDER = "spotui:input-border";
+const LAUNCHED_KEY = "spotui:launched";
+const FIRST_BOOT_THEME_IDS = new Set([
+    "U3BvVFVJIC0gRGVmYXVsdA==",
+    "QXR0YWNrIG9uIFRpdGFuIFBsdXM=",
+    "SURL",
+]);
+
+const style = `#spotui-tui {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 4.75rem;
     width: 100vw;
@@ -668,6 +689,7 @@ const SPOTUI_ASCII_ART = [
 ];
 
 const GLITCH_CHARS = "01";
+const GLITCH_CHAR_LIST = [...GLITCH_CHARS];
 const ORANGE_PALETTE = [
     "#ff6a00",
     "#ff7a0a",
@@ -678,6 +700,110 @@ const ORANGE_PALETTE = [
     "#ffd480",
     "#ffe699",
 ];
+
+const ADD_THEME_IMG_OK = `https://imgs.search.brave.com/2VYp5kTKXFu84NcOgmYXQM8zyBByOalm9xwmIOX4Lp8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvOTU5Ni85NTk2/MTU2LnBuZw`;
+const ADD_THEME_IMG_ERR = `https://imgs.search.brave.com/qsWzCiBrdeOE9PQmFvp0eS0rfLyVkcm97DyHxEXGNBk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLm1h/Z25pZmljLmNvbS8y/NTYvMTAwODQvMTAw/ODQzOTAucG5nP3Nl/bXQ9YWlzX3doaXRl/X2xhYmVs`;
+
+const COMMAND_LIST = [
+    { cmd: "tui -l &lt;on/off&gt;", desc: "Toggle ASCII logo visibility" },
+    { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
+    { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
+    { cmd: "tui -wp off", desc: "Remove wallpaper" },
+    { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
+    { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
+    { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
+    { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
+    { cmd: "tui -bar off", desc: "Reset player bar colors" },
+    { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
+    { cmd: "tui -progress off", desc: "Reset progress bar colors" },
+    { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
+    { cmd: "tui -inputs off", desc: "Reset input colors" },
+    { cmd: "playlist / list", desc: "Open playlist viewer" },
+    { cmd: "play / pause / p", desc: "Toggle playback" },
+    { cmd: "skip", desc: "Next track" },
+    { cmd: "back", desc: "Previous track" },
+    { cmd: "s / seek <mm:ss>", desc: "Jump to a specific time" },
+    { cmd: "v / volume <%>", desc: "Set volume" },
+    { cmd: "shuffle", desc: "Toggle shuffle" },
+    { cmd: "loop / superloop", desc: "Toggle repeat mode" },
+    { cmd: "like", desc: "Like/unlike current song" },
+    { cmd: "lyrics", desc: "Toggle lyrics panel" },
+    { cmd: "search", desc: "Open Spotify search" },
+    { cmd: "about", desc: "Show about panel" },
+    { cmd: "theme", desc: "Browse and apply themes" },
+    { cmd: "help", desc: "Show this panel" },
+];
+
+let asciiAnimationInitialized = false;
+let asciiCharData = [];
+let asciiEnabled = true;
+
+let tuiMode = "command";
+let results = [];
+let selected = 0;
+let lyricsObserver = null;
+let commandHistory = [];
+let commandHistoryIndex = -1;
+
+let playlistPanelOpen = false;
+let playlists = [];
+let playlistSongs = [];
+let selectedPlaylist = 0;
+let selectedSong = 0;
+let activePane = "playlist";
+let helpPanelOpen = false;
+let aboutPanelOpen = false;
+let themePanelOpen = false;
+let onboardingPanelOpen = false;
+let onboardingStage = "commands";
+let onboardingShowAllThemes = false;
+
+let lyricsPanelOpen = false;
+let lyricsLoadToken = 0;
+let lyricsActiveIndex = -1;
+let lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+let lyricsBound = false;
+let lyricsSyncInterval = null;
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shuffleArray(array) {
+    for (let index = array.length - 1; index > 0; index -= 1) {
+        const j = Math.floor(Math.random() * (index + 1));
+        [array[index], array[j]] = [array[j], array[index]];
+    }
+    return array;
+}
+
+function randomGlitchChar() {
+    return GLITCH_CHAR_LIST[Math.floor(Math.random() * GLITCH_CHAR_LIST.length)];
+}
+
+function randomGlitchColor(minLightness = 50, lightnessRange = 30) {
+    return `hsl(${20 + Math.random() * 35}, 100%, ${minLightness + Math.random() * lightnessRange}%)`;
+}
+
+function storageGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+function storageSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {}
+}
+
+function storageRemove(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch (e) {}
+}
 
 function getCharColor(row, col, totalRows, totalCols) {
     const normRow = row / Math.max(totalRows - 1, 1);
@@ -700,20 +826,92 @@ function getCharColor(row, col, totalRows, totalCols) {
     return `rgb(${r},${g},${b})`;
 }
 
-let asciiAnimationInitialized = false;
-let asciiCharData = [];
-let asciiEnabled = true;
+function createButton(id, className, text, onClick) {
+    const btn = document.createElement("button");
+    btn.id = id;
+    btn.className = className;
+    btn.textContent = text;
+    btn.addEventListener("click", onClick);
+    return btn;
+}
+
+let themesFeedPromise = null;
+
+function loadThemeFeed(onLoad, onError) {
+    if (window.spotuiThemes && window.spotuiThemes.length) {
+        onLoad();
+        return;
+    }
+    if (!themesFeedPromise) {
+        themesFeedPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
+            script.onload = () => {
+                document.body.removeChild(script);
+                resolve();
+            };
+            script.onerror = () => {
+                document.body.removeChild(script);
+                reject(new Error("Failed to load themes"));
+            };
+            document.body.appendChild(script);
+        });
+        themesFeedPromise.then(
+            () => { themesFeedPromise = null; },
+            () => { themesFeedPromise = null; }
+        );
+    }
+    themesFeedPromise.then(onLoad, onError);
+}
+
+function createAddThemeCard(imgUrl) {
+    const card = document.createElement("div");
+    card.className = "theme-card";
+    card.innerHTML = `
+        <h3>Add yours</h3>
+        <img src="${imgUrl}" alt="Add Theme">
+        <button>Add</button>
+    `;
+    card.querySelector("button").addEventListener("click", () => {
+        window.open("https://spotui.root.sx/", "_blank");
+    });
+    return card;
+}
+
+function createThemeCard(theme) {
+    const card = document.createElement("div");
+    card.className = "theme-card";
+    card.innerHTML = `
+        <h3>${theme.name}</h3>
+        <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
+        <button data-commands='${JSON.stringify(theme.commands)}'>Apply</button>
+    `;
+    return card;
+}
+
+function applyCssVar(key, cssVar) {
+    const root = document.documentElement;
+    const value = storageGet(key);
+    if (value) root.style.setProperty(cssVar, value);
+    else root.style.removeProperty(cssVar);
+}
+
+function handleColorArgs(args, flagToKey) {
+    if (args.includes("off")) {
+        Object.keys(flagToKey).forEach((flag) => storageRemove(flagToKey[flag]));
+        return;
+    }
+    Object.keys(flagToKey).forEach((flag) => {
+        const idx = args.indexOf(flag);
+        if (idx !== -1) storageSet(flagToKey[flag], args[idx + 1]);
+    });
+}
 
 function resetGrid() {
     asciiCharData.forEach(({ el, original, color }) => {
         el.textContent = original;
         el.style.color = color;
     });
-}
-
-function stopAsciiAnimation() {
-    asciiEnabled = false;
-    resetGrid();
 }
 
 function initAsciiAnimation() {
@@ -771,30 +969,24 @@ function initAsciiAnimation() {
         return rowSpansCache[rowIdx] || [];
     }
 
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
     async function decryptRow(rowIdx) {
         const spans = getRowSpans(rowIdx);
         if (!spans.length) return;
-        const chars = [...GLITCH_CHARS];
         const origs = spans.map((span) => span.dataset.original || " ");
         const colors = spans.map((span) => span.dataset.origColor || "#ff8c1a");
 
         spans.forEach((span) => {
-            span.textContent = chars[Math.floor(Math.random() * chars.length)];
+            span.textContent = randomGlitchChar();
         });
 
         const indices = Array.from({ length: spans.length }, (_, i) => i);
-        for (let i = indices.length - 1; i > 0; i -= 1) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [indices[i], indices[j]] = [indices[j], indices[i]];
-        }
+        shuffleArray(indices);
 
         const batchSize = 4;
         for (let start = 0; start < indices.length; start += batchSize) {
             const batch = indices.slice(start, start + batchSize);
             batch.forEach((idx) => {
-                spans[idx].textContent = chars[Math.floor(Math.random() * chars.length)];
+                spans[idx].textContent = randomGlitchChar();
             });
             await sleep(8);
             batch.forEach((idx) => {
@@ -810,14 +1002,11 @@ function initAsciiAnimation() {
         if (!spans.length) return;
         const origs = spans.map((span) => span.dataset.original || " ");
         const colors = spans.map((span) => span.dataset.origColor || "#ff8c1a");
-        const chars = [...GLITCH_CHARS];
         const steps = 8;
         for (let step = 0; step < steps; step += 1) {
             spans.forEach((span) => {
-                const randIdx = Math.floor(Math.random() * chars.length);
-                span.textContent = chars[randIdx];
-                const hue = 20 + Math.random() * 35;
-                span.style.color = `hsl(${hue}, 100%, ${50 + Math.random() * 30}%)`;
+                span.textContent = randomGlitchChar();
+                span.style.color = randomGlitchColor();
             });
             await sleep(Math.floor(duration / steps));
         }
@@ -841,7 +1030,6 @@ function initAsciiAnimation() {
     }
 
     async function burstGlitch(duration = 800) {
-        const chars = [...GLITCH_CHARS];
         const steps = 8;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
             for (let step = 0; step < steps; step += 1) {
@@ -851,8 +1039,8 @@ function initAsciiAnimation() {
                     const threshold = progress * 1.1;
                     if (norm < threshold + 0.12 && norm > threshold - 0.12) {
                         if (Math.random() < 0.75) {
-                            el.textContent = chars[Math.floor(Math.random() * chars.length)];
-                            el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                            el.textContent = randomGlitchChar();
+                            el.style.color = randomGlitchColor();
                         }
                     } else if (norm < threshold - 0.12) {
                         el.textContent = original;
@@ -865,7 +1053,6 @@ function initAsciiAnimation() {
     }
 
     async function pulseGlitch(duration = 1200) {
-        const chars = [...GLITCH_CHARS];
         const waves = 3;
         const stepsPerWave = 10;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
@@ -877,9 +1064,8 @@ function initAsciiAnimation() {
                         const norm = dist / maxDist;
                         if (norm < threshold + 0.1 && norm > threshold - 0.1) {
                             if (Math.random() < 0.7) {
-                                const randIdx = Math.floor(Math.random() * chars.length);
-                                el.textContent = chars[randIdx];
-                                el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                                el.textContent = randomGlitchChar();
+                                el.style.color = randomGlitchColor(55, 25);
                             }
                         } else if (norm < threshold - 0.1 && wave === waves - 1) {
                             el.textContent = original;
@@ -894,13 +1080,11 @@ function initAsciiAnimation() {
     }
 
     async function implosionGlitch(duration = 900) {
-        const chars = [...GLITCH_CHARS];
         const steps = 10;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
             withDist.forEach(({ el }) => {
-                const randIdx = Math.floor(Math.random() * chars.length);
-                el.textContent = chars[randIdx];
-                el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${45 + Math.random() * 35}%)`;
+                el.textContent = randomGlitchChar();
+                el.style.color = randomGlitchColor(45, 35);
             });
             for (let step = 0; step < steps; step += 1) {
                 const progress = step / steps;
@@ -927,7 +1111,6 @@ function initAsciiAnimation() {
             const dist = Math.sqrt(dr * dr + dc * dc);
             return { ...entry, angle, dist };
         });
-        const chars = [...GLITCH_CHARS];
         const steps = 36;
         const wedgeWidth = 0.5;
 
@@ -937,9 +1120,8 @@ function initAsciiAnimation() {
                 let diff = Math.abs(angle - sweepAngle);
                 if (diff > Math.PI) diff = Math.PI * 2 - diff;
                 if (diff < wedgeWidth && dist > 0.1) {
-                    const randIdx = Math.floor(Math.random() * chars.length);
-                    el.textContent = chars[randIdx];
-                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${55 + Math.random() * 25}%)`;
+                    el.textContent = randomGlitchChar();
+                    el.style.color = randomGlitchColor(55, 25);
                 } else {
                     el.textContent = original;
                     el.style.color = color;
@@ -951,7 +1133,6 @@ function initAsciiAnimation() {
     }
 
     async function fuzzWaveGlitch(duration = 1000) {
-        const chars = [...GLITCH_CHARS];
         const steps = 20;
         const bandWidth = 0.25;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
@@ -962,9 +1143,8 @@ function initAsciiAnimation() {
                     const norm = dist / maxDist;
                     const distanceFromTarget = Math.abs(norm - targetNorm);
                     if (distanceFromTarget < bandWidth && Math.random() < 0.65) {
-                        const randIdx = Math.floor(Math.random() * chars.length);
-                        el.textContent = chars[randIdx];
-                        el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                        el.textContent = randomGlitchChar();
+                        el.style.color = randomGlitchColor();
                     } else if (distanceFromTarget > bandWidth * 1.5) {
                         el.textContent = original;
                         el.style.color = color;
@@ -976,13 +1156,12 @@ function initAsciiAnimation() {
     }
 
     async function staticGlitch(duration = 600) {
-        const chars = [...GLITCH_CHARS];
         const steps = 6;
         for (let step = 0; step < steps; step += 1) {
             charData.forEach(({ el }) => {
                 if (Math.random() < 0.8) {
-                    el.textContent = chars[Math.floor(Math.random() * chars.length)];
-                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                    el.textContent = randomGlitchChar();
+                    el.style.color = randomGlitchColor();
                 }
             });
             await sleep(Math.floor(duration / steps));
@@ -991,7 +1170,6 @@ function initAsciiAnimation() {
     }
 
     async function horizontalBand(direction = 1, duration = 800) {
-        const chars = [...GLITCH_CHARS];
         const start = direction === 1 ? 0 : rows - 1;
         const totalSteps = rows + 2;
         for (let step = 0; step <= totalSteps; step += 1) {
@@ -1002,8 +1180,8 @@ function initAsciiAnimation() {
             for (let row = bandTop; row <= bandBottom; row += 1) {
                 const spans = getRowSpans(row);
                 spans.forEach((span) => {
-                    span.textContent = chars[Math.floor(Math.random() * chars.length)];
-                    span.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                    span.textContent = randomGlitchChar();
+                    span.style.color = randomGlitchColor();
                 });
             }
             await sleep(Math.floor(duration / totalSteps));
@@ -1012,7 +1190,6 @@ function initAsciiAnimation() {
     }
 
     async function verticalSlice(direction = 1, duration = 800) {
-        const chars = [...GLITCH_CHARS];
         const start = direction === 1 ? 0 : cols - 1;
         const totalSteps = cols + 2;
         for (let step = 0; step <= totalSteps; step += 1) {
@@ -1022,8 +1199,8 @@ function initAsciiAnimation() {
             const bandRight = Math.min(cols - 1, bandCenter + 1);
             charData.forEach(({ el, col }) => {
                 if (col >= bandLeft && col <= bandRight) {
-                    el.textContent = chars[Math.floor(Math.random() * chars.length)];
-                    el.style.color = `hsl(${20 + Math.random() * 35}, 100%, ${50 + Math.random() * 30}%)`;
+                    el.textContent = randomGlitchChar();
+                    el.style.color = randomGlitchColor();
                 }
             });
             await sleep(Math.floor(duration / totalSteps));
@@ -1046,10 +1223,8 @@ function initAsciiAnimation() {
     }
 
     async function stageDecrypt() {
-        const chars = [...GLITCH_CHARS];
         charData.forEach(({ el }) => {
-            const randIdx = Math.floor(Math.random() * chars.length);
-            el.textContent = chars[randIdx];
+            el.textContent = randomGlitchChar();
         });
         for (let row = 0; row < rows; row += 1) {
             await decryptRow(row);
@@ -1083,23 +1258,15 @@ function initAsciiAnimation() {
         stageVSlashLeft,
     ];
 
-    function shuffleArray(array) {
-        for (let index = array.length - 1; index > 0; index -= 1) {
-            const j = Math.floor(Math.random() * (index + 1));
-            [array[index], array[j]] = [array[j], array[index]];
-        }
-        return array;
-    }
-
     async function runLoop() {
         while (true) {
-            if (!asciiEnabled || localStorage.getItem(ANIMATION_KEY) === "off") {
+            if (!asciiEnabled || storageGet(ANIMATION_KEY) === "off") {
                 await sleep(500);
                 continue;
             }
             const shuffled = shuffleArray([...stageFunctions]);
             for (const stageFn of shuffled) {
-                if (!asciiEnabled || localStorage.getItem(ANIMATION_KEY) === "off") break;
+                if (!asciiEnabled || storageGet(ANIMATION_KEY) === "off") break;
                 await stageFn();
                 await sleep(700 + Math.random() * 400);
             }
@@ -1110,13 +1277,6 @@ function initAsciiAnimation() {
 
     runLoop().catch(console.error);
 }
-
-let tuiMode = "command";
-let results = [];
-let selected = 0;
-let lyricsObserver = null;
-let commandHistory = [];
-let commandHistoryIndex = -1;
 
 function injectStyle() {
     const s = document.createElement("style");
@@ -1151,28 +1311,16 @@ function setWallpaper(url, opacity, save = true) {
         c.style.zIndex = '1';
     });
     if (save) {
-        try {
-            localStorage.setItem(WP_URL_KEY, url);
-            localStorage.setItem(WP_OPACITY_KEY, opacity);
-        } catch {}
+        storageSet(WP_URL_KEY, url);
+        storageSet(WP_OPACITY_KEY, opacity);
     }
 }
 
 function applyLyricColors() {
     try {
-        const activeColor = localStorage.getItem(LYRICS_COLOR_ACTIVE);
-        const inactiveColor = localStorage.getItem(LYRICS_COLOR_INACTIVE);
-        const lightInactiveColor = localStorage.getItem(LYRICS_COLOR_LIGHT_INACTIVE);
-
-        const root = document.documentElement;
-        if (activeColor) root.style.setProperty("--lyrics-color-active", activeColor);
-        else root.style.removeProperty("--lyrics-color-active");
-
-        if (inactiveColor) root.style.setProperty("--lyrics-color-inactive", inactiveColor);
-        else root.style.removeProperty("--lyrics-color-inactive");
-
-        if (lightInactiveColor) root.style.setProperty("--lyrics-color-light-inactive", lightInactiveColor);
-        else root.style.removeProperty("--lyrics-color-light-inactive");
+        applyCssVar(LYRICS_COLOR_ACTIVE, "--lyrics-color-active");
+        applyCssVar(LYRICS_COLOR_INACTIVE, "--lyrics-color-inactive");
+        applyCssVar(LYRICS_COLOR_LIGHT_INACTIVE, "--lyrics-color-light-inactive");
     } catch (e) {
         console.error("SpoTUI: Failed to apply lyric colors", e);
     }
@@ -1180,14 +1328,9 @@ function applyLyricColors() {
 
 function applyPlayerBarColors() {
     try {
-        const bg = localStorage.getItem(PLAYER_BAR_BG);
-        const border = localStorage.getItem(PLAYER_BAR_BORDER);
-        const text = localStorage.getItem(PLAYER_BAR_TEXT);
-
         const root = document.documentElement;
-        if (bg) root.style.setProperty("--player-bar-background", bg);
-        else root.style.removeProperty("--player-bar-background");
-
+        const border = storageGet(PLAYER_BAR_BORDER);
+        applyCssVar(PLAYER_BAR_BG, "--player-bar-background");
         if (border) {
             root.style.setProperty("--player-bar-border-color", border);
             root.style.setProperty("--spotui-accent", border);
@@ -1198,9 +1341,7 @@ function applyPlayerBarColors() {
             root.style.removeProperty("--spotui-accent");
             root.style.removeProperty("--spotui-accent-rgb");
         }
-
-        if (text) root.style.setProperty("--player-bar-text-color", text);
-        else root.style.removeProperty("--player-bar-text-color");
+        applyCssVar(PLAYER_BAR_TEXT, "--player-bar-text-color");
     } catch (e) {
         console.error("SpoTUI: Failed to apply player bar colors", e);
     }
@@ -1208,15 +1349,8 @@ function applyPlayerBarColors() {
 
 function applyProgressBarColors() {
     try {
-        const bg = localStorage.getItem(PROGRESS_BAR_BG);
-        const fg = localStorage.getItem(PROGRESS_BAR_FG);
-
-        const root = document.documentElement;
-        if (bg) root.style.setProperty("--progress-bar-background", bg);
-        else root.style.removeProperty("--progress-bar-background");
-
-        if (fg) root.style.setProperty("--progress-bar-foreground", fg);
-        else root.style.removeProperty("--progress-bar-foreground");
+        applyCssVar(PROGRESS_BAR_BG, "--progress-bar-background");
+        applyCssVar(PROGRESS_BAR_FG, "--progress-bar-foreground");
     } catch (e) {
         console.error("SpoTUI: Failed to apply progress bar colors", e);
     }
@@ -1224,23 +1358,10 @@ function applyProgressBarColors() {
 
 function applyInputColors() {
     try {
-        const bg = localStorage.getItem(INPUT_BG);
-        const bgHover = localStorage.getItem(INPUT_BG_HOVER);
-        const text = localStorage.getItem(INPUT_TEXT);
-        const border = localStorage.getItem(INPUT_BORDER);
-
-        const root = document.documentElement;
-        if (bg) root.style.setProperty("--input-bg-color", bg);
-        else root.style.removeProperty("--input-bg-color");
-
-        if (bgHover) root.style.setProperty("--input-bg-hover-color", bgHover);
-        else root.style.removeProperty("--input-bg-hover-color");
-
-        if (text) root.style.setProperty("--input-text-color", text);
-        else root.style.removeProperty("--input-text-color");
-
-        if (border) root.style.setProperty("--input-border-color", border);
-        else root.style.removeProperty("--input-border-color");
+        applyCssVar(INPUT_BG, "--input-bg-color");
+        applyCssVar(INPUT_BG_HOVER, "--input-bg-hover-color");
+        applyCssVar(INPUT_TEXT, "--input-text-color");
+        applyCssVar(INPUT_BORDER, "--input-border-color");
     } catch (e) {
         console.error("SpoTUI: Failed to apply input colors", e);
     }
@@ -1256,20 +1377,12 @@ function createControlButtons() {
     const controls = document.createElement("div");
     controls.id = "spotui-controls";
 
-    const hideBtn = document.createElement("button");
-    hideBtn.id = "hide-tui-btn";
-    hideBtn.className = "spotui-control-btn";
-    hideBtn.textContent = "Hide TUI";
-    hideBtn.addEventListener("click", () => {
+    const hideBtn = createButton("hide-tui-btn", "spotui-control-btn", "Hide TUI", () => {
         const hidden = document.body.classList.toggle("spotui-tui-hidden");
         hideBtn.textContent = hidden ? "Show TUI" : "Hide TUI";
     });
 
-    const spotifyBtn = document.createElement("button");
-    spotifyBtn.id = "enable-spotify-btn";
-    spotifyBtn.className = "spotui-control-btn";
-    spotifyBtn.textContent = "Enable Spotify";
-    spotifyBtn.addEventListener("click", () => {
+    const spotifyBtn = createButton("enable-spotify-btn", "spotui-control-btn", "Enable Spotify", () => {
         const enabled = document.body.classList.toggle("spotui-spotify-enabled");
         if (enabled) {
             document.body.classList.add("spotui-tui-hidden");
@@ -1287,11 +1400,7 @@ function createControlButtons() {
     controls.appendChild(spotifyBtn);
     (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
-    const backBtn = document.createElement("button");
-    backBtn.id = "spotui-back-btn";
-    backBtn.className = "spotui-control-btn";
-    backBtn.textContent = "Back";
-    backBtn.addEventListener("click", () => {
+    const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {
         document.body.classList.remove("spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
         spotifyBtn.textContent = "Enable Spotify";
         hideBtn.textContent = "Hide TUI";
@@ -1299,8 +1408,6 @@ function createControlButtons() {
     });
     document.body.appendChild(backBtn);
 }
-
-setTimeout(createControlButtons, 500);
 
 function detectLyricsSurface() {
     return Boolean(
@@ -1360,36 +1467,27 @@ function initLyricsBridge() {
 function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
     return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
+        loadThemeFeed(
+            () => {
+                try {
+                    resetAllSettings();
+                    const themes = window.spotuiThemes || [];
+                    const theme = themes.find((t) => t.name === themeName);
 
-        script.onload = () => {
-            try {
-                resetAllSettings();
-                const themes = window.spotuiThemes || [];
-                const theme = themes.find((t) => t.name === themeName);
-
-                if (theme && theme.commands) {
-                    theme.commands.forEach((cmd, idx) => {
-                        const text = String(cmd || "").trim();
-                        if (skipNonTui && !text.startsWith("tui")) return;
-                        setTimeout(() => execute(cmd, { bypassOnboarding: skipNonTui }), idx * 120);
-                    });
+                    if (theme && theme.commands) {
+                        theme.commands.forEach((cmd, idx) => {
+                            const text = String(cmd || "").trim();
+                            if (skipNonTui && !text.startsWith("tui")) return;
+                            setTimeout(() => execute(cmd, { bypassOnboarding: skipNonTui }), idx * 120);
+                        });
+                    }
+                    resolve(theme || null);
+                } catch (err) {
+                    reject(err);
                 }
-                resolve(theme || null);
-            } catch (err) {
-                reject(err);
-            } finally {
-                document.body.removeChild(script);
-            }
-        };
-
-        script.onerror = () => {
-            document.body.removeChild(script);
-            reject(new Error("Failed to load themes"));
-        };
-
-        document.body.appendChild(script);
+            },
+            () => reject(new Error("Failed to load themes"))
+        );
     });
 }
 
@@ -1415,11 +1513,11 @@ function getThemeSelectionList(themes, showAll = false) {
 }
 
 function markLaunched() {
-    try { localStorage.setItem(LAUNCHED_KEY, "1"); } catch (e) {}
+    storageSet(LAUNCHED_KEY, "1");
 }
 
 function isFirstBoot() {
-    try { return localStorage.getItem(LAUNCHED_KEY) !== "1"; } catch (e) { return true; }
+    return storageGet(LAUNCHED_KEY) !== "1";
 }
 
 function closeOnboardingPanel() {
@@ -1472,139 +1570,166 @@ function openOnboardingPanel() {
     document.addEventListener("keydown", handleGlobalEsc);
 }
 
+function onboardingThemeCardHTML(theme) {
+    return `
+        <button class="spotui-onboarding-theme" data-theme-name="${theme.name}">
+            <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
+            <span>${theme.name}</span>
+        </button>
+    `;
+}
+
+function renderOnboardingStage(panel) {
+    const themes = getThemeSelectionList(window.spotuiThemes || [], onboardingShowAllThemes);
+    const themeCards = themes.map(onboardingThemeCardHTML).join("");
+
+    if (onboardingStage === "commands") {
+        panel.innerHTML = `
+            <div class="spotui-onboarding-stage">
+                <div class="spotui-onboarding-copy">
+                    <div class="spotui-onboarding-kicker">Onboarding · stage 1</div>
+                    <h2>Learn commands.</h2>
+                    <p>These are some of the most common commands you can use, try them out!</p>
+                </div>
+                <div class="spotui-onboarding-primer">
+                    <div class="help-item"><span class="command">p</span><span class="description">Play / pause</span></div>
+                    <div class="help-item"><span class="command">v 50</span><span class="description">Set volume to 50%</span></div>
+                    <div class="help-item"><span class="command">loop</span><span class="description">Loop current playlist</span></div>
+                </div>
+                <div class="spotui-onboarding-callout">
+                    <div class="arrow">↙</div>
+                    <div>Enter <code>p</code> to play and pause.</div>
+                </div>
+                <div class="spotui-onboarding-actions centered">
+                    <button id="spotui-onboarding-next" class="spotui-control-btn">Next</button>
+                </div>
+            </div>
+        `;
+        document.getElementById("spotui-onboarding-next")?.addEventListener("click", () => {
+            onboardingStage = "themes";
+            renderOnboardingPanel();
+        });
+    } else if (onboardingStage === "themes") {
+        panel.innerHTML = `
+            <div class="spotui-onboarding-stage">
+                <div class="spotui-onboarding-copy">
+                    <div class="spotui-onboarding-kicker">Onboarding · stage 2</div>
+                    <h2>Pick theme.</h2>
+                    <p>These are some of the most popular themes. Choose the one that fits your style!</p>
+                    <p>You dont like the top 3? Click "View all" to see more themes.</p>
+                    <p>Don't worry, you can change theme any time with <code>theme</code>.</p>
+                </div>
+                <div class="theme-grid spotui-onboarding-grid">${themeCards}</div>
+                <div class="spotui-onboarding-actions centered">
+                    <button id="spotui-onboarding-view-all" class="spotui-control-btn">View all</button>
+                </div>
+            </div>
+        `;
+        panel.querySelectorAll(".spotui-onboarding-theme").forEach((button) => {
+            button.addEventListener("click", () => {
+                const themeName = button.dataset.themeName;
+                if (!themeName) return;
+                onboardingStage = "theme-picked";
+                applyOnboardingTheme(themeName);
+            });
+        });
+        const viewAllBtn = document.getElementById("spotui-onboarding-view-all");
+        if (viewAllBtn && !onboardingShowAllThemes) {
+            viewAllBtn.addEventListener("click", () => {
+                onboardingShowAllThemes = true;
+                renderOnboardingPanel();
+            });
+        } else if (viewAllBtn) {
+            viewAllBtn.remove();
+        }
+    } else if (onboardingStage === "theme-picked") {
+        panel.innerHTML = `
+            <div class="spotui-onboarding-stage">
+                <div class="spotui-onboarding-copy">
+                    <div class="spotui-onboarding-kicker">Onboarding · stage 3</div>
+                    <h2>Theme applied.</h2>
+                    <p>You can change theme any time with <code>theme</code>.</p>
+                </div>
+                <div class="spotui-onboarding-actions centered">
+                    <button id="spotui-onboarding-continue" class="spotui-control-btn">Continue</button>
+                </div>
+            </div>
+        `;
+        document.getElementById("spotui-onboarding-continue")?.addEventListener("click", () => {
+            onboardingStage = "done";
+            renderOnboardingPanel();
+        });
+    } else {
+        markLaunched();
+        panel.innerHTML = `
+            <div class="spotui-onboarding-stage">
+                <div class="spotui-onboarding-copy">
+                    <div class="spotui-onboarding-kicker">Onboarding · stage 4</div>
+                    <h2>Ready.</h2>
+                    <p>Enter <code>list</code> or <code>playlist</code> to open menu for playlists.</p>
+                    <br>
+                    <p>Note: You must run one of the commands above to finish onboarding!</p>
+                    <p>After finishing onboarding, feel free to explore all the commands with <code>help</code>.</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function renderOnboardingFeedError(panel) {
+    panel.innerHTML = `
+        <div class="spotui-onboarding-copy">
+            <div class="spotui-onboarding-kicker">Onboarding · stage 5</div>
+            <h2>Theme feed failed.</h2>
+            <p>Try again in a moment. Launch stays locked until theme pick works.</p>
+            <p>This may happen if you have been ratelimited, wait a few seconds and click the retry button below.</p>
+        </div>
+        <div class="spotui-onboarding-actions centered">
+            <button id="spotui-onboarding-retry" class="spotui-control-btn">Retry</button>
+        </div>
+    `;
+    document.getElementById("spotui-onboarding-retry")?.addEventListener("click", () => renderOnboardingPanel());
+}
+
+function applyOnboardingTheme(themeName) {
+    const panel = document.getElementById("spotui-onboarding-panel");
+    if (!panel) return;
+    panel.innerHTML = `
+        <div class="spotui-onboarding-stage">
+            <div class="spotui-onboarding-copy">
+                <div class="spotui-onboarding-kicker">Onboarding · stage 3</div>
+                <h2>Applying theme...</h2>
+            </div>
+        </div>
+    `;
+    applyThemeByName(themeName, { skipNonTui: true })
+        .then((theme) => {
+            if (!theme) throw new Error("Theme not found");
+            if (onboardingStage !== "theme-picked") return;
+            renderOnboardingStage(panel);
+        })
+        .catch(() => {
+            if (onboardingStage !== "theme-picked") return;
+            onboardingStage = "themes";
+            renderOnboardingFeedError(panel);
+        });
+}
+
 function renderOnboardingPanel() {
     const panel = document.getElementById("spotui-onboarding-panel");
     if (!panel) return;
 
+    if (window.spotuiThemes && window.spotuiThemes.length) {
+        renderOnboardingStage(panel);
+        return;
+    }
+
     panel.innerHTML = "<p>Loading first boot...</p>";
 
-    const script = document.createElement("script");
-    script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
-
-    script.onload = () => {
-        const themes = getThemeSelectionList(window.spotuiThemes || [], onboardingShowAllThemes);
-        const themeCards = themes.map((theme) => `
-            <button class="spotui-onboarding-theme" data-theme-name="${theme.name}">
-                <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
-                <span>${theme.name}</span>
-            </button>
-        `).join("");
-
-        if (onboardingStage === "commands") {
-            panel.innerHTML = `
-                <div class="spotui-onboarding-stage">
-                    <div class="spotui-onboarding-copy">
-                        <div class="spotui-onboarding-kicker">Onboarding · stage 1</div>
-                        <h2>Learn commands.</h2>
-                        <p>These are some of the most common commands you can use, try them out!</p>
-                    </div>
-                    <div class="spotui-onboarding-primer">
-                        <div class="help-item"><span class="command">p</span><span class="description">Play / pause</span></div>
-                        <div class="help-item"><span class="command">v 50</span><span class="description">Set volume to 50%</span></div>
-                        <div class="help-item"><span class="command">loop</span><span class="description">Loop current playlist</span></div>
-                    </div>
-                    <div class="spotui-onboarding-callout">
-                        <div class="arrow">↙</div>
-                        <div>Enter <code>p</code> to play and pause.</div>
-                    </div>
-                    <div class="spotui-onboarding-actions centered">
-                        <button id="spotui-onboarding-next" class="spotui-control-btn">Next</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById("spotui-onboarding-next")?.addEventListener("click", () => {
-                onboardingStage = "themes";
-                renderOnboardingPanel();
-            });
-        } else if (onboardingStage === "themes") {
-            panel.innerHTML = `
-                <div class="spotui-onboarding-stage">
-                    <div class="spotui-onboarding-copy">
-                        <div class="spotui-onboarding-kicker">Onboarding · stage 2</div>
-                        <h2>Pick theme.</h2>
-                        <p>These are some of the most popular themes. Choose the one that fits your style!</p>
-                        <p>You dont like the top 3? Click "View all" to see more themes.</p>
-                        <p>Don't worry, you can change theme any time with <code>theme</code>.</p>
-                    </div>
-                    <div class="theme-grid spotui-onboarding-grid">${themeCards}</div>
-                    <div class="spotui-onboarding-actions centered">
-                        <button id="spotui-onboarding-view-all" class="spotui-control-btn">View all</button>
-                    </div>
-                </div>
-            `;
-            panel.querySelectorAll(".spotui-onboarding-theme").forEach((button) => {
-                button.addEventListener("click", () => {
-                    const themeName = button.dataset.themeName;
-                    if (!themeName) return;
-                    onboardingStage = "theme-picked";
-                    renderOnboardingPanel();
-                    setTimeout(() => {
-                        applyThemeByName(themeName, { skipNonTui: true }).catch(() => {});
-                    }, 50);
-                });
-            });
-            const viewAllBtn = document.getElementById("spotui-onboarding-view-all");
-            if (viewAllBtn && !onboardingShowAllThemes) {
-                viewAllBtn.addEventListener("click", () => {
-                    onboardingShowAllThemes = true;
-                    renderOnboardingPanel();
-                });
-            } else if (viewAllBtn) {
-                viewAllBtn.remove();
-            }
-        } else if (onboardingStage === "theme-picked") {
-            panel.innerHTML = `
-                <div class="spotui-onboarding-stage">
-                    <div class="spotui-onboarding-copy">
-                        <div class="spotui-onboarding-kicker">Onboarding · stage 3</div>
-                        <h2>Theme applied.</h2>
-                        <p>You can change theme any time with <code>theme</code>.</p>
-                    </div>
-                    <div class="spotui-onboarding-actions centered">
-                        <button id="spotui-onboarding-continue" class="spotui-control-btn">Continue</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById("spotui-onboarding-continue")?.addEventListener("click", () => {
-                onboardingStage = "done";
-                renderOnboardingPanel();
-            });
-        } else {
-            markLaunched();
-            panel.innerHTML = `
-                <div class="spotui-onboarding-stage">
-                    <div class="spotui-onboarding-copy">
-                        <div class="spotui-onboarding-kicker">Onboarding · stage 4</div>
-                        <h2>Ready.</h2>
-                        <p>Enter <code>list</code> or <code>playlist</code> to open menu for playlists.</p>
-                        <br>
-                        <p>Note: You must run one of the commands above to finish onboarding!</p>
-                        <p>After finishing onboarding, feel free to explore all the commands with <code>help</code>.</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        document.body.removeChild(script);
-    };
-
-    script.onerror = () => {
-        panel.innerHTML = `
-            <div class="spotui-onboarding-copy">
-                <div class="spotui-onboarding-kicker">Onboarding · stage 5</div>
-                <h2>Theme feed failed.</h2>
-                <p>Try again in a moment. Launch stays locked until theme pick works.</p>
-                <p>This may happen if you have been ratelimited, wait a few seconds and click the retry button below.</p>
-            </div>
-            <div class="spotui-onboarding-actions centered">
-                <button id="spotui-onboarding-retry" class="spotui-control-btn">Retry</button>
-            </div>
-        `;
-        document.getElementById("spotui-onboarding-retry")?.addEventListener("click", () => renderOnboardingPanel());
-        document.body.removeChild(script);
-    };
-
-    document.body.appendChild(script);
+    loadThemeFeed(
+        () => renderOnboardingStage(panel),
+        () => renderOnboardingFeedError(panel)
+    );
 }
 
 async function launchFirstBootIfNeeded() {
@@ -1689,16 +1814,33 @@ function createTerminal() {
 
 function print(text) {}
 
-async function runPlayerAction(actionName, promiseFn, successMsg) {
-    try {
-        await promiseFn();
-    } catch (err) {}
+function renderResults() {
+    const output = document.getElementById("spotui-output");
+    output.textContent = "";
+    results.forEach((item, idx) => {
+        const line = document.createElement("div");
+        line.className = "result" + (idx === selected ? " selected" : "");
+        line.textContent = `${idx + 1}. ${item.name}${item.artist ? " - " + item.artist : ""}`;
+        output.appendChild(line);
+    });
 }
 
 function getAllowedOnboardingCommands() {
     if (!onboardingPanelOpen) return null;
     if (onboardingStage === "done") return new Set(["p", "v", "loop", "list", "playlist"]);
     return new Set(["p", "v", "loop"]);
+}
+
+function toggleLogo(state) {
+    if (state === "on") {
+        document.body.classList.remove("logo-off");
+        document.body.classList.add("logo-on");
+        storageSet("spotui:logo-visible", "on");
+    } else if (state === "off") {
+        document.body.classList.remove("logo-on");
+        document.body.classList.add("logo-off");
+        storageSet("spotui:logo-visible", "off");
+    }
 }
 
 async function execute(cmd, opts = {}) {
@@ -1709,28 +1851,16 @@ async function execute(cmd, opts = {}) {
     const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
     if (allowedOnboardingCommands && !allowedOnboardingCommands.has(command)) return;
 
-    function toggleLogo(state) {
-        if (state === "on") {
-            document.body.classList.remove("logo-off");
-            document.body.classList.add("logo-on");
-            localStorage.setItem("spotui:logo-visible", "on");
-        } else if (state === "off") {
-            document.body.classList.remove("logo-on");
-            document.body.classList.add("logo-off");
-            localStorage.setItem("spotui:logo-visible", "off");
-        }
-    }
-
     if (command === "tui") {
         if (args.includes("-l") && args.includes("-a")) {
             const state = args[args.length - 1];
             if (state === "off") {
                 asciiEnabled = false;
                 resetGrid();
-                try { localStorage.setItem(ANIMATION_KEY, "off"); } catch(e) {}
+                storageSet(ANIMATION_KEY, "off");
             } else if (state === "on") {
                 asciiEnabled = true;
-                try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
+                storageRemove(ANIMATION_KEY);
             }
             return;
         }
@@ -1747,8 +1877,8 @@ async function execute(cmd, opts = {}) {
             if (url === "off") {
                 const wp = document.getElementById("spotui-wallpaper");
                 if (wp) wp.remove();
-                localStorage.removeItem(WP_URL_KEY);
-                localStorage.removeItem(WP_OPACITY_KEY);
+                storageRemove(WP_URL_KEY);
+                storageRemove(WP_OPACITY_KEY);
                 return;
             }
             if (url) {
@@ -1771,79 +1901,47 @@ async function execute(cmd, opts = {}) {
             return;
         }
         if (args.includes("-ly") && args.includes("-cp")) {
-            if (args.includes("off")) {
-                localStorage.removeItem(LYRICS_COLOR_ACTIVE);
-                localStorage.removeItem(LYRICS_COLOR_INACTIVE);
-                localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
-            } else {
-                const activeIndex = args.indexOf("-active");
-                const inactiveIndex = args.indexOf("-inactive");
-                const nearIndex = args.indexOf("-near");
-
-                if (activeIndex !== -1) localStorage.setItem(LYRICS_COLOR_ACTIVE, args[activeIndex + 1]);
-                if (inactiveIndex !== -1) localStorage.setItem(LYRICS_COLOR_INACTIVE, args[inactiveIndex + 1]);
-                if (nearIndex !== -1) localStorage.setItem(LYRICS_COLOR_LIGHT_INACTIVE, args[nearIndex + 1]);
-            }
+            handleColorArgs(args, {
+                "-active": LYRICS_COLOR_ACTIVE,
+                "-inactive": LYRICS_COLOR_INACTIVE,
+                "-near": LYRICS_COLOR_LIGHT_INACTIVE,
+            });
             applyLyricColors();
             return;
         }
         if (args.includes("-bar")) {
-            if (args.includes("off")) {
-                localStorage.removeItem(PLAYER_BAR_BG);
-                localStorage.removeItem(PLAYER_BAR_BORDER);
-                localStorage.removeItem(PLAYER_BAR_TEXT);
-            } else {
-                const bgIndex = args.indexOf("-bg");
-                const borderIndex = args.indexOf("-border");
-                const textIndex = args.indexOf("-text");
-
-                if (bgIndex !== -1) localStorage.setItem(PLAYER_BAR_BG, args[bgIndex + 1]);
-                if (borderIndex !== -1) localStorage.setItem(PLAYER_BAR_BORDER, args[borderIndex + 1]);
-                if (textIndex !== -1) localStorage.setItem(PLAYER_BAR_TEXT, args[textIndex + 1]);
-            }
+            handleColorArgs(args, {
+                "-bg": PLAYER_BAR_BG,
+                "-border": PLAYER_BAR_BORDER,
+                "-text": PLAYER_BAR_TEXT,
+            });
             applyPlayerBarColors();
             return;
         }
         if (args.includes("-progress")) {
-            if (args.includes("off")) {
-                localStorage.removeItem(PROGRESS_BAR_BG);
-                localStorage.removeItem(PROGRESS_BAR_FG);
-            } else {
-                const bgIndex = args.indexOf("-bg");
-                const fgIndex = args.indexOf("-fg");
-
-                if (bgIndex !== -1) localStorage.setItem(PROGRESS_BAR_BG, args[bgIndex + 1]);
-                if (fgIndex !== -1) localStorage.setItem(PROGRESS_BAR_FG, args[fgIndex + 1]);
-            }
+            handleColorArgs(args, {
+                "-bg": PROGRESS_BAR_BG,
+                "-fg": PROGRESS_BAR_FG,
+            });
             applyProgressBarColors();
             return;
         }
         if (args.includes("-inputs")) {
-            if (args.includes("off")) {
-                localStorage.removeItem(INPUT_BG);
-                localStorage.removeItem(INPUT_BG_HOVER);
-                localStorage.removeItem(INPUT_TEXT);
-                localStorage.removeItem(INPUT_BORDER);
-            } else {
-                const bgIndex = args.indexOf("-bg");
-                const bgHoverIndex = args.indexOf("-bg-hover");
-                const textIndex = args.indexOf("-text");
-                const borderIndex = args.indexOf("-border");
-
-                if (bgIndex !== -1) localStorage.setItem(INPUT_BG, args[bgIndex + 1]);
-                if (bgHoverIndex !== -1) localStorage.setItem(INPUT_BG_HOVER, args[bgHoverIndex + 1]);
-                if (textIndex !== -1) localStorage.setItem(INPUT_TEXT, args[textIndex + 1]);
-                if (borderIndex !== -1) localStorage.setItem(INPUT_BORDER, args[borderIndex + 1]);
-            }
+            handleColorArgs(args, {
+                "-bg": INPUT_BG,
+                "-bg-hover": INPUT_BG_HOVER,
+                "-text": INPUT_TEXT,
+                "-border": INPUT_BORDER,
+            });
             applyInputColors();
             return;
         }
         if (args[0] === "restore") {
             const fullRestore = args[1] === "-full";
-            const launchedValue = localStorage.getItem(LAUNCHED_KEY);
+            const launchedValue = storageGet(LAUNCHED_KEY);
             localStorage.clear();
             if (!fullRestore && launchedValue !== null) {
-                localStorage.setItem(LAUNCHED_KEY, launchedValue);
+                storageSet(LAUNCHED_KEY, launchedValue);
             }
             showRestartPopup("Wait 5 seconds and relaunch Spotify", true);
             setTimeout(() => location.reload(), 100);
@@ -1903,60 +2001,6 @@ async function execute(cmd, opts = {}) {
     if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
     if (command === "lyrics") { handleLyricsCommand(argText); return; }
 }
-
-function renderResults() {
-    const output = document.getElementById("spotui-output");
-    output.textContent = "";
-    results.forEach((item, idx) => {
-        const line = document.createElement("div");
-        line.className = "result" + (idx === selected ? " selected" : "");
-        line.textContent = `${idx + 1}. ${item.name}${item.artist ? " - " + item.artist : ""}`;
-        output.appendChild(line);
-    });
-}
-
-let playlistPanelOpen = false;
-let playlists = [];
-let playlistSongs = [];
-let selectedPlaylist = 0;
-let selectedSong = 0;
-let activePane = 'playlist';
-let helpPanelOpen = false;
-let aboutPanelOpen = false;
-let themePanelOpen = false;
-let onboardingPanelOpen = false;
-let onboardingStage = "commands";
-let onboardingShowAllThemes = false;
-
-const COMMAND_LIST = [
-    { cmd: "tui -l &lt;on/off&gt;", desc: "Toggle ASCII logo visibility" },
-    { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
-    { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
-    { cmd: "tui -wp off", desc: "Remove wallpaper" },
-    { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
-    { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
-    { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
-    { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
-    { cmd: "tui -bar off", desc: "Reset player bar colors" },
-    { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
-    { cmd: "tui -progress off", desc: "Reset progress bar colors" },
-    { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
-    { cmd: "tui -inputs off", desc: "Reset input colors" },
-    { cmd: "playlist / list", desc: "Open playlist viewer" },
-    { cmd: "play / pause / p", desc: "Toggle playback" },
-    { cmd: "skip", desc: "Next track" },
-    { cmd: "back", desc: "Previous track" },
-    { cmd: "s / seek <mm:ss>", desc: "Jump to a specific time" },
-    { cmd: "v / volume <%>", desc: "Set volume" },
-    { cmd: "shuffle", desc: "Toggle shuffle" },
-    { cmd: "loop / superloop", desc: "Toggle repeat mode" },
-    { cmd: "like", desc: "Like/unlike current song" },
-    { cmd: "lyrics", desc: "Toggle lyrics panel" },
-    { cmd: "search", desc: "Open Spotify search" },
-    { cmd: "about", desc: "Show about panel" },
-    { cmd: "theme", desc: "Browse and apply themes" },
-    { cmd: "help", desc: "Show this panel" },
-];
 
 function handleGlobalEsc(e) {
     if (e.key !== "Escape") return;
@@ -2063,7 +2107,6 @@ async function openPlaylistPanel() {
     document.addEventListener("keydown", handlePlaylistPanelKeydown);
 }
 
-
 function closeThemePanel() {
     setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", false);
 }
@@ -2078,95 +2121,58 @@ async function openThemePanel() {
 
     panel.innerHTML = "<p>Loading themes...</p>";
 
-    const script = document.createElement('script');
-    script.src = `${THEME_HOST}themes.js?_=${Math.floor(Date.now() / 1000)}`;
+    loadThemeFeed(
+        () => {
+            const themes = window.spotuiThemes || [];
+            panel.innerHTML = `
+                <div style="margin-bottom: 20px; display: flex;">
+                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+                </div>
+                <div class="theme-grid"></div>
+            `;
+            const grid = panel.querySelector('.theme-grid');
+            const searchInput = document.getElementById('spotui-theme-search');
 
-    script.onload = () => {
-        const themes = window.spotuiThemes || [];
-        panel.innerHTML = `
-            <div style="margin-bottom: 20px; display: flex;">
-                <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
-            </div>
-            <div class="theme-grid"></div>
-        `;
-        const grid = panel.querySelector('.theme-grid');
-        const searchInput = document.getElementById('spotui-theme-search');
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const cards = grid.querySelectorAll('.theme-card');
+                cards.forEach(card => {
+                    const title = card.querySelector('h3')?.textContent.toLowerCase();
+                    if (title) {
+                        card.style.display = title.includes(searchTerm) ? '' : 'none';
+                    }
+                });
+            });
 
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const cards = grid.querySelectorAll('.theme-card');
-            cards.forEach(card => {
-                const title = card.querySelector('h3')?.textContent.toLowerCase();
-                if (title) {
-                    card.style.display = title.includes(searchTerm) ? '' : 'none';
+            grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK));
+
+            themes.forEach(theme => {
+                grid.appendChild(createThemeCard(theme));
+            });
+
+            grid.addEventListener('click', e => {
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
+                    resetAllSettings();
+                    const commands = JSON.parse(e.target.dataset.commands);
+                    commands.forEach(cmd => execute(cmd));
+                    closeThemePanel();
                 }
             });
-        });
-
-        const createCard = document.createElement('div');
-        createCard.className = 'theme-card';
-        createCard.innerHTML = `
-            <h3>Add yours</h3>
-            <img src="https://imgs.search.brave.com/2VYp5kTKXFu84NcOgmYXQM8zyBByOalm9xwmIOX4Lp8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvOTU5Ni85NTk2/MTU2LnBuZw" alt="Add Theme">
-            <button>Add</button>
-        `;
-        createCard.querySelector('button').addEventListener('click', () => {
-            window.open('https://spotui.root.sx/', '_blank');
-        });
-        grid.appendChild(createCard);
-
-
-        themes.forEach(theme => {
-            const card = document.createElement('div');
-            card.className = 'theme-card';
-            card.innerHTML = `
-                <h3>${theme.name}</h3>
-                <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
-                <button data-commands='${JSON.stringify(theme.commands)}'>Apply</button>
+        },
+        () => {
+            panel.innerHTML = `
+                <div style="margin-bottom: 20px; display: flex;">
+                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
+                </div>
+                <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
             `;
-            grid.appendChild(card);
-        });
-
-        grid.addEventListener('click', e => {
-            if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
-                resetAllSettings();
-                const commands = JSON.parse(e.target.dataset.commands);
-                commands.forEach(cmd => execute(cmd));
-                closeThemePanel();
-            }
-        });
-
-        document.body.removeChild(script);
-    };
-
-    script.onerror = () => {
-        panel.innerHTML = `
-            <div style="margin-bottom: 20px; display: flex;">
-                 <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
-            </div>
-            <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
-        `;
-        const grid = document.createElement('div');
-        grid.className = 'theme-grid';
-
-        const createCard = document.createElement('div');
-        createCard.className = 'theme-card';
-        createCard.innerHTML = `
-            <h3>Add yours</h3>
-            <img src="https://imgs.search.brave.com/qsWzCiBrdeOE9PQmFvp0eS0rfLyVkcm97DyHxEXGNBk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLm1h/Z25pZmljLmNvbS8y/NTYvMTAwODQvMTAw/ODQzOTAucG5nP3Nl/bXQ9YWlzX3doaXRl/X2xhYmVs" alt="Add Theme">
-            <button>Add</button>
-        `;
-        createCard.querySelector('button').addEventListener('click', () => {
-            window.open('https://spotui.root.sx/', '_blank');
-        });
-        grid.appendChild(createCard);
-        panel.appendChild(grid);
-        document.body.removeChild(script);
-    };
-
-    document.body.appendChild(script);
+            const grid = document.createElement('div');
+            grid.className = 'theme-grid';
+            grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR));
+            panel.appendChild(grid);
+        }
+    );
 }
-
 
 async function renderPlaylistPanel() {
     const playlistList = document.getElementById("spotui-playlist-list");
@@ -2283,36 +2289,6 @@ function normalizeTrackItem(track, index = 0) {
     };
 }
 
-function dedupeTracks(tracks) {
-    const seen = new Set();
-    const out = [];
-    for (const track of tracks) {
-        if (!track?.uri || seen.has(track.uri)) continue;
-        seen.add(track.uri);
-        out.push(track);
-    }
-    return out;
-}
-
-function findTrackIndexByUri(tracks, uri) {
-    if (!uri) return -1;
-    return tracks.findIndex((track) => track?.uri === uri);
-}
-
-function getCurrentPlaylistContextUri() {
-    const current = Spicetify.Player.data?.context?.uri;
-    if (current && Spicetify.URI.isPlaylistV1OrV2(current)) return current;
-    return lastPlaylistContextUri;
-}
-
-function getPlaylistId(uri) {
-    try {
-        return Spicetify.URI.fromString(uri)?.id ?? uri.split(":").pop();
-    } catch {
-        return uri.split(":").pop();
-    }
-}
-
 function handleRepeatCommand(kind, arg) {
     try {
         const current = Spicetify.Player.getRepeat();
@@ -2343,35 +2319,6 @@ async function getPlaylists() {
     flatten(rootlist.items);
     return list;
 }
-
-const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
-const WP_URL_KEY = "spotui:wp-url";
-const WP_OPACITY_KEY = "spotui:wp-opacity";
-const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
-const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
-const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
-const PLAYER_BAR_BG = "spotui:player-bar-bg";
-const PLAYER_BAR_BORDER = "spotui:player-bar-border";
-const PLAYER_BAR_TEXT = "spotui:player-bar-text";
-const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
-const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
-const INPUT_BG = "spotui:input-bg";
-const INPUT_BG_HOVER = "spotui:input-bg-hover";
-const INPUT_TEXT = "spotui:input-text";
-const INPUT_BORDER = "spotui:input-border";
-const LAUNCHED_KEY = "spotui:launched";
-const FIRST_BOOT_THEME_IDS = new Set([
-    "U3BvVFVJIC0gRGVmYXVsdA==",
-    "QXR0YWNrIG9uIFRpdGFuIFBsdXM=",
-    "SURL",
-]);
-
-let lyricsPanelOpen = false;
-let lyricsLoadToken = 0;
-let lyricsActiveIndex = -1;
-let lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
-let lyricsBound = false;
-let lyricsSyncInterval = null;
 
 function getLyricsEls() {
     const root = document.getElementById("spotui-lyrics");
@@ -2601,7 +2548,7 @@ async function loadLyricsForCurrentTrack() {
 }
 
 function storeLyricsOpen(open) {
-    try { localStorage.setItem(LYRICS_STORAGE_KEY, open ? "1" : "0"); } catch { }
+    storageSet(LYRICS_STORAGE_KEY, open ? "1" : "0");
 }
 
 function openLyricsPanel() {
@@ -2665,40 +2612,41 @@ function handleLyricsCommand(arg) {
 function resetAllSettings() {
     const wp = document.getElementById("spotui-wallpaper");
     if (wp) wp.remove();
-    localStorage.removeItem(WP_URL_KEY);
-    localStorage.removeItem(WP_OPACITY_KEY);
+    storageRemove(WP_URL_KEY);
+    storageRemove(WP_OPACITY_KEY);
 
     asciiEnabled = true;
-    try { localStorage.removeItem(ANIMATION_KEY); } catch(e) {}
+    storageRemove(ANIMATION_KEY);
 
-    try { localStorage.removeItem("spotui:logo-visible"); } catch(e) {}
+    storageRemove("spotui:logo-visible");
     document.body.classList.remove("logo-off");
 
-    localStorage.removeItem(LYRICS_COLOR_ACTIVE);
-    localStorage.removeItem(LYRICS_COLOR_INACTIVE);
-    localStorage.removeItem(LYRICS_COLOR_LIGHT_INACTIVE);
+    storageRemove(LYRICS_COLOR_ACTIVE);
+    storageRemove(LYRICS_COLOR_INACTIVE);
+    storageRemove(LYRICS_COLOR_LIGHT_INACTIVE);
     applyLyricColors();
 
-    localStorage.removeItem(PLAYER_BAR_BG);
-    localStorage.removeItem(PLAYER_BAR_BORDER);
-    localStorage.removeItem(PLAYER_BAR_TEXT);
+    storageRemove(PLAYER_BAR_BG);
+    storageRemove(PLAYER_BAR_BORDER);
+    storageRemove(PLAYER_BAR_TEXT);
     applyPlayerBarColors();
 
-    localStorage.removeItem(PROGRESS_BAR_BG);
-    localStorage.removeItem(PROGRESS_BAR_FG);
+    storageRemove(PROGRESS_BAR_BG);
+    storageRemove(PROGRESS_BAR_FG);
     applyProgressBarColors();
 
-    localStorage.removeItem(INPUT_BG);
-    localStorage.removeItem(INPUT_BG_HOVER);
-    localStorage.removeItem(INPUT_TEXT);
-    localStorage.removeItem(INPUT_BORDER);
+    storageRemove(INPUT_BG);
+    storageRemove(INPUT_BG_HOVER);
+    storageRemove(INPUT_TEXT);
+    storageRemove(INPUT_BORDER);
     applyInputColors();
 }
 
 injectStyle();
+setTimeout(createControlButtons, 500);
 setTimeout(initLyricsBridge, 1000);
 
-if (localStorage.getItem("spotui:logo-visible") === "off") {
+if (storageGet("spotui:logo-visible") === "off") {
     document.body.classList.add("logo-off");
 } else {
     document.body.classList.add("logo-on");
@@ -2717,11 +2665,11 @@ try {
 setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
 try {
-    if (localStorage.getItem(LYRICS_STORAGE_KEY) === "1") {
+    if (storageGet(LYRICS_STORAGE_KEY) === "1") {
         setTimeout(() => openLyricsPanel(), 2000);
     }
-    if (localStorage.getItem(WP_URL_KEY)) {
-        setTimeout(() => setWallpaper(localStorage.getItem(WP_URL_KEY), localStorage.getItem(WP_OPACITY_KEY) || "1", false), 1500);
+    if (storageGet(WP_URL_KEY)) {
+        setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
     }
     applyLyricColors();
     applyPlayerBarColors();
