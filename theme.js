@@ -891,11 +891,17 @@ function createAddThemeCard(imgUrl) {
 function createThemeCard(theme) {
     const card = document.createElement("div");
     card.className = "theme-card";
-    card.innerHTML = `
-        <h3>${theme.name}</h3>
-        <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
-        <button data-commands='${JSON.stringify(theme.commands)}'>Apply</button>
-    `;
+    const title = document.createElement("h3");
+    title.textContent = theme.name || "";
+    const img = document.createElement("img");
+    img.src = theme.screenshot_url || "";
+    img.alt = `${theme.name || ""} screenshot`;
+    const btn = document.createElement("button");
+    btn.textContent = "Apply";
+    btn.dataset.commands = JSON.stringify(theme.commands || []);
+    card.appendChild(title);
+    card.appendChild(img);
+    card.appendChild(btn);
     return card;
 }
 
@@ -1580,18 +1586,23 @@ function openOnboardingPanel() {
     document.addEventListener("keydown", handleGlobalEsc);
 }
 
-function onboardingThemeCardHTML(theme) {
-    return `
-        <button class="spotui-onboarding-theme" data-theme-name="${theme.name}">
-            <img src="${theme.screenshot_url}" alt="${theme.name} screenshot">
-            <span>${theme.name}</span>
-        </button>
-    `;
+function onboardingThemeCard(theme) {
+    const button = document.createElement("button");
+    button.className = "spotui-onboarding-theme";
+    button.dataset.themeName = theme.name || "";
+    const img = document.createElement("img");
+    img.src = theme.screenshot_url || "";
+    img.alt = `${theme.name || ""} screenshot`;
+    const label = document.createElement("span");
+    label.textContent = theme.name || "";
+    button.appendChild(img);
+    button.appendChild(label);
+    return button;
 }
 
 function renderOnboardingStage(panel) {
     const themes = getThemeSelectionList(window.spotuiThemes || [], onboardingShowAllThemes);
-    const themeCards = themes.map(onboardingThemeCardHTML).join("");
+    const themeCards = themes.map(onboardingThemeCard);
 
     if (onboardingStage === "commands") {
         panel.innerHTML = `
@@ -1629,12 +1640,16 @@ function renderOnboardingStage(panel) {
                     <p>You dont like the top 3? Click "View all" to see more themes.</p>
                     <p>Don't worry, you can change theme any time with <code>theme</code>.</p>
                 </div>
-                <div class="theme-grid spotui-onboarding-grid">${themeCards}</div>
+                <div class="theme-grid spotui-onboarding-grid"></div>
                 <div class="spotui-onboarding-actions centered">
                     <button id="spotui-onboarding-view-all" class="spotui-control-btn">View all</button>
                 </div>
             </div>
         `;
+        const grid = panel.querySelector(".spotui-onboarding-grid");
+        if (grid) {
+            themeCards.forEach((card) => grid.appendChild(card));
+        }
         panel.querySelectorAll(".spotui-onboarding-theme").forEach((button) => {
             button.addEventListener("click", () => {
                 const themeName = button.dataset.themeName;
