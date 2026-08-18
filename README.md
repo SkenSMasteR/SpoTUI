@@ -4,3 +4,9 @@
 
 > **⚠️ Work in Progress**  
 > This documentation site is still under active development. Content may be incomplete or change frequently.
+
+# Screenshots
+<img width="1916" height="971" alt="Screenshot 2026-08-18 233556" src="https://github.com/user-attachments/assets/31935f98-37a1-466f-a375-57b6a7ae60ec" />
+<img width="1917" height="970" alt="Screenshot 2026-08-18 233419" src="https://github.com/user-attachments/assets/04d8dae1-e90b-4708-ac6e-0f2a25501eed" />
+<img width="1917" height="969" alt="Screenshot 2026-08-18 233353" src="https://github.com/user-attachments/assets/c8c926cc-81a2-4ef8-87c4-f4029d9bdd11" />
+<img width="1917" height="972" alt="Screenshot 2026-08-18 234011" src="https://github.com/user-attachments/assets/e6c3b3e8-8771-4f3b-8748-cd62a90d762f" />
