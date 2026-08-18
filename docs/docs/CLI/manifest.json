@@ -1,0 +1,26 @@
+{
+  "name": "CLI",
+  "icon": "folder",
+  "pages": [
+    {
+      "file": "Install.md",
+      "title": "Install",
+      "slug": "install"
+    },
+    {
+      "file": "Updating.md",
+      "title": "Updating",
+      "slug": "updating"
+    },
+    {
+      "file": "Uninstalling.md",
+      "title": "Uninstalling",
+      "slug": "uninstalling-cli"
+    },
+    {
+      "file": "Portable.md",
+      "title": "Portable",
+      "slug": "portable-cli"
+    }
+  ]
+}
