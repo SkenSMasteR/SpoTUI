@@ -1,0 +1,41 @@
+{
+  "name": "Development",
+  "icon": "folder",
+  "pages": [
+    {
+      "file": "How Themes Work.md",
+      "title": "How Themes Work",
+      "slug": "how-themes-work"
+    },
+    {
+      "file": "Anatomy of a Theme.md",
+      "title": "Anatomy of a Theme",
+      "slug": "anatomy-of-a-theme"
+    },
+    {
+      "file": "Command Reference.md",
+      "title": "Command Reference",
+      "slug": "command-reference"
+    },
+    {
+      "file": "Building Your Theme.md",
+      "title": "Building Your Theme",
+      "slug": "building-your-theme"
+    },
+    {
+      "file": "Full Example.md",
+      "title": "Full Example",
+      "slug": "full-example"
+    },
+    {
+      "file": "Sharing Your Theme.md",
+      "title": "Sharing Your Theme",
+      "slug": "sharing-your-theme"
+    },
+    {
+      "file": "Tips & Best Practices.md",
+      "title": "Tips & Best Practices",
+      "slug": "tips-and-best-practices"
+    }
+  ]
+}
