@@ -1,0 +1,11 @@
+{
+  "name": "Getting Started",
+  "icon": "fas fa-rocket",
+  "pages": [
+    {
+      "file": "Install.md",
+      "title": "Install",
+      "slug": "install"
+    }
+  ]
+}
