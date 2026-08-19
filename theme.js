@@ -2648,7 +2648,7 @@ function syncLyricsHighlight(force = false) {
         const activeLoader = loaders[activeLoaderIndex];
         const loaderPosition = allElements.indexOf(activeLoader);
         
-        rows.forEach((row, idx) => {
+        rows.forEach((row) => {
             const rowPosition = allElements.indexOf(row);
             const distance = Math.abs(rowPosition - loaderPosition);
             row.classList.remove("active");
