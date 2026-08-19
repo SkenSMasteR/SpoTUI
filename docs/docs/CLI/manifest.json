@@ -1,6 +1,6 @@
 {
   "name": "CLI",
-  "icon": "folder",
+  "icon": "fas fa-terminal",
   "pages": [
     {
       "file": "Install.md",
