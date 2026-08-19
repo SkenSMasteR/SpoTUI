@@ -2595,6 +2595,19 @@ function openLyricsPanel() {
     lyricsPanelOpen = true;
     storeLyricsOpen(true);
     document.body.classList.add("spotui-lyrics-panel");
+    
+    const logoVisible = storageGet("spotui:logo-visible");
+    if (logoVisible === "on") {
+        document.body.classList.add("logo-on");
+        document.body.classList.remove("logo-off");
+    } else if (logoVisible === "off") {
+        document.body.classList.add("logo-off");
+        document.body.classList.remove("logo-on");
+    } else {
+        document.body.classList.add("logo-on");
+        document.body.classList.remove("logo-off");
+    }
+    
     document.addEventListener("keydown", handleGlobalEsc);
     const root = document.getElementById("spotui-lyrics");
     if (root) {
