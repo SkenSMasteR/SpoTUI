@@ -2620,11 +2620,13 @@ function syncLyricsHighlight(force = false) {
     
     let activeLoaderIndex = -1;
     const loaders = els.lines.querySelectorAll(".spotui-lyrics-loader");
+    const animationEnabled = document.body.classList.contains("spotui-lyrics-animation-on");
+    
     loaders.forEach((loader, loaderIdx) => {
         const gapStart = Number(loader.dataset.gapStart);
         const gapEnd = Number(loader.dataset.gapEnd);
         const isInGap = progress > gapStart && progress < gapEnd;
-        if (isInGap) {
+        if (isInGap && animationEnabled) {
             loader.style.display = "block";
             loader.classList.add("active");
             activeLoaderIndex = loaderIdx;
@@ -2634,7 +2636,7 @@ function syncLyricsHighlight(force = false) {
         }
     });
     
-    const useLoader = activeLoaderIndex !== -1;
+    const useLoader = activeLoaderIndex !== -1 && animationEnabled;
     if (!force && next === lyricsActiveIndex && !useLoader) return;
     
     const rows = els.lines.querySelectorAll(".spotui-lyrics-line");
