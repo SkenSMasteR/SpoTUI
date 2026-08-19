@@ -1,6 +1,6 @@
 {
   "name": "Development",
-  "icon": "folder",
+  "icon": "fas fa-code",
   "pages": [
     {
       "file": "How Themes Work.md",
