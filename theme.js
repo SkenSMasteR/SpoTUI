@@ -801,6 +801,7 @@ let onboardingShowAllThemes = false;
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
 let lyricsActiveIndex = -1;
+let lyricsActiveLoaderIndex = -1;
 let lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
 let lyricsBound = false;
 let lyricsSyncInterval = null;
@@ -2637,7 +2638,8 @@ function syncLyricsHighlight(force = false) {
     });
     
     const useLoader = activeLoaderIndex !== -1 && animationEnabled;
-    if (!force && next === lyricsActiveIndex && !useLoader) return;
+    const loaderStateChanged = useLoader && activeLoaderIndex !== lyricsActiveLoaderIndex;
+    if (!force && next === lyricsActiveIndex && !useLoader && !loaderStateChanged) return;
     
     const rows = els.lines.querySelectorAll(".spotui-lyrics-line");
     const allElements = Array.from(els.lines.children);
@@ -2661,8 +2663,13 @@ function syncLyricsHighlight(force = false) {
     }
     
     lyricsActiveIndex = useLoader ? -1 : next;
-    if (!useLoader && next >= 0) rows[next]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
-    else if (useLoader && activeLoaderIndex >= 0) loaders[activeLoaderIndex]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
+    lyricsActiveLoaderIndex = useLoader ? activeLoaderIndex : -1;
+    
+    if (!useLoader && next >= 0) {
+        rows[next]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
+    } else if (useLoader && (loaderStateChanged || force)) {
+        loaders[activeLoaderIndex]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
+    }
 }
 
 function setLyricsHeader(info, statusText) {
