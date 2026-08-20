@@ -1,6 +1,7 @@
 {
   "name": "Getting Started",
   "icon": "fas fa-rocket",
+  "position": 1,
   "pages": [
     {
       "file": "Install.md",
