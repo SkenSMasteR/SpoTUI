@@ -108,7 +108,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 
 You can add your own theme to the theme browser by visiting [spotui.root.sx](https://spotui.root.sx/).
 
-**Note**: You can only submit one theme every 24 hours.
+**Note:** To help prevent broken themes and spam, you must sign in with GitHub to submit a theme.
 
 ## Author
 
