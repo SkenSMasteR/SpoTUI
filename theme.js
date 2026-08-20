@@ -22,7 +22,7 @@ const INPUT_BORDER = "spotui:input-border";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
-    "QXR0YWNrIG9uIFRpdGFuIFBsdXM=",
+    "UmFuZG9tIGFuaW1lIHRoZW1l",
     "SURL",
 ]);
 
