@@ -36,6 +36,11 @@
       "file": "Tips & Best Practices.md",
       "title": "Tips & Best Practices",
       "slug": "tips-and-best-practices"
+    },
+    {
+      "file": "Publishing Your Theme.md",
+      "title": "Publishing Your Theme",
+      "slug": "publishing-your-theme"
     }
   ]
 }
