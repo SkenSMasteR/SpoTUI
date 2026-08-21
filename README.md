@@ -87,6 +87,9 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -ly -cp off` | Reset lyrics colors |
 | `tui -ly -animation <on/off>` | Toggle lyrics loader animation |
 | `tui -bar -bg <#hex> -border <#hex> -text <#hex>` | Set player bar colors |
+| `tui -bar -v <on/off>` | Toggle native play bar visibility |
+| `tui -bar -c <on/off>` | Toggle custom TUI play bar |
+| `tui -bar -c -progress <id>` | Set custom play bar progress style |
 | `tui -bar off` | Reset player bar colors |
 | `tui -progress -bg <#hex> -fg <#hex>` | Set progress bar colors |
 | `tui -progress off` | Reset progress bar colors |
@@ -103,6 +106,31 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `search`               | Open Spotify's native search   |
 | `theme`                | Browse and apply themes        |
 | `help`                 | Show the help panel            |
+
+## Custom Play Bar Progress Styles
+
+When the native Spotify play bar is hidden (`tui -bar -v off`), you can enable a custom, text-based TUI play bar (`tui -bar -c on`). This bar has a progress indicator with 14 different style presets.
+
+To set a progress style, use the command: `tui -bar -c -progress <id>`
+
+### Available Styles
+
+| ID | Preview Example | Description |
+|---|---|---|
+| `classic-block` | `████████░░░░░░░░` | Classic TUI block progress |
+| `dark-block` | `▓▓▓▓▓▓▓▓░░░░░░░░` | Dark block progress |
+| `gradient` | `██████▓▓▒▒░░░░░░` | Smooth block gradient |
+| `thin` | `━━━━━━━━░░░░░░░░` | Bold thin line with empty blocks |
+| `line` | `━━━━━━━━────────` | Smooth heavy and light line indicator |
+| `square` | `■■■■■■■■□□□□□□□□` | Square bullet style |
+| `circle` | `●●●●●●●●○○○○○○○○` | Circular bullet style |
+| `diamond` | `◆◆◆◆◆◆◆◆◇◇◇◇◇◇◇◇` | Diamond bullet style |
+| `chevron` | `>>>>>>>>░░░░░░░░` | Arrow / Chevron progress |
+| `triangle` | `▶▶▶▶▶▶▶▶▷▷▷▷▷▷▷▷` | Solid and empty play-button triangles |
+| `braille` | `⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀⣀⣀` | Braille dot block progress |
+| `retro` | `▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱` | Retro segment blocks |
+| `pixel` | `█▀█▀█▀█▀░░░░░░░░` | Checkerboard pixel progress |
+| `dashed` | `━━━━━━━╸────────` | Dashed track with end handle |
 
 ## Contributing
 
