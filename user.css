@@ -701,6 +701,9 @@ body.spotui-custom-bar-on #spotui-tui {
     left: 0; right: 0; bottom: 0;
     height: 3.5rem;
     background: var(--player-bar-background, #000);
+    border: none;
+    box-shadow: none;
+    color: var(--player-bar-text-color, #ddd);
     border-top: 1px solid var(--spotui-accent, #ff8c42);
     color: var(--player-bar-text-color, #ddd);
     font-family: "JetBrains Mono", "Fira Code", monospace;
@@ -737,11 +740,19 @@ body.spotui-custom-bar-on #spotui-custom-bar {
 
 .spotui-custom-bar-heart {
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: none;
+    box-shadow: none;
+    outline: none;
     color: var(--spotui-accent, #ff8c42);
+    background: transparent;
 }
 
 .spotui-custom-bar-title {
     color: var(--spotui-accent, #ff8c42);
+    background: transparent;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -756,9 +767,16 @@ body.spotui-custom-bar-on #spotui-custom-bar {
 
 .spotui-custom-bar-progress {
     color: var(--spotui-accent, #ff8c42);
+    background: transparent;
     font-family: monospace;
     letter-spacing: 0;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: none;
+    box-shadow: none;
+    outline: none;
     user-select: none;
 }
 
