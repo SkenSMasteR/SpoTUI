@@ -14,6 +14,8 @@ const PLAYER_BAR_BG = "spotui:player-bar-bg";
 const PLAYER_BAR_BORDER = "spotui:player-bar-border";
 const PLAYER_BAR_TEXT = "spotui:player-bar-text";
 const PLAYER_BAR_VISIBLE = "spotui:player-bar-visible";
+const CUSTOM_BAR_ENABLED = "spotui:custom-bar-enabled";
+const CUSTOM_BAR_PROGRESS_STYLE = "spotui:custom-bar-progress-style";
 const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
 const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
 const INPUT_BG = "spotui:input-bg";
@@ -721,6 +723,23 @@ body.spotui-tui-hidden #spotui-tui {
 			}
 `;
 
+const PROGRESS_STYLES = {
+    "classic-block": { fg: "█", bg: "░", width: 15 },
+    "dark-block": { fg: "▓", bg: "░", width: 15 },
+    "gradient": { fg: "█▓▒", bg: "░", width: 15 },
+    "thin": { fg: "━", bg: "░", width: 15 },
+    "line": { fg: "━", bg: "─", width: 15 },
+    "square": { fg: "■", bg: "□", width: 15 },
+    "circle": { fg: "●", bg: "○", width: 15 },
+    "diamond": { fg: "◆", bg: "◇", width: 15 },
+    "chevron": { fg: ">", bg: "░", width: 15 },
+    "triangle": { fg: "▶", bg: "▷", width: 15 },
+    "braille": { fg: "⣿", bg: "⣀", width: 15 },
+    "retro": { fg: "▰", bg: "▱", width: 15 },
+    "pixel": { fg: "█", bg: "▀", width: 15 },
+    "dashed": { fg: "━", bg: "╸", width: 15 }
+};
+
 const SPOTUI_ASCII_ART = [
     "   ▄████████    ▄███████▄  ▄██████▄      ███     ███    █▄   ▄█  ",
     "  ███    ███   ███    ███ ███    ███ ▀█████████▄ ███    ███ ███  ",
@@ -759,6 +778,8 @@ const COMMAND_LIST = [
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
     { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
     { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },
+    { cmd: "tui -bar -c &lt;on/off&gt;", desc: "Toggle custom TUI play bar" },
+    { cmd: "tui -bar -c -progress &lt;id&gt;", desc: "Set custom bar progress style" },
     { cmd: "tui -bar off", desc: "Reset player bar colors" },
     { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
     { cmd: "tui -progress off", desc: "Reset progress bar colors" },
@@ -1429,6 +1450,138 @@ function applyPlayerBarVisibility() {
     }
 }
 
+function renderProgressBar(progress, styleId, width) {
+    const style = PROGRESS_STYLES[styleId] || PROGRESS_STYLES["classic-block"];
+    const filled = Math.round(progress * width);
+    const empty = width - filled;
+    let filledStr = "";
+    let emptyStr = "";
+    if (style.fg.length === 1) {
+        filledStr = style.fg.repeat(filled);
+        emptyStr = style.bg ? style.bg.repeat(empty) : "";
+    } else {
+        const fgChars = [...style.fg];
+        for (let i = 0; i < filled; i++) {
+            const idx = Math.floor((i / filled) * fgChars.length);
+            filledStr += fgChars[idx] || fgChars[fgChars.length - 1];
+        }
+        emptyStr = style.bg ? style.bg.repeat(empty) : "";
+    }
+    return filledStr + emptyStr;
+}
+
+function updateCustomBarWidth() {
+    const bar = document.getElementById("spotui-custom-bar");
+    if (!bar) return;
+    const progressEl = bar.querySelector(".spotui-custom-bar-progress");
+    if (!progressEl) return;
+    const rect = bar.getBoundingClientRect();
+    const availableWidth = rect.width - 400;
+    const width = Math.max(40, Math.floor(availableWidth / 16));
+    const progress = Spicetify.Player.getProgress();
+    const duration = Spicetify.Player.getDuration();
+    const progressPct = duration > 0 ? progress / duration : 0;
+    const styleId = storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block";
+    progressEl.textContent = renderProgressBar(progressPct, styleId, width);
+}
+
+function drawCustomBarLeft(track, artist, liked) {
+    const left = document.createElement("div");
+    left.className = "spotui-custom-bar-left";
+    const heart = document.createElement("span");
+    heart.className = "spotui-custom-bar-heart";
+    heart.textContent = liked ? "♥" : "♡";
+    heart.addEventListener("click", async () => {
+        try { await Spicetify.Player.toggleHeart(); } catch (e) {}
+    });
+    const title = document.createElement("span");
+    title.className = "spotui-custom-bar-title";
+    title.textContent = track;
+    const artistSpan = document.createElement("span");
+    artistSpan.className = "spotui-custom-bar-artist";
+    artistSpan.textContent = artist;
+    left.appendChild(heart);
+    left.appendChild(title);
+    left.appendChild(artistSpan);
+    return left;
+}
+
+async function updateCustomBar() {
+    try {
+        const track = Spicetify.Player.data.item;
+        if (!track) return;
+        const progress = Spicetify.Player.getProgress();
+        const duration = Spicetify.Player.getDuration();
+        const volume = Spicetify.Player.getVolume();
+        const liked = Spicetify.Player.getHeart ? await Spicetify.Player.getHeart() : false;
+        const meta = track.metadata || {};
+        const title = track.name || meta.title || "Unknown";
+        const artist = track.artist || meta.artist_name || "Unknown";
+        const progressPct = duration > 0 ? progress / duration : 0;
+        const styleId = storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block";
+        const bar = document.getElementById("spotui-custom-bar");
+        if (!bar) return;
+        const left = drawCustomBarLeft(title, artist, liked);
+        const progressEl = document.createElement("div");
+        progressEl.className = "spotui-custom-bar-progress";
+        const availableWidth = bar.getBoundingClientRect().width - 400;
+        const width = Math.max(40, Math.floor(availableWidth / 16));
+        progressEl.textContent = renderProgressBar(progressPct, styleId, width);
+        progressEl.addEventListener("click", (e) => {
+            const rect = progressEl.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const pct = Math.max(0, Math.min(1, offsetX / rect.width));
+            const seekMs = pct * duration;
+            try { Spicetify.Player.seek(seekMs); } catch (e) {}
+        });
+        const timeEl = document.createElement("div");
+        timeEl.className = "spotui-custom-bar-time";
+        timeEl.textContent = `${Math.floor(progress / 1000 / 60)}:${String(Math.floor(progress / 1000) % 60).padStart(2, "0")} / ${Math.floor(duration / 1000 / 60)}:${String(Math.floor(duration / 1000) % 60).padStart(2, "0")}`;
+        const volEl = document.createElement("div");
+        volEl.className = "spotui-custom-bar-vol";
+        volEl.textContent = `Vol: ${Math.round(volume * 100)}%`;
+        const right = document.createElement("div");
+        right.className = "spotui-custom-bar-right";
+        right.appendChild(volEl);
+        const center = document.createElement("div");
+        center.className = "spotui-custom-bar-center";
+        center.appendChild(progressEl);
+        center.appendChild(timeEl);
+        bar.innerHTML = "";
+        bar.appendChild(left);
+        bar.appendChild(center);
+        bar.appendChild(right);
+    } catch (e) {
+        console.error("SpoTUI: Failed to update custom bar", e);
+    }
+}
+
+function applyCustomBarState() {
+    const enabled = storageGet(CUSTOM_BAR_ENABLED);
+    const visible = storageGet(PLAYER_BAR_VISIBLE);
+    if (enabled === "on" && visible === "off") {
+        document.body.classList.add("spotui-custom-bar-on");
+        let bar = document.getElementById("spotui-custom-bar");
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.id = "spotui-custom-bar";
+            bar.className = "spotui-custom-bar";
+            document.body.appendChild(bar);
+        }
+        updateCustomBar();
+        const interval = setInterval(updateCustomBar, 300);
+        window.spotuiCustomBarInterval = interval;
+        window.addEventListener("resize", updateCustomBarWidth);
+    } else {
+        document.body.classList.remove("spotui-custom-bar-on");
+        if (window.spotuiCustomBarInterval) {
+            clearInterval(window.spotuiCustomBarInterval);
+            delete window.spotuiCustomBarInterval;
+        }
+        window.removeEventListener("resize", updateCustomBarWidth);
+    }
+}
+
 function applyProgressBarColors() {
     try {
         applyCssVar(PROGRESS_BAR_BG, "--progress-bar-background");
@@ -2039,6 +2192,21 @@ async function execute(cmd, opts = {}) {
                         "-text": PLAYER_BAR_TEXT,
                     });
                     applyPlayerBarColors();
+                }
+            } else if (args.includes("-c")) {
+                const idx = args.indexOf("-c");
+                const state = args[idx + 1];
+                if (state === "on" || state === "off") {
+                    storageSet(CUSTOM_BAR_ENABLED, state);
+                    applyCustomBarState();
+                }
+                if (args.includes("-progress")) {
+                    const pIdx = args.indexOf("-progress");
+                    const styleId = args[pIdx + 1];
+                    if (styleId && PROGRESS_STYLES[styleId]) {
+                        storageSet(CUSTOM_BAR_PROGRESS_STYLE, styleId);
+                        if (storageGet(CUSTOM_BAR_ENABLED) === "on") updateCustomBar();
+                    }
                 }
             } else {
                 handleColorArgs(args, {
@@ -2855,8 +3023,11 @@ function resetAllSettings() {
     storageRemove(PLAYER_BAR_BORDER);
     storageRemove(PLAYER_BAR_TEXT);
     storageRemove(PLAYER_BAR_VISIBLE);
+    storageRemove(CUSTOM_BAR_ENABLED);
+    storageRemove(CUSTOM_BAR_PROGRESS_STYLE);
     applyPlayerBarColors();
     applyPlayerBarVisibility();
+    applyCustomBarState();
 
     storageRemove(PROGRESS_BAR_BG);
     storageRemove(PROGRESS_BAR_FG);
@@ -2907,6 +3078,7 @@ try {
     applyLyricColors();
     applyPlayerBarColors();
     applyPlayerBarVisibility();
+    applyCustomBarState();
     applyProgressBarColors();
     applyInputColors();
 } catch { }

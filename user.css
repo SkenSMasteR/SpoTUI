@@ -690,3 +690,84 @@ body.spotui-search-mode .Root__globalNav .main-globalNav-browseButtonWrapper {
 body.spotui-bar-off .Root__now-playing-bar {
     display: none !important;
 }
+
+body.spotui-custom-bar-on #spotui-tui {
+    bottom: 3.5rem !important;
+}
+
+#spotui-custom-bar {
+    display: none;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 3.5rem;
+    background: var(--player-bar-background, #000);
+    border-top: 1px solid var(--spotui-accent, #ff8c42);
+    color: #ddd;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 14px;
+    padding: 0 16px;
+    box-sizing: border-box;
+    z-index: 9998;
+    align-items: center;
+    justify-content: space-between;
+}
+
+body.spotui-custom-bar-on #spotui-custom-bar {
+    display: flex;
+}
+
+.spotui-custom-bar-center {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.spotui-custom-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spotui-custom-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.spotui-custom-bar-heart {
+    cursor: pointer;
+    color: var(--spotui-accent, #ff8c42);
+}
+
+.spotui-custom-bar-title {
+    color: var(--spotui-accent, #ff8c42);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spotui-custom-bar-artist {
+    color: #b3b3b3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spotui-custom-bar-progress {
+    color: var(--spotui-accent, #ff8c42);
+    font-family: monospace;
+    letter-spacing: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.spotui-custom-bar-time {
+    color: #b3b3b3;
+    font-variant-numeric: tabular-nums;
+}
+
+.spotui-custom-bar-vol {
+    color: #b3b3b3;
+    font-variant-numeric: tabular-nums;
+}
