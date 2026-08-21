@@ -13,6 +13,7 @@ const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
 const PLAYER_BAR_BG = "spotui:player-bar-bg";
 const PLAYER_BAR_BORDER = "spotui:player-bar-border";
 const PLAYER_BAR_TEXT = "spotui:player-bar-text";
+const PLAYER_BAR_VISIBLE = "spotui:player-bar-visible";
 const PROGRESS_BAR_BG = "spotui:progress-bar-bg";
 const PROGRESS_BAR_FG = "spotui:progress-bar-fg";
 const INPUT_BG = "spotui:input-bg";
@@ -714,6 +715,10 @@ body.spotui-tui-hidden #spotui-tui {
 			body:not(.spotui-tui-hidden) header {
 			    display: none !important;
 			}
+
+			body.spotui-bar-off #spotui-tui {
+			    bottom: 0 !important;
+			}
 `;
 
 const SPOTUI_ASCII_ART = [
@@ -753,6 +758,7 @@ const COMMAND_LIST = [
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
     { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
+    { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },
     { cmd: "tui -bar off", desc: "Reset player bar colors" },
     { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
     { cmd: "tui -progress off", desc: "Reset progress bar colors" },
@@ -1410,6 +1416,19 @@ function applyPlayerBarColors() {
     }
 }
 
+function applyPlayerBarVisibility() {
+    try {
+        const visible = storageGet(PLAYER_BAR_VISIBLE);
+        if (visible === "off") {
+            document.body.classList.add("spotui-bar-off");
+        } else {
+            document.body.classList.remove("spotui-bar-off");
+        }
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply player bar visibility", e);
+    }
+}
+
 function applyProgressBarColors() {
     try {
         applyCssVar(PROGRESS_BAR_BG, "--progress-bar-background");
@@ -2005,12 +2024,30 @@ async function execute(cmd, opts = {}) {
             return;
         }
         if (args.includes("-bar")) {
-            handleColorArgs(args, {
-                "-bg": PLAYER_BAR_BG,
-                "-border": PLAYER_BAR_BORDER,
-                "-text": PLAYER_BAR_TEXT,
-            });
-            applyPlayerBarColors();
+            if (args.includes("-v")) {
+                const idx = args.indexOf("-v");
+                const state = args[idx + 1];
+                if (state === "on" || state === "off") {
+                    storageSet(PLAYER_BAR_VISIBLE, state);
+                    applyPlayerBarVisibility();
+                }
+                const newArgs = args.filter((arg, i) => i !== idx && i !== idx + 1);
+                if (newArgs.length > 1) {
+                    handleColorArgs(newArgs, {
+                        "-bg": PLAYER_BAR_BG,
+                        "-border": PLAYER_BAR_BORDER,
+                        "-text": PLAYER_BAR_TEXT,
+                    });
+                    applyPlayerBarColors();
+                }
+            } else {
+                handleColorArgs(args, {
+                    "-bg": PLAYER_BAR_BG,
+                    "-border": PLAYER_BAR_BORDER,
+                    "-text": PLAYER_BAR_TEXT,
+                });
+                applyPlayerBarColors();
+            }
             return;
         }
         if (args.includes("-progress")) {
@@ -2817,7 +2854,9 @@ function resetAllSettings() {
     storageRemove(PLAYER_BAR_BG);
     storageRemove(PLAYER_BAR_BORDER);
     storageRemove(PLAYER_BAR_TEXT);
+    storageRemove(PLAYER_BAR_VISIBLE);
     applyPlayerBarColors();
+    applyPlayerBarVisibility();
 
     storageRemove(PROGRESS_BAR_BG);
     storageRemove(PROGRESS_BAR_FG);
@@ -2867,6 +2906,7 @@ try {
     }
     applyLyricColors();
     applyPlayerBarColors();
+    applyPlayerBarVisibility();
     applyProgressBarColors();
     applyInputColors();
 } catch { }

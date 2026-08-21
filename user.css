@@ -686,3 +686,7 @@ body.spotui-search-mode .Root__globalNav button[aria-label="Home"],
 body.spotui-search-mode .Root__globalNav .main-globalNav-browseButtonWrapper {
     display: none !important;
 }
+
+body.spotui-bar-off .Root__now-playing-bar {
+    display: none !important;
+}
