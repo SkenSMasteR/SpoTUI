@@ -724,20 +724,20 @@ body.spotui-tui-hidden #spotui-tui {
 `;
 
 const PROGRESS_STYLES = {
-    "classic-block": { fg: "█", bg: "░", width: 15 },
-    "dark-block": { fg: "▓", bg: "░", width: 15 },
-    "gradient": { fg: "█▓▒", bg: "░", width: 15 },
-    "thin": { fg: "━", bg: "░", width: 15 },
-    "line": { fg: "━", bg: "─", width: 15 },
-    "square": { fg: "■", bg: "□", width: 15 },
-    "circle": { fg: "●", bg: "○", width: 15 },
-    "diamond": { fg: "◆", bg: "◇", width: 15 },
-    "chevron": { fg: ">", bg: "░", width: 15 },
-    "triangle": { fg: "▶", bg: "▷", width: 15 },
-    "braille": { fg: "⣿", bg: "⣀", width: 15 },
-    "retro": { fg: "▰", bg: "▱", width: 15 },
-    "pixel": { fg: "█", bg: "▀", width: 15 },
-    "dashed": { fg: "━", bg: "╸", width: 15 }
+    "classic-block": { fg: "█", bg: "░" },
+    "dark-block": { fg: "▓", bg: "░" },
+    "gradient": { fg: "█▓▒", bg: "░" },
+    "thin": { fg: "━", bg: "░" },
+    "line": { fg: "━", bg: "─" },
+    "square": { fg: "■", bg: "□" },
+    "circle": { fg: "●", bg: "○" },
+    "diamond": { fg: "◆", bg: "◇" },
+    "chevron": { fg: ">", bg: "░" },
+    "triangle": { fg: "▶", bg: "▷" },
+    "braille": { fg: "⣿", bg: "⣀" },
+    "retro": { fg: "▰", bg: "▱" },
+    "pixel": { fg: "█", bg: "▀" },
+    "dashed": { fg: "━", bg: "╸" }
 };
 
 const SPOTUI_ASCII_ART = [
@@ -1445,8 +1445,8 @@ function applyPlayerBarVisibility() {
         } else {
             document.body.classList.remove("spotui-bar-off");
         }
-    } catch (e) {
-        console.error("SpoTUI: Failed to apply player bar visibility", e);
+    } catch {
+        console.error("SpoTUI: Failed to apply player bar visibility");
     }
 }
 
@@ -1471,6 +1471,7 @@ function renderProgressBar(progress, styleId, width) {
 }
 
 function updateCustomBarWidth() {
+    if (!document.body.classList.contains("spotui-custom-bar-on")) return;
     const bar = document.getElementById("spotui-custom-bar");
     if (!bar) return;
     const progressEl = bar.querySelector(".spotui-custom-bar-progress");
@@ -1551,12 +1552,18 @@ async function updateCustomBar() {
         bar.appendChild(left);
         bar.appendChild(center);
         bar.appendChild(right);
-    } catch (e) {
-        console.error("SpoTUI: Failed to update custom bar", e);
+    } catch {
+        console.error("SpoTUI: Failed to update custom bar");
     }
 }
 
 function applyCustomBarState() {
+    // Clear any existing interval before changing state
+    if (window.spotuiCustomBarInterval) {
+        clearInterval(window.spotuiCustomBarInterval);
+        delete window.spotuiCustomBarInterval;
+    }
+
     const enabled = storageGet(CUSTOM_BAR_ENABLED);
     const visible = storageGet(PLAYER_BAR_VISIBLE);
     if (enabled === "on" && visible === "off") {
@@ -2183,6 +2190,7 @@ async function execute(cmd, opts = {}) {
                 if (state === "on" || state === "off") {
                     storageSet(PLAYER_BAR_VISIBLE, state);
                     applyPlayerBarVisibility();
+                    applyCustomBarState(); // Reapply custom bar state after visibility change
                 }
                 const newArgs = args.filter((arg, i) => i !== idx && i !== idx + 1);
                 if (newArgs.length > 1) {

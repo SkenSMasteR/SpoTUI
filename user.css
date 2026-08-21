@@ -702,7 +702,7 @@ body.spotui-custom-bar-on #spotui-tui {
     height: 3.5rem;
     background: var(--player-bar-background, #000);
     border-top: 1px solid var(--spotui-accent, #ff8c42);
-    color: #ddd;
+    color: var(--player-bar-text-color, #ddd);
     font-family: "JetBrains Mono", "Fira Code", monospace;
     font-size: 14px;
     padding: 0 16px;
@@ -748,7 +748,7 @@ body.spotui-custom-bar-on #spotui-custom-bar {
 }
 
 .spotui-custom-bar-artist {
-    color: #b3b3b3;
+    color: var(--player-bar-text-color, #b3b3b3);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -763,11 +763,11 @@ body.spotui-custom-bar-on #spotui-custom-bar {
 }
 
 .spotui-custom-bar-time {
-    color: #b3b3b3;
+    color: var(--player-bar-text-color, #b3b3b3);
     font-variant-numeric: tabular-nums;
 }
 
 .spotui-custom-bar-vol {
-    color: #b3b3b3;
+    color: var(--player-bar-text-color, #b3b3b3);
     font-variant-numeric: tabular-nums;
 }
