@@ -1489,11 +1489,18 @@ function updateCustomBarWidth() {
 function drawCustomBarLeft(track, artist, liked) {
     const left = document.createElement("div");
     left.className = "spotui-custom-bar-left";
-    const heart = document.createElement("span");
+    const heart = document.createElement("button");
     heart.className = "spotui-custom-bar-heart";
     heart.textContent = liked ? "♥" : "♡";
+    heart.setAttribute("aria-label", liked ? "Unlike track" : "Like track");
     heart.addEventListener("click", async () => {
-        try { await Spicetify.Player.toggleHeart(); } catch (e) {}
+        try { await Spicetify.Player.toggleHeart(); } catch {}
+    });
+    heart.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            try { Spicetify.Player.toggleHeart(); } catch {}
+        }
     });
     const title = document.createElement("span");
     title.className = "spotui-custom-bar-title";
@@ -1510,7 +1517,10 @@ function drawCustomBarLeft(track, artist, liked) {
 async function updateCustomBar() {
     try {
         const track = Spicetify.Player.data.item;
-        if (!track) return;
+        if (!track) {
+            bar.innerHTML = "<div class='spotui-custom-bar-empty'>Nothing playing</div>";
+            return;
+        }
         const progress = Spicetify.Player.getProgress();
         const duration = Spicetify.Player.getDuration();
         const volume = Spicetify.Player.getVolume();
@@ -1523,8 +1533,9 @@ async function updateCustomBar() {
         const bar = document.getElementById("spotui-custom-bar");
         if (!bar) return;
         const left = drawCustomBarLeft(title, artist, liked);
-        const progressEl = document.createElement("div");
+        const progressEl = document.createElement("button");
         progressEl.className = "spotui-custom-bar-progress";
+        progressEl.setAttribute("aria-label", "Playback progress");
         const availableWidth = bar.getBoundingClientRect().width - 400;
         const width = Math.max(40, Math.floor(availableWidth / 16));
         progressEl.textContent = renderProgressBar(progressPct, styleId, width);
@@ -1533,7 +1544,15 @@ async function updateCustomBar() {
             const offsetX = e.clientX - rect.left;
             const pct = Math.max(0, Math.min(1, offsetX / rect.width));
             const seekMs = pct * duration;
-            try { Spicetify.Player.seek(seekMs); } catch (e) {}
+            try { Spicetify.Player.seek(seekMs); } catch {}
+        });
+        progressEl.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                const step = (e.key === "ArrowLeft" ? -5000 : 5000);
+                const targetMs = Math.max(0, Math.min(duration, progress + step));
+                try { Spicetify.Player.seek(targetMs); } catch {}
+            }
         });
         const timeEl = document.createElement("div");
         timeEl.className = "spotui-custom-bar-time";
@@ -1558,7 +1577,6 @@ async function updateCustomBar() {
 }
 
 function applyCustomBarState() {
-    // Clear any existing interval before changing state
     if (window.spotuiCustomBarInterval) {
         clearInterval(window.spotuiCustomBarInterval);
         delete window.spotuiCustomBarInterval;
@@ -2190,7 +2208,7 @@ async function execute(cmd, opts = {}) {
                 if (state === "on" || state === "off") {
                     storageSet(PLAYER_BAR_VISIBLE, state);
                     applyPlayerBarVisibility();
-                    applyCustomBarState(); // Reapply custom bar state after visibility change
+                    applyCustomBarState();
                 }
                 const newArgs = args.filter((arg, i) => i !== idx && i !== idx + 1);
                 if (newArgs.length > 1) {
