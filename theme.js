@@ -1491,7 +1491,7 @@ function drawCustomBarLeft(track, artist, liked) {
     left.className = "spotui-custom-bar-left";
     const heart = document.createElement("button");
     heart.className = "spotui-custom-bar-heart";
-    heart.textContent = liked ? "♥" : "♡";
+    heart.textContent = liked ? "X" : "♥";
     heart.setAttribute("aria-label", liked ? "Unlike track" : "Like track");
     heart.addEventListener("click", async () => {
         try { await Spicetify.Player.toggleHeart(); } catch {}
