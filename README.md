@@ -109,7 +109,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 
 ## Custom Play Bar Progress Styles
 
-When the native Spotify play bar is hidden (`tui -bar -v off`), you can enable a custom, text-based TUI play bar (`tui -bar -c on`). This bar has a progress indicator with 13 different style presets.
+When the native Spotify play bar is hidden (`tui -bar -v off`), you can enable a custom, text-based TUI play bar (`tui -bar -c on`). This bar has a progress indicator with 14 different style presets.
 
 To set a progress style, use the command: `tui -bar -c -progress <id>`
 
