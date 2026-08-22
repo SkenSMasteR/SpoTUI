@@ -22,6 +22,7 @@ const INPUT_BG = "spotui:input-bg";
 const INPUT_BG_HOVER = "spotui:input-bg-hover";
 const INPUT_TEXT = "spotui:input-text";
 const INPUT_BORDER = "spotui:input-border";
+const INPUT_BUTTONS = "spotui:inputs-buttons";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
@@ -784,6 +785,7 @@ const COMMAND_LIST = [
     { cmd: "tui -progress -bg &lt;#hex&gt; -fg &lt;#hex&gt;", desc: "Set progress bar colors" },
     { cmd: "tui -progress off", desc: "Reset progress bar colors" },
     { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
+    { cmd: "tui -inputs -buttons &lt;on/off&gt;", desc: "Toggle bottom right buttons visibility" },
     { cmd: "tui -inputs off", desc: "Reset input colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
@@ -1627,6 +1629,18 @@ function applyInputColors() {
     }
 }
 
+function applyInputButtonsVisibility() {
+    try {
+        const state = storageGet(INPUT_BUTTONS) || "on";
+        const controls = document.getElementById("spotui-controls");
+        if (controls) {
+            controls.style.display = state === "off" ? "none" : "flex";
+        }
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply input buttons visibility", e);
+    }
+}
+
 function setTuiMode(mode) {
     tuiMode = mode === "cli" ? "cli" : "command";
     document.body.classList.toggle("spotui-cli-mode", tuiMode === "cli");
@@ -1636,6 +1650,8 @@ function setTuiMode(mode) {
 function createControlButtons() {
     const controls = document.createElement("div");
     controls.id = "spotui-controls";
+    const state = storageGet(INPUT_BUTTONS) || "on";
+    controls.style.display = state === "off" ? "none" : "flex";
 
     const hideBtn = createButton("hide-tui-btn", "spotui-control-btn", "Hide TUI", () => {
         const hidden = document.body.classList.toggle("spotui-tui-hidden");
@@ -2253,13 +2269,31 @@ async function execute(cmd, opts = {}) {
             return;
         }
         if (args.includes("-inputs")) {
-            handleColorArgs(args, {
-                "-bg": INPUT_BG,
-                "-bg-hover": INPUT_BG_HOVER,
-                "-text": INPUT_TEXT,
-                "-border": INPUT_BORDER,
-            });
-            applyInputColors();
+            if (args.includes("-buttons")) {
+                const idx = args.indexOf("-buttons");
+                const state = args[idx + 1];
+                if (state === "on" || state === "off") {
+                    storageSet(INPUT_BUTTONS, state);
+                    applyInputButtonsVisibility();
+                }
+            }
+            const filteredArgs = [];
+            for (let i = 0; i < args.length; i++) {
+                if (args[i] === "-buttons") {
+                    i++;
+                } else {
+                    filteredArgs.push(args[i]);
+                }
+            }
+            if (filteredArgs.length > 1 || (filteredArgs.length === 1 && filteredArgs[0] === "off")) {
+                handleColorArgs(filteredArgs, {
+                    "-bg": INPUT_BG,
+                    "-bg-hover": INPUT_BG_HOVER,
+                    "-text": INPUT_TEXT,
+                    "-border": INPUT_BORDER,
+                });
+                applyInputColors();
+            }
             return;
         }
         if (args[0] === "restore") {
@@ -3063,7 +3097,9 @@ function resetAllSettings() {
     storageRemove(INPUT_BG_HOVER);
     storageRemove(INPUT_TEXT);
     storageRemove(INPUT_BORDER);
+    storageRemove(INPUT_BUTTONS);
     applyInputColors();
+    applyInputButtonsVisibility();
 }
 
 injectStyle();
@@ -3107,6 +3143,7 @@ try {
     applyCustomBarState();
     applyProgressBarColors();
     applyInputColors();
+    applyInputButtonsVisibility();
 } catch { }
 
 })();
