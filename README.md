@@ -1,9 +1,8 @@
 <div align="center">
   <img src="assets/logo.png" alt="SpoTUI Logo" width="200"/>
   <h1>SpoTUI</h1>
+  <img src="banner-gif.gif"/>
 </div>
-
-![SpoTUI animation](banner-gif.gif)
 
 # SpoTUI
 
@@ -106,6 +105,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `lyrics`               | Toggle lyrics panel            |
 | `search`               | Open Spotify's native search   |
 | `theme`                | Browse and apply themes        |
+| `discord`              | Show the Discord update banner and re-enable it on boot |
 | `help`                 | Show the help panel            |
 
 ## Custom Play Bar Progress Styles
