@@ -1881,14 +1881,13 @@ function getThemeSelectionList(themes, showAll = false) {
 
 function markLaunched() {
     storageSet(LAUNCHED_KEY, "1");
-    initUpdateBanner();
 }
-
 function isFirstBoot() {
     return storageGet(LAUNCHED_KEY) !== "1";
 }
 
 function closeOnboardingPanel() {
+    const wasFirstBoot = onboardingPanelOpen && onboardingStage === "done";
     onboardingPanelOpen = false;
     onboardingStage = "commands";
     onboardingShowAllThemes = false;
@@ -1898,6 +1897,7 @@ function closeOnboardingPanel() {
     const input = document.getElementById("spotui-input");
     if (input) input.focus();
     document.removeEventListener("keydown", handleGlobalEsc);
+    if (wasFirstBoot) initUpdateBanner();
 }
 
 function showRestartPopup(message = "Wait 5 seconds and relaunch Spotify", persistSession = false) {
