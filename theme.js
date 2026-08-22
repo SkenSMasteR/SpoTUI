@@ -726,7 +726,7 @@ body.spotui-tui-hidden #spotui-tui {
 
 #spotui-update-banner {
     position: fixed;
-    top: 20px;
+    top: 70px;
     right: 20px;
     background: #000;
     color: #ddd;
