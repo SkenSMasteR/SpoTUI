@@ -1881,6 +1881,7 @@ function getThemeSelectionList(themes, showAll = false) {
 
 function markLaunched() {
     storageSet(LAUNCHED_KEY, "1");
+    initUpdateBanner();
 }
 
 function isFirstBoot() {
@@ -3250,7 +3251,9 @@ if (storageGet(LYRICS_ANIMATION_KEY) === "off") {
 if (Spicetify?.Platform) createTerminal();
 else setTimeout(createTerminal, 1500);
 
-setTimeout(initUpdateBanner, 1600);
+if (!isFirstBoot()) {
+    setTimeout(initUpdateBanner, 1600);
+}
 
 try {
     const restartMessage = sessionStorage.getItem("spotui:restart-popup");
