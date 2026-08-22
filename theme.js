@@ -1,4 +1,3 @@
-
 (function () {
 const THEME_HOST = "https://spotui.root.sx/";
 
@@ -23,6 +22,8 @@ const INPUT_BG_HOVER = "spotui:input-bg-hover";
 const INPUT_TEXT = "spotui:input-text";
 const INPUT_BORDER = "spotui:input-border";
 const INPUT_BUTTONS = "spotui:inputs-buttons";
+const UPDATE_BANNER_KEY = "spotui:update-banner";
+const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
@@ -722,6 +723,87 @@ body.spotui-tui-hidden #spotui-tui {
 			body.spotui-bar-off #spotui-tui {
 			    bottom: 0 !important;
 			}
+
+#spotui-update-banner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #000;
+    color: #ddd;
+    border: 1px solid #ff8c42;
+    border-radius: 6px;
+    padding: 20px;
+    max-width: 360px;
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    font-family: "JetBrains Mono", monospace;
+}
+
+.spotui-banner-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spotui-banner-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+#spotui-update-banner h3 {
+    margin: 0;
+    color: #ff8c42;
+    font-size: 15px;
+}
+
+#spotui-update-banner p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #b3b3b3;
+}
+
+.spotui-update-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+#banner-join-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+.spotui-banner-secondary-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+}
+
+.spotui-banner-link-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.spotui-banner-link-btn:hover {
+    color: #ff8c42;
+    text-decoration: underline;
+}
 `;
 
 const PROGRESS_STYLES = {
@@ -800,6 +882,7 @@ const COMMAND_LIST = [
     { cmd: "search", desc: "Open Spotify search" },
     { cmd: "about", desc: "Show about panel" },
     { cmd: "theme", desc: "Browse and apply themes" },
+    { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
     { cmd: "help", desc: "Show this panel" },
 ];
 
@@ -2314,6 +2397,13 @@ async function execute(cmd, opts = {}) {
     if (command === "about") { openAboutPanel(); return; }
     if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
     if (command === "theme") { openThemePanel(); return; }
+    if (command === "discord") {
+        storageRemove(UPDATE_BANNER_KEY);
+        const existingBanner = document.getElementById("spotui-update-banner");
+        if (existingBanner) existingBanner.remove();
+        initUpdateBanner();
+        return;
+    }
 
     const playerMap = {
         play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play" },
@@ -3098,8 +3188,47 @@ function resetAllSettings() {
     storageRemove(INPUT_TEXT);
     storageRemove(INPUT_BORDER);
     storageRemove(INPUT_BUTTONS);
+    storageRemove(UPDATE_BANNER_KEY);
     applyInputColors();
     applyInputButtonsVisibility();
+}
+
+function initUpdateBanner() {
+    if (storageGet(UPDATE_BANNER_KEY) === "never") return;
+
+    const banner = document.createElement("div");
+    banner.id = "spotui-update-banner";
+    banner.innerHTML = `
+        <div class="spotui-banner-secondary-actions">
+            <button id="banner-dismiss-btn" class="spotui-banner-link-btn" title="Dismiss">Dismiss</button>
+            <button id="banner-never-btn" class="spotui-banner-link-btn" title="Never show again">Never show</button>
+        </div>
+        <div class="spotui-banner-header">
+            <img class="spotui-banner-icon" src="https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/master/assets/logo.png" alt="SpoTUI Logo">
+            <div>
+                <h3>Updates & Community</h3>
+            </div>
+        </div>
+        <p>Did you know that SpoTUI gets new updates almost every day?</p>
+        <p>Join the SpoTUI Discord server to get breakdowns of every new feature, and notifications when new updates arrive.</p>
+        <div class="spotui-update-actions">
+            <button id="banner-join-btn" class="spotui-control-btn">Join Discord</button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+
+    document.getElementById("banner-join-btn").onclick = () => {
+        window.open(DISCORD_INVITE_URL, "_blank");
+    };
+
+    document.getElementById("banner-dismiss-btn").onclick = () => {
+        banner.remove();
+    };
+
+    document.getElementById("banner-never-btn").onclick = () => {
+        storageSet(UPDATE_BANNER_KEY, "never");
+        banner.remove();
+    };
 }
 
 injectStyle();
@@ -3120,6 +3249,8 @@ if (storageGet(LYRICS_ANIMATION_KEY) === "off") {
 
 if (Spicetify?.Platform) createTerminal();
 else setTimeout(createTerminal, 1500);
+
+setTimeout(initUpdateBanner, 1600);
 
 try {
     const restartMessage = sessionStorage.getItem("spotui:restart-popup");
