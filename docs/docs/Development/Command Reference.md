@@ -12,6 +12,9 @@ tui -bar -bg <#hex> -border <#hex> -text <#hex>
 | `-bg` | Bar background | `--player-bar-background` |
 | `-border` | Bar border + accent color | `--player-bar-border-color` + `--spotui-accent` |
 | `-text` | Bar text color | `--player-bar-text-color` |
+| `-v` | Toggle bar visibility | `` |
+| `-c` | Toggle custom bar | `` |
+| `-c -progress` | Select progress style  | `` |
 
 > **Note:** The `-border` color also sets `--spotui-accent`, which is used throughout the UI for highlights. This is the most impactful color in your theme.
 
