@@ -2383,9 +2383,11 @@ async function execute(cmd, opts = {}) {
         if (args[0] === "restore") {
             const fullRestore = args[1] === "-full";
             const launchedValue = storageGet(LAUNCHED_KEY);
+            const bannerValue = storageGet(UPDATE_BANNER_KEY);
             storageClear();
-            if (!fullRestore && launchedValue !== null) {
-                storageSet(LAUNCHED_KEY, launchedValue);
+            if (!fullRestore) {
+                if (launchedValue !== null) storageSet(LAUNCHED_KEY, launchedValue);
+                if (bannerValue !== null) storageSet(UPDATE_BANNER_KEY, bannerValue);
             }
             showRestartPopup("Wait 5 seconds and relaunch Spotify", true);
             setTimeout(() => location.reload(), 100);
@@ -3189,12 +3191,12 @@ function resetAllSettings() {
     storageRemove(INPUT_TEXT);
     storageRemove(INPUT_BORDER);
     storageRemove(INPUT_BUTTONS);
-    storageRemove(UPDATE_BANNER_KEY);
     applyInputColors();
     applyInputButtonsVisibility();
 }
 
 function initUpdateBanner() {
+    if (document.getElementById("spotui-update-banner")) return;
     if (storageGet(UPDATE_BANNER_KEY) === "never") return;
 
     const banner = document.createElement("div");
