@@ -76,3 +76,19 @@ Remove: `tui -wp off`
 tui -l <on/off>          # toggle ASCII logo
 tui -l -a <on/off>      # toggle ASCII animation
 ```
+
+### Panels
+
+```bash
+tui -panel -bg <#hex> -border <#hex> -text <#hex>
+```
+
+| Flag    | What it sets     | CSS Variable         |
+| ------- | ---------------- | -------------------- |
+| `-bg`     | Panel background | `--panel-bg-color`     |
+| `-border` | Panel border     | `--panel-border-color` |
+| `-text`   | Panel text       | `--panel-text-color`   |
+
+> **Note:** Panel colors apply to the help, playlist, theme, and about panels.
+
+Reset: `tui -panel off`
