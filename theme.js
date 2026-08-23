@@ -647,6 +647,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     padding: 10px;
     border: 1px solid var(--panel-border-color, #ff8c42);
     border-radius: 4px;
+    background: var(--panel-bg-color, transparent);
 }
 
 #spotui-playlist-list legend, #spotui-song-list legend {
@@ -1076,6 +1077,10 @@ function applyCssVar(key, cssVar) {
     else root.style.removeProperty(cssVar);
 }
 
+function isValidHexColor(value) {
+    return typeof value === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value);
+}
+
 function handleColorArgs(args, flagToKey) {
     if (args.includes("off")) {
         Object.keys(flagToKey).forEach((flag) => storageRemove(flagToKey[flag]));
@@ -1083,7 +1088,9 @@ function handleColorArgs(args, flagToKey) {
     }
     Object.keys(flagToKey).forEach((flag) => {
         const idx = args.indexOf(flag);
-        if (idx !== -1) storageSet(flagToKey[flag], args[idx + 1]);
+        if (idx === -1) return;
+        const value = args[idx + 1];
+        if (isValidHexColor(value)) storageSet(flagToKey[flag], value);
     });
 }
 
@@ -2601,9 +2608,9 @@ async function openThemePanel() {
     loadThemeFeed(
         () => {
             const themes = window.spotuiThemes || [];
-            panel.innerHTML = `
+                panel.innerHTML = `
                 <div style="margin-bottom: 20px; display: flex;">
-                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
                 </div>
                 <div class="theme-grid"></div>
             `;
@@ -2637,9 +2644,9 @@ async function openThemePanel() {
             });
         },
         () => {
-            panel.innerHTML = `
+                panel.innerHTML = `
                 <div style="margin-bottom: 20px; display: flex;">
-                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
+                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
                 </div>
                 <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
             `;
