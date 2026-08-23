@@ -22,6 +22,9 @@ const INPUT_BG_HOVER = "spotui:input-bg-hover";
 const INPUT_TEXT = "spotui:input-text";
 const INPUT_BORDER = "spotui:input-border";
 const INPUT_BUTTONS = "spotui:inputs-buttons";
+const PANEL_BG = "spotui:panel-bg";
+const PANEL_BORDER = "spotui:panel-border";
+const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LAUNCHED_KEY = "spotui:launched";
@@ -94,9 +97,9 @@ body.spotui-onboarding-panel #spotui-logo {
     -ms-overflow-style: none;
     margin: 33vh 5vw 8px;
     height: 60vh;
-    border: 1px solid rgba(255, 140, 66, 0.3);
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
-    background: transparent;
+    background: var(--panel-bg-color, transparent);
 }
 
 body.spotui-onboarding-panel #spotui-onboarding-panel {
@@ -554,9 +557,9 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     -ms-overflow-style: none;
     margin: 33vh 5vw 8px;
     height: 60vh;
-    border: 1px solid rgba(255, 140, 66, 0.3);
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
-    background: transparent;
+    background: var(--panel-bg-color, transparent);
 }
 
 body.spotui-help-panel #spotui-help-panel,
@@ -573,7 +576,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .theme-card {
-    border: 1px solid #ff8c42;
+    border: 1px solid var(--panel-border-color, #ff8c42);
     border-radius: 4px;
     padding: 10px;
     background: rgba(0,0,0,0.5);
@@ -597,12 +600,12 @@ body.spotui-theme-panel #spotui-theme-panel {
 
 .theme-card h3 {
     margin: 10px 0 10px;
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     font-weight: 600;
 }
 
 .theme-card button {
-    background: #ff8c42;
+    background: var(--panel-text-color, #ff8c42);
     color: #000;
     border: none;
     padding: 8px 12px;
@@ -617,9 +620,8 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .theme-card button:hover {
-    background-color: #e07b39;
+    background-color: var(--panel-text-hover-color, #e07b39);
 }
-
 .help-item {
     padding: 4px 0;
     display: flex;
@@ -627,7 +629,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .help-item .command {
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     flex-basis: 30%;
 }
 
@@ -642,12 +644,13 @@ body.spotui-theme-panel #spotui-theme-panel {
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding: 10px;
-    border: 1px solid #ff8c42;
+    border: 1px solid var(--panel-border-color, #ff8c42);
     border-radius: 4px;
+    background: var(--panel-bg-color, transparent);
 }
 
 #spotui-playlist-list legend, #spotui-song-list legend {
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
 
@@ -657,7 +660,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .playlist-item.selected, .song-item.selected {
-    background: #ff8c42;
+    background: var(--panel-text-color, #ff8c42);
     color: #000;
 }
 
@@ -869,6 +872,8 @@ const COMMAND_LIST = [
     { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
     { cmd: "tui -inputs -buttons &lt;on/off&gt;", desc: "Toggle bottom right buttons visibility" },
     { cmd: "tui -inputs off", desc: "Reset input colors" },
+    { cmd: "tui -panel -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set help/playlist/theme/about panel colors" },
+    { cmd: "tui -panel off", desc: "Reset panel colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1071,6 +1076,10 @@ function applyCssVar(key, cssVar) {
     else root.style.removeProperty(cssVar);
 }
 
+function isValidHexColor(value) {
+    return typeof value === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value);
+}
+
 function handleColorArgs(args, flagToKey) {
     if (args.includes("off")) {
         Object.keys(flagToKey).forEach((flag) => storageRemove(flagToKey[flag]));
@@ -1078,7 +1087,9 @@ function handleColorArgs(args, flagToKey) {
     }
     Object.keys(flagToKey).forEach((flag) => {
         const idx = args.indexOf(flag);
-        if (idx !== -1) storageSet(flagToKey[flag], args[idx + 1]);
+        if (idx === -1) return;
+        const value = args[idx + 1];
+        if (isValidHexColor(value)) storageSet(flagToKey[flag], value);
     });
 }
 
@@ -1709,6 +1720,38 @@ function applyInputColors() {
         applyCssVar(INPUT_BORDER, "--input-border-color");
     } catch (e) {
         console.error("SpoTUI: Failed to apply input colors", e);
+    }
+}
+
+function darkenHexColor(hex, factor) {
+    const clean = hex.replace("#", "");
+    const expand = clean.length === 3 || clean.length === 4
+        ? clean.split("").map((c) => c + c).join("")
+        : clean;
+    const r = parseInt(expand.slice(0, 2), 16);
+    const g = parseInt(expand.slice(2, 4), 16);
+    const b = parseInt(expand.slice(4, 6), 16);
+    const alpha = expand.length === 8 ? expand.slice(6, 8) : "";
+    const nr = Math.max(0, Math.round(r * factor));
+    const ng = Math.max(0, Math.round(g * factor));
+    const nb = Math.max(0, Math.round(b * factor));
+    return `#${[nr, ng, nb].map((v) => v.toString(16).padStart(2, "0")).join("")}${alpha}`;
+}
+
+function applyPanelColors() {
+    try {
+        applyCssVar(PANEL_BG, "--panel-bg-color");
+        applyCssVar(PANEL_BORDER, "--panel-border-color");
+        applyCssVar(PANEL_TEXT, "--panel-text-color");
+        const root = document.documentElement;
+        const text = storageGet(PANEL_TEXT);
+        if (text && isValidHexColor(text)) {
+            root.style.setProperty("--panel-text-hover-color", darkenHexColor(text, 0.7));
+        } else {
+            root.style.removeProperty("--panel-text-hover-color");
+        }
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply panel colors", e);
     }
 }
 
@@ -2352,6 +2395,15 @@ async function execute(cmd, opts = {}) {
             applyProgressBarColors();
             return;
         }
+        if (args.includes("-panel")) {
+            handleColorArgs(args, {
+                "-bg": PANEL_BG,
+                "-border": PANEL_BORDER,
+                "-text": PANEL_TEXT,
+            });
+            applyPanelColors();
+            return;
+        }
         if (args.includes("-inputs")) {
             if (args.includes("-buttons")) {
                 const idx = args.indexOf("-buttons");
@@ -2577,9 +2629,9 @@ async function openThemePanel() {
     loadThemeFeed(
         () => {
             const themes = window.spotuiThemes || [];
-            panel.innerHTML = `
+                panel.innerHTML = `
                 <div style="margin-bottom: 20px; display: flex;">
-                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
                 </div>
                 <div class="theme-grid"></div>
             `;
@@ -2613,9 +2665,9 @@ async function openThemePanel() {
             });
         },
         () => {
-            panel.innerHTML = `
+                panel.innerHTML = `
                 <div style="margin-bottom: 20px; display: flex;">
-                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #ff8c42; border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
+                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
                 </div>
                 <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
             `;
@@ -3193,6 +3245,11 @@ function resetAllSettings() {
     storageRemove(INPUT_BUTTONS);
     applyInputColors();
     applyInputButtonsVisibility();
+
+    storageRemove(PANEL_BG);
+    storageRemove(PANEL_BORDER);
+    storageRemove(PANEL_TEXT);
+    applyPanelColors();
 }
 
 function initUpdateBanner() {
@@ -3280,6 +3337,7 @@ try {
     applyProgressBarColors();
     applyInputColors();
     applyInputButtonsVisibility();
+    applyPanelColors();
 } catch { }
 
 })();
