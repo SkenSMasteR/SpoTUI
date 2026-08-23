@@ -620,9 +620,8 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .theme-card button:hover {
-    background-color: #e07b39;
+    background-color: var(--panel-text-hover-color, #e07b39);
 }
-
 .help-item {
     padding: 4px 0;
     display: flex;
@@ -1724,11 +1723,32 @@ function applyInputColors() {
     }
 }
 
+function darkenHexColor(hex, factor) {
+    const clean = hex.replace("#", "");
+    const expand = clean.length === 3 || clean.length === 4
+        ? clean.split("").map((c) => c + c).join("")
+        : clean;
+    const r = parseInt(expand.slice(0, 2), 16);
+    const g = parseInt(expand.slice(2, 4), 16);
+    const b = parseInt(expand.slice(4, 6), 16);
+    const nr = Math.max(0, Math.round(r * factor));
+    const ng = Math.max(0, Math.round(g * factor));
+    const nb = Math.max(0, Math.round(b * factor));
+    return `#${[nr, ng, nb].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function applyPanelColors() {
     try {
         applyCssVar(PANEL_BG, "--panel-bg-color");
         applyCssVar(PANEL_BORDER, "--panel-border-color");
         applyCssVar(PANEL_TEXT, "--panel-text-color");
+        const root = document.documentElement;
+        const text = storageGet(PANEL_TEXT);
+        if (text && isValidHexColor(text)) {
+            root.style.setProperty("--panel-text-hover-color", darkenHexColor(text, 0.7));
+        } else {
+            root.style.removeProperty("--panel-text-hover-color");
+        }
     } catch (e) {
         console.error("SpoTUI: Failed to apply panel colors", e);
     }
