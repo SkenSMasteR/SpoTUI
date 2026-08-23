@@ -1731,10 +1731,11 @@ function darkenHexColor(hex, factor) {
     const r = parseInt(expand.slice(0, 2), 16);
     const g = parseInt(expand.slice(2, 4), 16);
     const b = parseInt(expand.slice(4, 6), 16);
+    const alpha = expand.length === 8 ? expand.slice(6, 8) : "";
     const nr = Math.max(0, Math.round(r * factor));
     const ng = Math.max(0, Math.round(g * factor));
     const nb = Math.max(0, Math.round(b * factor));
-    return `#${[nr, ng, nb].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+    return `#${[nr, ng, nb].map((v) => v.toString(16).padStart(2, "0")).join("")}${alpha}`;
 }
 
 function applyPanelColors() {
