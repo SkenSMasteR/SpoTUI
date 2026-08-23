@@ -22,6 +22,9 @@ const INPUT_BG_HOVER = "spotui:input-bg-hover";
 const INPUT_TEXT = "spotui:input-text";
 const INPUT_BORDER = "spotui:input-border";
 const INPUT_BUTTONS = "spotui:inputs-buttons";
+const PANEL_BG = "spotui:panel-bg";
+const PANEL_BORDER = "spotui:panel-border";
+const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LAUNCHED_KEY = "spotui:launched";
@@ -94,9 +97,9 @@ body.spotui-onboarding-panel #spotui-logo {
     -ms-overflow-style: none;
     margin: 33vh 5vw 8px;
     height: 60vh;
-    border: 1px solid rgba(255, 140, 66, 0.3);
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
-    background: transparent;
+    background: var(--panel-bg-color, transparent);
 }
 
 body.spotui-onboarding-panel #spotui-onboarding-panel {
@@ -554,9 +557,9 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     -ms-overflow-style: none;
     margin: 33vh 5vw 8px;
     height: 60vh;
-    border: 1px solid rgba(255, 140, 66, 0.3);
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
-    background: transparent;
+    background: var(--panel-bg-color, transparent);
 }
 
 body.spotui-help-panel #spotui-help-panel,
@@ -573,7 +576,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .theme-card {
-    border: 1px solid #ff8c42;
+    border: 1px solid var(--panel-border-color, #ff8c42);
     border-radius: 4px;
     padding: 10px;
     background: rgba(0,0,0,0.5);
@@ -597,12 +600,12 @@ body.spotui-theme-panel #spotui-theme-panel {
 
 .theme-card h3 {
     margin: 10px 0 10px;
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     font-weight: 600;
 }
 
 .theme-card button {
-    background: #ff8c42;
+    background: var(--panel-text-color, #ff8c42);
     color: #000;
     border: none;
     padding: 8px 12px;
@@ -627,7 +630,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .help-item .command {
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     flex-basis: 30%;
 }
 
@@ -642,12 +645,12 @@ body.spotui-theme-panel #spotui-theme-panel {
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding: 10px;
-    border: 1px solid #ff8c42;
+    border: 1px solid var(--panel-border-color, #ff8c42);
     border-radius: 4px;
 }
 
 #spotui-playlist-list legend, #spotui-song-list legend {
-    color: #ff8c42;
+    color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
 
@@ -657,7 +660,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 }
 
 .playlist-item.selected, .song-item.selected {
-    background: #ff8c42;
+    background: var(--panel-text-color, #ff8c42);
     color: #000;
 }
 
@@ -869,6 +872,8 @@ const COMMAND_LIST = [
     { cmd: "tui -inputs -bg &lt;#hex&gt; -bg-hover &lt;#hex&gt; -text &lt;#hex&gt; -border &lt;#hex&gt;", desc: "Set input colors" },
     { cmd: "tui -inputs -buttons &lt;on/off&gt;", desc: "Toggle bottom right buttons visibility" },
     { cmd: "tui -inputs off", desc: "Reset input colors" },
+    { cmd: "tui -panel -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set help/playlist/theme/about panel colors" },
+    { cmd: "tui -panel off", desc: "Reset panel colors" },
     { cmd: "playlist / list", desc: "Open playlist viewer" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -1712,6 +1717,16 @@ function applyInputColors() {
     }
 }
 
+function applyPanelColors() {
+    try {
+        applyCssVar(PANEL_BG, "--panel-bg-color");
+        applyCssVar(PANEL_BORDER, "--panel-border-color");
+        applyCssVar(PANEL_TEXT, "--panel-text-color");
+    } catch (e) {
+        console.error("SpoTUI: Failed to apply panel colors", e);
+    }
+}
+
 function applyInputButtonsVisibility() {
     try {
         const state = storageGet(INPUT_BUTTONS) || "on";
@@ -2350,6 +2365,15 @@ async function execute(cmd, opts = {}) {
                 "-fg": PROGRESS_BAR_FG,
             });
             applyProgressBarColors();
+            return;
+        }
+        if (args.includes("-panel")) {
+            handleColorArgs(args, {
+                "-bg": PANEL_BG,
+                "-border": PANEL_BORDER,
+                "-text": PANEL_TEXT,
+            });
+            applyPanelColors();
             return;
         }
         if (args.includes("-inputs")) {
@@ -3193,6 +3217,11 @@ function resetAllSettings() {
     storageRemove(INPUT_BUTTONS);
     applyInputColors();
     applyInputButtonsVisibility();
+
+    storageRemove(PANEL_BG);
+    storageRemove(PANEL_BORDER);
+    storageRemove(PANEL_TEXT);
+    applyPanelColors();
 }
 
 function initUpdateBanner() {
@@ -3280,6 +3309,7 @@ try {
     applyProgressBarColors();
     applyInputColors();
     applyInputButtonsVisibility();
+    applyPanelColors();
 } catch { }
 
 })();
