@@ -2101,14 +2101,19 @@ function renderOnboardingFeedError(panel) {
         <div class="spotui-onboarding-copy">
             <div class="spotui-onboarding-kicker">Onboarding · stage 5</div>
             <h2>Theme feed failed.</h2>
-            <p>Try again in a moment. Launch stays locked until theme pick works.</p>
             <p>This may happen if you have been ratelimited, wait a few seconds and click the retry button below.</p>
+            <p>Or skip theme selection for now, you can pick one later with <code>theme</code>.</p>
         </div>
         <div class="spotui-onboarding-actions centered">
             <button id="spotui-onboarding-retry" class="spotui-control-btn">Retry</button>
+            <button id="spotui-onboarding-skip" class="spotui-control-btn">Skip</button>
         </div>
     `;
     document.getElementById("spotui-onboarding-retry")?.addEventListener("click", () => renderOnboardingPanel());
+    document.getElementById("spotui-onboarding-skip")?.addEventListener("click", () => {
+        onboardingStage = "done";
+        renderOnboardingPanel();
+    });
 }
 
 function applyOnboardingTheme(themeName) {
@@ -2138,6 +2143,11 @@ function applyOnboardingTheme(themeName) {
 function renderOnboardingPanel() {
     const panel = document.getElementById("spotui-onboarding-panel");
     if (!panel) return;
+
+    if (onboardingStage !== "themes") {
+        renderOnboardingStage(panel);
+        return;
+    }
 
     if (window.spotuiThemes && window.spotuiThemes.length) {
         renderOnboardingStage(panel);
