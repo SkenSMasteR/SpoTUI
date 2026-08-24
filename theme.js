@@ -1470,13 +1470,29 @@ function injectStyle() {
     document.head.appendChild(s);
 }
 
+function isVideoWallpaperUrl(url) {
+    try {
+        const clean = String(url).split("?")[0].split("#")[0];
+        return /\.(mp4|webm)$/i.test(clean);
+    } catch (e) {
+        return false;
+    }
+}
+
 function setWallpaper(url, opacity, save = true) {
     let tui = document.getElementById("spotui-tui");
     if (!tui) return;
 
+    const isVideo = isVideoWallpaperUrl(url);
     let wp = document.getElementById("spotui-wallpaper");
+
+    if (wp && ((isVideo && wp.tagName !== "VIDEO") || (!isVideo && wp.tagName === "VIDEO"))) {
+        wp.remove();
+        wp = null;
+    }
+
     if (!wp) {
-        wp = document.createElement("div");
+        wp = document.createElement(isVideo ? "video" : "div");
         wp.id = "spotui-wallpaper";
         wp.style.position = "absolute";
         wp.style.top = "0";
@@ -1484,11 +1500,49 @@ function setWallpaper(url, opacity, save = true) {
         wp.style.width = "100%";
         wp.style.height = "100%";
         wp.style.zIndex = "-1";
+        wp.style.objectFit = "cover";
         wp.style.backgroundSize = "cover";
         wp.style.backgroundPosition = "center";
+        if (isVideo) {
+            wp.muted = true;
+            wp.autoplay = true;
+            wp.loop = true;
+            wp.playsInline = true;
+            wp.controls = false;
+            wp.referrerPolicy = "no-referrer";
+            wp.setAttribute("muted", "");
+            wp.setAttribute("autoplay", "");
+            wp.setAttribute("loop", "");
+            wp.setAttribute("playsinline", "");
+            wp.setAttribute("referrerpolicy", "no-referrer");
+        }
         tui.prepend(wp);
     }
-    wp.style.backgroundImage = `url("${url}")`;
+
+    if (isVideo) {
+        console.log("SpoTUI: canPlayType mp4/h264 =", wp.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"'));
+        console.log("SpoTUI: canPlayType mp4 generic =", wp.canPlayType('video/mp4'));
+        if (wp.getAttribute("src") !== url) {
+            wp.src = url;
+            wp.onerror = () => {
+                console.error(
+                    "SpoTUI: wallpaper video failed to load",
+                    url,
+                    "error code:", wp.error && wp.error.code,
+                    "message:", wp.error && wp.error.message,
+                    "networkState:", wp.networkState,
+                    "readyState:", wp.readyState
+                );
+            };
+        }
+        wp.muted = true;
+        const playPromise = wp.play();
+        if (playPromise && playPromise.catch) {
+            playPromise.catch((err) => console.error("SpoTUI: wallpaper video play() rejected", err, "networkState:", wp.networkState, "readyState:", wp.readyState));
+        }
+    } else {
+        wp.style.backgroundImage = `url("${url}")`;
+    }
     wp.style.opacity = opacity;
     tui.style.backgroundColor = "transparent";
     const children = tui.querySelectorAll(':not(#spotui-wallpaper)');
