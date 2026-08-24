@@ -1520,8 +1520,6 @@ function setWallpaper(url, opacity, save = true) {
     }
 
     if (isVideo) {
-        console.log("SpoTUI: canPlayType mp4/h264 =", wp.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"'));
-        console.log("SpoTUI: canPlayType mp4 generic =", wp.canPlayType('video/mp4'));
         if (wp.getAttribute("src") !== url) {
             wp.src = url;
             wp.onerror = () => {
