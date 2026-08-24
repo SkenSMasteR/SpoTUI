@@ -3362,7 +3362,9 @@ setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
 try {
     if (storageGet(LYRICS_STORAGE_KEY) === "1") {
-        waitForPlayerReadyThen(() => openLyricsPanel());
+        waitForPlayerReadyThen(() => {
+            if (storageGet(LYRICS_STORAGE_KEY) === "1") openLyricsPanel();
+        });
     }
     if (storageGet(WP_URL_KEY)) {
         setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
