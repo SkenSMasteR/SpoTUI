@@ -3146,6 +3146,33 @@ function storeLyricsOpen(open) {
     storageSet(LYRICS_STORAGE_KEY, open ? "1" : "0");
 }
 
+function hasPlayableTrackItem() {
+    const item = Spicetify?.Player?.data?.item;
+    return Boolean(item?.uri && String(item.uri).includes(":track:"));
+}
+
+function waitForPlayerReadyThen(callback, attempt = 0) {
+    if (hasPlayableTrackItem()) {
+        callback();
+        return;
+    }
+    if (attempt >= 40) {
+        callback();
+        pollForTrackThenReload();
+        return;
+    }
+    setTimeout(() => waitForPlayerReadyThen(callback, attempt + 1), 250);
+}
+
+function pollForTrackThenReload() {
+    if (!lyricsPanelOpen) return;
+    if (hasPlayableTrackItem()) {
+        loadLyricsForCurrentTrack();
+        return;
+    }
+    setTimeout(pollForTrackThenReload, 1000);
+}
+
 function openLyricsPanel() {
     closeActivePanel();
     lyricsPanelOpen = true;
@@ -3335,7 +3362,9 @@ setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
 try {
     if (storageGet(LYRICS_STORAGE_KEY) === "1") {
-        setTimeout(() => openLyricsPanel(), 2000);
+        waitForPlayerReadyThen(() => {
+            if (storageGet(LYRICS_STORAGE_KEY) === "1") openLyricsPanel();
+        });
     }
     if (storageGet(WP_URL_KEY)) {
         setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
