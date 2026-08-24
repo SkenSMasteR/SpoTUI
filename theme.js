@@ -3146,16 +3146,31 @@ function storeLyricsOpen(open) {
     storageSet(LYRICS_STORAGE_KEY, open ? "1" : "0");
 }
 
+function hasPlayableTrackItem() {
+    const item = Spicetify?.Player?.data?.item;
+    return Boolean(item?.uri && String(item.uri).includes(":track:"));
+}
+
 function waitForPlayerReadyThen(callback, attempt = 0) {
-    if (Spicetify?.Player?.data?.item) {
+    if (hasPlayableTrackItem()) {
         callback();
         return;
     }
     if (attempt >= 40) {
         callback();
+        pollForTrackThenReload();
         return;
     }
     setTimeout(() => waitForPlayerReadyThen(callback, attempt + 1), 250);
+}
+
+function pollForTrackThenReload() {
+    if (!lyricsPanelOpen) return;
+    if (hasPlayableTrackItem()) {
+        loadLyricsForCurrentTrack();
+        return;
+    }
+    setTimeout(pollForTrackThenReload, 1000);
 }
 
 function openLyricsPanel() {
