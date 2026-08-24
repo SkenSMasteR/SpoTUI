@@ -3146,6 +3146,18 @@ function storeLyricsOpen(open) {
     storageSet(LYRICS_STORAGE_KEY, open ? "1" : "0");
 }
 
+function waitForPlayerReadyThen(callback, attempt = 0) {
+    if (Spicetify?.Player?.data?.item) {
+        callback();
+        return;
+    }
+    if (attempt >= 40) {
+        callback();
+        return;
+    }
+    setTimeout(() => waitForPlayerReadyThen(callback, attempt + 1), 250);
+}
+
 function openLyricsPanel() {
     closeActivePanel();
     lyricsPanelOpen = true;
@@ -3335,7 +3347,7 @@ setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
 try {
     if (storageGet(LYRICS_STORAGE_KEY) === "1") {
-        setTimeout(() => openLyricsPanel(), 2000);
+        waitForPlayerReadyThen(() => openLyricsPanel());
     }
     if (storageGet(WP_URL_KEY)) {
         setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
