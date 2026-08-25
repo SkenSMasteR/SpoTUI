@@ -3280,10 +3280,6 @@ async function loadLyricsForCurrentTrack(isTransition = false) {
     const els = getLyricsEls();
     if (!els) return;
 
-    if (!isTransition) {
-        resetLyricsTransform();
-    }
-
     if (isTransition) {
         await slideLyricsOut();
         if (token !== lyricsLoadToken) return;
@@ -3400,6 +3396,7 @@ function closeLyricsPanel() {
     if (!lyricsPanelOpen) return;
     lyricsPanelOpen = false;
     lyricsLoadToken += 1;
+    resetLyricsTransform();
     storeLyricsOpen(false);
     document.removeEventListener("keydown", handleGlobalEsc);
     const root = document.getElementById("spotui-lyrics");
