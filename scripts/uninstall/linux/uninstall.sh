@@ -1,48 +1,45 @@
 #!/usr/bin/env bash
-grep -q $'\r' "$0" 2>/dev/null && tr -d '\r' < "$0" > "$0.lf" && chmod +x "$0.lf" && exec bash "$0.lf" "$@"
 
-Esc=$'\033'
-Reset="${Esc}[0m"
+set -u
 
-BlockFull=$'\u2588'
-BlockLower=$'\u2584'
-BlockUpper=$'\u2580'
-BlockLeft=$'\u258C'
+ESC=$'\033'
+RESET="${ESC}[0m"
 
-get_rgb() {
-    local r=$1 g=$2 b=$3
-    echo "${Esc}[38;2;${r};${g};${b}m"
+BLOCK_FULL=$'\xe2\x96\x88'   # U+2588
+BLOCK_LOWER=$'\xe2\x96\x84'  # U+2584
+BLOCK_UPPER=$'\xe2\x96\x80'  # U+2580
+BLOCK_LEFT=$'\xe2\x96\x8c'   # U+258C
+
+rgb() {
+    printf '%s[38;2;%d;%d;%dm' "$ESC" "$1" "$2" "$3"
 }
 
-OrangeLight=$(get_rgb 255 140 66)
-OrangeDark=$(get_rgb 224 123 57)
-OrangeMid=$(get_rgb 240 131 61)
-GreenAnsi=$(get_rgb 140 255 140)
-RedAnsi=$(get_rgb 255 110 110)
-GrayAnsi=$(get_rgb 130 130 130)
+ORANGE_LIGHT=$(rgb 255 140 66)
+ORANGE_DARK=$(rgb 224 123 57)
+ORANGE_MID=$(rgb 240 131 61)
+GREEN_ANSI=$(rgb 140 255 140)
+RED_ANSI=$(rgb 255 110 110)
+GRAY_ANSI=$(rgb 130 130 130)
 
-get_gradient_color() {
+gradient_color() {
     local index=$1 total=$2
     local r1=255 g1=140 b1=66
     local r2=224 g2=123 b2=57
-    local t=0
-    if [ "$total" -gt 1 ]; then
-        t=$(awk -v i="$index" -v t="$total" 'BEGIN { printf "%.6f", i/(t-1) }')
-    fi
-    local r g b
-    r=$(awk -v r1="$r1" -v r2="$r2" -v t="$t" 'BEGIN { printf "%d", r1+(r2-r1)*t }')
-    g=$(awk -v g1="$g1" -v g2="$g2" -v t="$t" 'BEGIN { printf "%d", g1+(g2-g1)*t }')
-    b=$(awk -v b1="$b1" -v b2="$b2" -v t="$t" 'BEGIN { printf "%d", b1+(b2-b1)*t }')
-    get_rgb "$r" "$g" "$b"
+    local t_num=$index t_den=$((total - 1))
+    if [ "$t_den" -le 0 ]; then t_den=1; t_num=0; fi
+    local r=$(( r1 + (r2 - r1) * t_num / t_den ))
+    local g=$(( g1 + (g2 - g1) * t_num / t_den ))
+    local b=$(( b1 + (b2 - b1) * t_num / t_den ))
+    rgb "$r" "$g" "$b"
 }
 
-get_ascii_art_line() {
-    local out="$1"
-    out="${out//A/$BlockFull}"
-    out="${out//B/$BlockLower}"
-    out="${out//C/$BlockUpper}"
-    out="${out//D/$BlockLeft}"
-    echo "$out"
+ascii_art_line() {
+    local line="$1"
+    line="${line//A/$BLOCK_FULL}"
+    line="${line//B/$BLOCK_LOWER}"
+    line="${line//C/$BLOCK_UPPER}"
+    line="${line//D/$BLOCK_LEFT}"
+    printf '%s' "$line"
 }
 
 show_header() {
@@ -57,109 +54,144 @@ show_header() {
         "   BA    AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  "
         " BAAAAAAAAC   BAAAAC       CAAAAAAC     BAAAAC   AAAAAAAAC  AC   "
     )
+    local count=${#templates[@]}
     echo ""
-    local total=${#templates[@]}
-    local i=0
-    for tmpl in "${templates[@]}"; do
+    local i
+    for ((i = 0; i < count; i++)); do
         local color
-        color=$(get_gradient_color "$i" "$total")
+        color=$(gradient_color "$i" "$count")
         local line
-        line=$(get_ascii_art_line "$tmpl")
-        echo "${color}${line}${Reset}"
-        i=$((i + 1))
+        line=$(ascii_art_line "${templates[$i]}")
+        printf '%s%s%s\n' "$color" "$line" "$RESET"
     done
     echo ""
-    echo "${OrangeMid}                         Uninstaller${Reset}"
-    echo "${OrangeDark}  =============================================================${Reset}"
+    printf '%s                          Uninstaller%s\n' "$ORANGE_MID" "$RESET"
+    printf '%s  =============================================================%s\n' "$ORANGE_DARK" "$RESET"
     echo ""
 }
 
-SpinnerFrames=($'\u280B' $'\u2819' $'\u2839' $'\u2838' $'\u283C' $'\u2834' $'\u2826' $'\u2827' $'\u2807' $'\u280F')
-CheckMark=$'\u2713'
-CrossMark=$'\u2715'
+SPINNER_CODES=(0x280B 0x2819 0x2839 0x2838 0x283C 0x2834 0x2826 0x2827 0x2807 0x280F)
+SPINNER_FRAMES=()
+for code in "${SPINNER_CODES[@]}"; do
+    SPINNER_FRAMES+=("$(printf "\\U$(printf '%08x' "$code")")")
+done
+CHECK_MARK=$'\xe2\x9c\x93'  # U+2713
+CROSS_MARK=$'\xe2\x9c\x95'  # U+2715
 CR=$'\r'
 
-invoke_step() {
-    local label="$1"
-    local workfn="$2"
+STEP_OUTPUT=""
+STEP_FILE=""
 
+invoke_step() {
+    local label="$1"; shift
+    local out_file err_file
+    out_file=$(mktemp)
+    err_file=$(mktemp)
+
+    ("$@") >"$out_file" 2>"$err_file" &
+    local job_pid=$!
+
+    local frame_index=0
     tput civis 2>/dev/null
 
-    local tmpfile
-    tmpfile=$(mktemp)
-    "$workfn" >"$tmpfile" 2>&1 &
-    local pid=$!
-
-    local frameIndex=0
-    while kill -0 "$pid" 2>/dev/null; do
-        local frame="${SpinnerFrames[$((frameIndex % ${#SpinnerFrames[@]}))]}"
+    while kill -0 "$job_pid" 2>/dev/null; do
+        local frame="${SPINNER_FRAMES[$((frame_index % ${#SPINNER_FRAMES[@]}))]}"
         local color
-        color=$(get_gradient_color $((frameIndex % 8)) 8)
-        printf "%s  %s%s%s  %s" "$CR" "$color" "$frame" "$Reset" "$label"
+        color=$(gradient_color $((frame_index % 8)) 8)
+        printf '%s  %s%s%s  %s' "$CR" "$color" "$frame" "$RESET" "$label"
         sleep 0.08
-        frameIndex=$((frameIndex + 1))
+        frame_index=$((frame_index + 1))
     done
 
-    wait "$pid"
-    local status=$?
-    rm -f "$tmpfile"
+    wait "$job_pid"
+    local exit_code=$?
+    local failed=0
+    if [ "$exit_code" -ne 0 ]; then failed=1; fi
 
     local pad
     pad=$(printf ' %.0s' {1..40})
-    if [ "$status" -ne 0 ]; then
-        printf "%s  %s%s%s  %s%s\n" "$CR" "$RedAnsi" "$CrossMark" "$Reset" "$label" "$pad"
+    if [ "$failed" -eq 1 ]; then
+        printf '%s  %s%s%s  %s%s\n' "$CR" "$RED_ANSI" "$CROSS_MARK" "$RESET" "$label" "$pad"
+        if [ -s "$err_file" ]; then
+            printf '      %s%s%s\n' "$RED_ANSI" "$(cat "$err_file")" "$RESET"
+        fi
     else
-        printf "%s  %s%s%s  %s%s\n" "$CR" "$GreenAnsi" "$CheckMark" "$Reset" "$label" "$pad"
+        printf '%s  %s%s%s  %s%s\n' "$CR" "$GREEN_ANSI" "$CHECK_MARK" "$RESET" "$label" "$pad"
     fi
 
     tput cnorm 2>/dev/null
-    return $status
+
+    STEP_OUTPUT=$(cat "$out_file")
+    STEP_FILE="$out_file"
+    rm -f "$err_file"
+    return "$failed"
 }
 
 show_header
 
-targetDirs=("$HOME/.local/share/spotui" "$HOME/.local/share/spotui-cli")
-binPath="$HOME/.local/bin/spotui"
+XDG_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+TARGET_DIRS=("${XDG_HOME}/spotui" "${XDG_HOME}/spotui-cli")
 
-ok=true
-
-for dir in "${targetDirs[@]}"; do
-    remove_dir() {
-        if [ -d "$dir" ]; then
-            rm -rf "$dir"
-        fi
-    }
-    invoke_step "Removing $dir" remove_dir || ok=false
-done
-
-remove_bin() {
-    if [ -f "$binPath" ]; then
-        rm -f "$binPath"
-    fi
-}
-invoke_step "Removing $binPath" remove_bin || ok=false
-
-clean_path() {
-    local profileFile
-    for profileFile in "$HOME/.bashrc" "$HOME/.zshrc"; do
-        if [ -f "$profileFile" ]; then
-            for dir in "${targetDirs[@]}" "$HOME/.local/bin"; do
-                sed -i "\#export PATH=\"\$PATH:$dir\"#d" "$profileFile"
-            done
-        fi
+clean_user_path() {
+    local rc tmp pat
+    for rc in "$HOME/.bashrc" "$HOME/.profile" "$HOME/.zshrc"; do
+        [ -f "$rc" ] || continue
+        tmp=$(mktemp)
+        cp "$rc" "$tmp"
+        for pat in '# Added by SpoTUI installer' "${TARGET_DIRS[@]}"; do
+            grep -vF -- "$pat" "$tmp" > "$tmp.tmp" 2>/dev/null || true
+            mv "$tmp.tmp" "$tmp"
+        done
+        mv "$tmp" "$rc"
+        rm -f "$tmp.tmp"
     done
 }
-invoke_step "Cleaning PATH" clean_path || ok=false
 
-echo ""
-echo "${OrangeDark}  =============================================================${Reset}"
-echo ""
+filter_path() {
+    local path_str="$1"
+    local keep="" entry dir
+    while IFS= read -r entry; do
+        [ -z "$entry" ] && continue
+        entry="${entry%/}"
+        for dir in "${TARGET_DIRS[@]}"; do
+            if [ "$entry" = "${dir%/}" ]; then
+                continue 2
+            fi
+        done
+        keep="${keep:+$keep:}$entry"
+    done <<< "$(printf '%s' "$path_str" | tr ':' '\n')"
+    printf '%s' "$keep"
+}
 
-if $ok; then
-    echo "  ${GreenAnsi}${CheckMark}  SpoTUI has been uninstalled.${Reset}"
-    echo "  ${GrayAnsi}   Restart your terminal for PATH changes to take full effect.${Reset}"
+OK=1
+
+for dir in "${TARGET_DIRS[@]}"; do
+    if invoke_step "Removing $dir" bash -c "rm -rf -- '$dir'"; then
+        :
+    else
+        OK=0
+    fi
+    rm -f "$STEP_FILE"
+done
+
+if invoke_step "Cleaning user PATH" clean_user_path; then
+    :
 else
-    echo "  ${RedAnsi}${CrossMark}  Uninstall finished with errors. See above.${Reset}"
+    OK=0
+fi
+rm -f "$STEP_FILE"
+
+PATH=$(filter_path "$PATH")
+
+echo ""
+echo "${ORANGE_DARK}  =============================================================${RESET}"
+echo ""
+
+if [ "$OK" -eq 1 ]; then
+    echo "  ${GREEN_ANSI}${CHECK_MARK}  SpoTUI has been uninstalled.${RESET}"
+    echo "  ${GRAY_ANSI}   Restart your terminal for PATH changes to take full effect.${RESET}"
+else
+    echo "  ${RED_ANSI}${CROSS_MARK}  Uninstall finished with errors. See above.${RESET}"
 fi
 
 echo ""
