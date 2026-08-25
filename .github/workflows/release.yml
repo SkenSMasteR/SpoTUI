@@ -73,8 +73,9 @@ jobs:
             exit 1
           fi
           curl -L -o llvm-mingw.tar.xz "$url"
+          tar tf llvm-mingw.tar.xz > filelist.txt
+          dir=$(head -1 filelist.txt | cut -f1 -d/)
           tar xf llvm-mingw.tar.xz
-          dir=$(tar tf llvm-mingw.tar.xz | head -1 | cut -f1 -d/)
           echo "$PWD/$dir/bin" >> "$GITHUB_PATH"
 
       - name: Build ${{ matrix.out }}
