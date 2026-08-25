@@ -48,6 +48,7 @@ jobs:
     needs: version
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: i686-w64-mingw32
@@ -63,9 +64,14 @@ jobs:
 
       - name: Install llvm-mingw
         run: |
+          set -euo pipefail
           url=$(curl -s https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest \
-            | grep "browser_download_url.*ubuntu-20.04-x86_64.tar.xz" \
+            | grep "browser_download_url.*ucrt-ubuntu-22.04-x86_64.tar.xz" \
             | cut -d '"' -f 4)
+          if [ -z "$url" ]; then
+            echo "Could not find a matching llvm-mingw asset URL" >&2
+            exit 1
+          fi
           curl -L -o llvm-mingw.tar.xz "$url"
           tar xf llvm-mingw.tar.xz
           dir=$(tar tf llvm-mingw.tar.xz | head -1 | cut -f1 -d/)
