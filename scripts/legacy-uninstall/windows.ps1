@@ -114,23 +114,13 @@ function Invoke-Step {
         $frameIndex++
     }
 
-    $jobError = $null
-    try {
-        Receive-Job -Job $job -ErrorAction Stop | Out-Null
-    } catch {
-        $jobError = $_
-    }
-    $failed = $job.State -eq "Failed" -or ($job.ChildJobs[0].Error.Count -gt 0) -or ($null -ne $jobError)
+    Receive-Job -Job $job | Out-Null
+    $failed = $job.State -eq "Failed" -or ($job.ChildJobs[0].Error.Count -gt 0)
     Remove-Job -Job $job -Force | Out-Null
 
     $pad = " " * 40
     if ($failed) {
         Write-Host ($CR + "  " + $RedAnsi + $CrossMark + $Reset + "  " + $Label + $pad)
-        if ($jobError) {
-            Write-Host ("      " + $RedAnsi + $jobError.Exception.Message + $Reset)
-        } elseif ($job.ChildJobs[0].Error.Count -gt 0) {
-            Write-Host ("      " + $RedAnsi + ($job.ChildJobs[0].Error[0]) + $Reset)
-        }
     }
     else {
         Write-Host ($CR + "  " + $GreenAnsi + $CheckMark + $Reset + "  " + $Label + $pad)
@@ -155,18 +145,13 @@ foreach ($dir in $targetDirs) {
 }
 
 $ok = (Invoke-Step "Cleaning user PATH" {
-    $dirsToRemove = $using:targetDirs | ForEach-Object { $_.TrimEnd('\') }
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $entries = $userPath -split ';' |
-        ForEach-Object { $_.Trim() } |
-        Where-Object { $_ -and ($dirsToRemove -notcontains $_.TrimEnd('\')) }
+    $entries = $userPath -split ';' | Where-Object { $_ -and ($using:targetDirs -notcontains $_) }
     $userPath = $entries -join ';'
     [Environment]::SetEnvironmentVariable("Path", $userPath, "User")
 }) -and $ok
 
-$env:Path = ($env:Path -split ';' |
-    ForEach-Object { $_.Trim() } |
-    Where-Object { $_ -and ($targetDirs -notcontains $_.TrimEnd('\')) }) -join ';'
+$env:Path = ($env:Path -split ';' | Where-Object { $_ -and ($targetDirs -notcontains $_) }) -join ';'
 
 Write-Host ""
 Write-Host "$OrangeDark  =============================================================$Reset"
