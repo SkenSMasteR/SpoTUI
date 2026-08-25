@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - CLI
+  pull_request:
+    branches:
+      - CLI
+  workflow_dispatch:
+
+jobs:
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=warning,performance,portability,style \
+                    --std=c++17 \
+                    --error-exitcode=1 \
+                    --suppress=missingIncludeSystem \
+                    app.cpp
