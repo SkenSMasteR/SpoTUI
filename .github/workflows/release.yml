@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - CLI
+    paths-ignore:
+      - '.github/workflows/lint.yml'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -65,9 +68,11 @@ jobs:
       - name: Install llvm-mingw
         run: |
           set -euo pipefail
-          url=$(curl -s https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest \
+          url=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest \
             | grep "browser_download_url.*ucrt-ubuntu-22.04-x86_64.tar.xz" \
             | cut -d '"' -f 4)
+          echo "Resolved URL: $url"
           if [ -z "$url" ]; then
             echo "Could not find a matching llvm-mingw asset URL" >&2
             exit 1
