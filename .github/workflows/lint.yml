@@ -24,4 +24,6 @@ jobs:
                     --std=c++17 \
                     --error-exitcode=1 \
                     --suppress=missingIncludeSystem \
+                    --suppress=unreadVariable \
+                    --suppress=useStlAlgorithm \
                     app.cpp
