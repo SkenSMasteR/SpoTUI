@@ -692,6 +692,72 @@ body.spotui-theme-panel #spotui-theme-panel {
     font-weight: 600;
 }
 
+.spotui-lyrics-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 18vh 24px;
+}
+
+.spotui-lyrics-lines.spotui-lyrics-exit-active {
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+    transform: translateY(-40px);
+    opacity: 0;
+}
+
+.spotui-lyrics-lines.spotui-lyrics-enter {
+    transition: none;
+    transform: translateY(40px);
+    opacity: 0;
+}
+
+.spotui-lyrics-lines.spotui-lyrics-enter-active {
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.spotui-lyrics-fetch-loader {
+    --color-1: var(--lyrics-color-active, #ff8c42);
+    --size: 1px;
+    width: calc(8 * var(--size));
+    height: calc(40 * var(--size));
+    border-radius: calc(4 * var(--size));
+    display: block;
+    position: relative;
+    background: currentColor;
+    color: var(--color-1);
+    box-sizing: border-box;
+    animation: spotui-fetch-loader-anim 0.3s 0.3s linear infinite alternate;
+}
+.spotui-lyrics-fetch-loader::after,
+.spotui-lyrics-fetch-loader::before {
+    content: '';
+    width: calc(8 * var(--size));
+    height: calc(40 * var(--size));
+    border-radius: calc(4 * var(--size));
+    background: currentColor;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: calc(20 * var(--size));
+    box-sizing: border-box;
+    animation: spotui-fetch-loader-anim 0.3s 0.45s linear infinite alternate;
+}
+.spotui-lyrics-fetch-loader::before {
+    left: calc(-20 * var(--size));
+    animation-delay: 0s;
+}
+@keyframes spotui-fetch-loader-anim {
+    0% {
+        height: calc(48 * var(--size));
+    }
+    100% {
+        height: calc(4 * var(--size));
+    }
+}
+
 #spotui-controls {
     display: flex;
     gap: 8px;
@@ -3021,6 +3087,63 @@ function renderLyricsEmpty(message, detail = "") {
     els.lines.appendChild(empty);
 }
 
+function slideLyricsOut() {
+    return new Promise((resolve) => {
+        const els = getLyricsEls();
+        if (!els?.lines) { resolve(); return; }
+        const lines = els.lines;
+        lines.classList.remove("spotui-lyrics-enter", "spotui-lyrics-enter-active");
+        lines.classList.add("spotui-lyrics-exit-active");
+        let done = false;
+        const finish = (e) => {
+            if (e && e.target !== lines) return;
+            if (done) return;
+            done = true;
+            lines.removeEventListener("transitionend", finish);
+            resolve();
+        };
+        lines.addEventListener("transitionend", finish);
+        setTimeout(finish, 400);
+    });
+}
+
+function resetLyricsTransform() {
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    const lines = els.lines;
+    lines.style.transition = "none";
+    lines.classList.remove("spotui-lyrics-exit-active");
+    void lines.offsetWidth;
+    lines.style.transition = "";
+}
+
+function slideLyricsIn() {
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    const lines = els.lines;
+    lines.classList.remove("spotui-lyrics-exit-active");
+    lines.classList.add("spotui-lyrics-enter");
+    void lines.offsetWidth;
+    lines.classList.add("spotui-lyrics-enter-active");
+    setTimeout(() => {
+        lines.classList.remove("spotui-lyrics-enter", "spotui-lyrics-enter-active");
+    }, 400);
+}
+
+function renderLyricsLoading() {
+    const els = getLyricsEls();
+    if (!els?.lines) return;
+    lyricsActiveIndex = -1;
+    els.lines.classList.remove("unsynced");
+    els.lines.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "spotui-lyrics-loading";
+    const spinner = document.createElement("span");
+    spinner.className = "spotui-lyrics-fetch-loader";
+    wrap.appendChild(spinner);
+    els.lines.appendChild(wrap);
+}
+
 function renderLyricsLines(lines, synced = true) {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3151,16 +3274,23 @@ function setLyricsHeader(info, statusText) {
     if (els.meta) els.meta.textContent = statusText || "";
 }
 
-async function loadLyricsForCurrentTrack() {
+async function loadLyricsForCurrentTrack(isTransition = false) {
     const token = ++lyricsLoadToken;
     const info = getCurrentTrackLyricsInfo();
     const els = getLyricsEls();
     if (!els) return;
 
+    if (isTransition) {
+        await slideLyricsOut();
+        if (token !== lyricsLoadToken) return;
+        resetLyricsTransform();
+    }
+
     if (!info) {
         lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
         setLyricsHeader(null, "");
         renderLyricsEmpty("¯\\_(ツ)_/¯");
+        if (isTransition) slideLyricsIn();
         return;
     }
 
@@ -3169,13 +3299,18 @@ async function loadLyricsForCurrentTrack() {
         if (lyricsCache.instrumental) renderLyricsEmpty("Instrumental", "No vocals to show for this track.");
         else if (lyricsCache.error) renderLyricsEmpty("No lyrics", lyricsCache.error);
         else { renderLyricsLines(lyricsCache.lines, lyricsCache.synced); syncLyricsHighlight(true); }
+        if (isTransition) slideLyricsIn();
         return;
     }
 
     setLyricsHeader(info, "fetching…");
-    renderLyricsEmpty("¯\\_(ツ)_/¯");
+    renderLyricsLoading();
 
-    const result = await resolveTrackLyrics(info);
+    const fetchPromise = resolveTrackLyrics(info);
+    const result = isTransition
+        ? (await Promise.all([fetchPromise, sleep(1000)]))[0]
+        : await fetchPromise;
+
     if (token !== lyricsLoadToken || !lyricsPanelOpen) return;
 
     lyricsCache = {
@@ -3187,11 +3322,12 @@ async function loadLyricsForCurrentTrack() {
         error: result.error || "",
     };
 
-    if (lyricsCache.instrumental) { setLyricsHeader(info, "instrumental"); renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
-    if (!lyricsCache.lines.length) { setLyricsHeader(info, "not found"); renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
+    if (lyricsCache.instrumental) { setLyricsHeader(info, "instrumental"); renderLyricsEmpty("¯\\_(ツ)_/¯"); if (isTransition) slideLyricsIn(); return; }
+    if (!lyricsCache.lines.length) { setLyricsHeader(info, "not found"); renderLyricsEmpty("¯\\_(ツ)_/¯"); if (isTransition) slideLyricsIn(); return; }
     setLyricsHeader(info, `${lyricsCache.synced ? "synced" : "unsynced"} · ${lyricsCache.provider}`);
     renderLyricsLines(lyricsCache.lines, lyricsCache.synced);
     syncLyricsHighlight(true);
+    if (isTransition) slideLyricsIn();
 }
 
 function storeLyricsOpen(open) {
@@ -3260,6 +3396,7 @@ function closeLyricsPanel() {
     if (!lyricsPanelOpen) return;
     lyricsPanelOpen = false;
     lyricsLoadToken += 1;
+    resetLyricsTransform();
     storeLyricsOpen(false);
     document.removeEventListener("keydown", handleGlobalEsc);
     const root = document.getElementById("spotui-lyrics");
@@ -3283,7 +3420,7 @@ function bindLyricsEvents() {
     Spicetify.Player.addEventListener("songchange", () => {
         if (!lyricsPanelOpen) return;
         lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
-        loadLyricsForCurrentTrack();
+        loadLyricsForCurrentTrack(true);
     });
 }
 
