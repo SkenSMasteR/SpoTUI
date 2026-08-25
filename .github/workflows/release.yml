@@ -1,0 +1,101 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag.outputs.new_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+
+  build-linux:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.new_tag }}
+
+      - name: Build linux-amd64
+        run: g++ -std=c++17 -O2 -static -o spotui-linux-amd64 app.cpp
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spotui-linux-amd64
+          path: spotui-linux-amd64
+
+  build-windows:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: i686-w64-mingw32
+            out: spotui-win32.exe
+          - target: x86_64-w64-mingw32
+            out: spotui-win64.exe
+          - target: aarch64-w64-mingw32
+            out: spotui-winarm64.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.new_tag }}
+
+      - name: Install llvm-mingw
+        run: |
+          url=$(curl -s https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest \
+            | grep "browser_download_url.*ubuntu-20.04-x86_64.tar.xz" \
+            | cut -d '"' -f 4)
+          curl -L -o llvm-mingw.tar.xz "$url"
+          tar xf llvm-mingw.tar.xz
+          dir=$(tar tf llvm-mingw.tar.xz | head -1 | cut -f1 -d/)
+          echo "$PWD/$dir/bin" >> "$GITHUB_PATH"
+
+      - name: Build ${{ matrix.out }}
+        run: |
+          ${{ matrix.target }}-clang++ -std=c++17 -O2 -static -o ${{ matrix.out }} app.cpp
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.out }}
+          path: ${{ matrix.out }}
+
+  release:
+    needs: [version, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.new_tag }}
+          name: SpoTUI ${{ needs.version.outputs.new_tag }}
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(needs.version.outputs.new_tag, '-rc') || contains(needs.version.outputs.new_tag, '-beta') }}
