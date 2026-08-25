@@ -3095,7 +3095,8 @@ function slideLyricsOut() {
         lines.classList.remove("spotui-lyrics-enter", "spotui-lyrics-enter-active");
         lines.classList.add("spotui-lyrics-exit-active");
         let done = false;
-        const finish = () => {
+        const finish = (e) => {
+            if (e && e.target !== lines) return;
             if (done) return;
             done = true;
             lines.removeEventListener("transitionend", finish);
@@ -3278,6 +3279,10 @@ async function loadLyricsForCurrentTrack(isTransition = false) {
     const info = getCurrentTrackLyricsInfo();
     const els = getLyricsEls();
     if (!els) return;
+
+    if (!isTransition) {
+        resetLyricsTransform();
+    }
 
     if (isTransition) {
         await slideLyricsOut();
