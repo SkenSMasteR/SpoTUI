@@ -81,6 +81,9 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -l -a <on/off>`   | Toggle ASCII animation         |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
 | `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
+| `tui bind "<Letter>" "<command>"` | Binds Alt+`<Letter>` to run a TUI command |
+| `tui unbind "<Letter>"` | Remove the Alt+<Letter> keybind |
+| `tui bind clear` | Remove all keybinds |
 | `tui -wp off`          | Remove wallpaper               |
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |
