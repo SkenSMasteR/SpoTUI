@@ -1166,7 +1166,14 @@ function handleColorArgs(args, flagToKey) {
 function getKeybinds() {
     try {
         const raw = storageGet(KEYBIND_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : {};
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+        const clean = {};
+        Object.keys(parsed).forEach((key) => {
+            if (typeof parsed[key] === "string") clean[key] = parsed[key];
+        });
+        return clean;
     } catch (e) {
         return {};
     }
@@ -1177,7 +1184,7 @@ function saveKeybinds(map) {
 }
 
 function isBindCommand(cmd) {
-    return /^\s*tui\s+bind\b/i.test(String(cmd || ""));
+    return /^\s*tui\s+(bind|unbind)\b/i.test(String(cmd || ""));
 }
 
 function normalizeKeyCombo(comboStr) {
@@ -2540,7 +2547,7 @@ async function execute(cmd, opts = {}) {
             return;
         }
         if (args[0] === "bind") {
-            if (args[1] === "clear") {
+            if (args[1] === "clear" && args.length === 2) {
                 saveKeybinds({});
                 return;
             }
