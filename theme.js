@@ -905,17 +905,22 @@ const SPOTUI_ASCII_ART = [
 ];
 
 const GLITCH_CHARS = "01";
-const GLITCH_CHAR_LIST = [...GLITCH_CHARS];
-const ORANGE_PALETTE = [
-    "#ff6a00",
-    "#ff7a0a",
-    "#ff8c1a",
-    "#ff9e33",
-    "#ffb04d",
-    "#ffc266",
-    "#ffd480",
-    "#ffe699",
+const ORANGE_PALETTE_RGB = [
+    [255, 106, 0],
+    [255, 122, 10],
+    [255, 140, 26],
+    [255, 158, 51],
+    [255, 176, 77],
+    [255, 194, 102],
+    [255, 212, 128],
+    [255, 230, 153],
 ];
+
+const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const BIND_CMD_REGEX = /^tui\s+(bind|unbind)\b/i;
+const F_KEY_REGEX = /^f\d{1,2}$/i;
+const LRC_STAMP_REGEX = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g;
+const LRC_STAMP_STRIP_REGEX = /\[\d{1,2}:\d{2}(?:\.\d+)?\]/g;
 
 const ADD_THEME_IMG_OK = `https://imgs.search.brave.com/2VYp5kTKXFu84NcOgmYXQM8zyBByOalm9xwmIOX4Lp8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvOTU5Ni85NTk2/MTU2LnBuZw`;
 const ADD_THEME_IMG_ERR = `https://imgs.search.brave.com/qsWzCiBrdeOE9PQmFvp0eS0rfLyVkcm97DyHxEXGNBk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLm1h/Z25pZmljLmNvbS8y/NTYvMTAwODQvMTAw/ODQzOTAucG5nP3Nl/bXQ9YWlzX3doaXRl/X2xhYmVs`;
@@ -992,6 +997,8 @@ let lyricsActiveLoaderIndex = -1;
 let lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
 let lyricsBound = false;
 let lyricsSyncInterval = null;
+let cachedLyricsRows = [];
+let cachedLyricsLoaders = [];
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -1006,7 +1013,7 @@ function shuffleArray(array) {
 }
 
 function randomGlitchChar() {
-    return GLITCH_CHAR_LIST[Math.floor(Math.random() * GLITCH_CHAR_LIST.length)];
+    return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
 }
 
 function randomGlitchColor(minLightness = 50, lightnessRange = 30) {
@@ -1043,17 +1050,12 @@ function getCharColor(row, col, totalRows, totalCols) {
     const normRow = row / Math.max(totalRows - 1, 1);
     const normCol = col / Math.max(totalCols - 1, 1);
     const mix = normRow * 0.55 + normCol * 0.45;
-    const idx = Math.floor(mix * (ORANGE_PALETTE.length - 1));
-    const frac = mix * (ORANGE_PALETTE.length - 1) - idx;
-    const i = Math.min(idx, ORANGE_PALETTE.length - 2);
-    const c1 = ORANGE_PALETTE[i];
-    const c2 = ORANGE_PALETTE[i + 1] || ORANGE_PALETTE[i];
-    const r1 = parseInt(c1.slice(1, 3), 16);
-    const g1 = parseInt(c1.slice(3, 5), 16);
-    const b1 = parseInt(c1.slice(5, 7), 16);
-    const r2 = parseInt(c2.slice(1, 3), 16);
-    const g2 = parseInt(c2.slice(3, 5), 16);
-    const b2 = parseInt(c2.slice(5, 7), 16);
+    const len = ORANGE_PALETTE_RGB.length;
+    const idx = Math.floor(mix * (len - 1));
+    const frac = mix * (len - 1) - idx;
+    const i = Math.min(idx, len - 2);
+    const [r1, g1, b1] = ORANGE_PALETTE_RGB[i];
+    const [r2, g2, b2] = ORANGE_PALETTE_RGB[i + 1] || ORANGE_PALETTE_RGB[i];
     const r = Math.round(r1 + (r2 - r1) * frac);
     const g = Math.round(g1 + (g2 - g1) * frac);
     const b = Math.round(b1 + (b2 - b1) * frac);
@@ -1147,7 +1149,7 @@ function applyCssVar(key, cssVar) {
 }
 
 function isValidHexColor(value) {
-    return typeof value === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value);
+    return typeof value === "string" && HEX_COLOR_REGEX.test(value);
 }
 
 function handleColorArgs(args, flagToKey) {
@@ -1189,7 +1191,7 @@ function stripCommandPrefix(cmd) {
 }
 
 function isBindCommand(cmd) {
-    return /^tui\s+(bind|unbind)\b/i.test(stripCommandPrefix(cmd));
+    return BIND_CMD_REGEX.test(stripCommandPrefix(cmd));
 }
 
 function normalizeKeyCombo(comboStr) {
@@ -1220,7 +1222,7 @@ function normalizeKeyCombo(comboStr) {
         };
         const lower = mainKey.toLowerCase();
         if (specialMap[lower]) keyName = specialMap[lower];
-        else if (/^f\d{1,2}$/i.test(mainKey)) keyName = mainKey.toUpperCase();
+        else if (F_KEY_REGEX.test(mainKey)) keyName = mainKey.toUpperCase();
         else keyName = mainKey;
     }
     const order = { Ctrl: 0, Alt: 1, Shift: 2, Meta: 3 };
@@ -1832,21 +1834,13 @@ function drawCustomBarLeft(track, artist, liked) {
 
 async function updateCustomBar() {
     try {
+        const bar = document.getElementById("spotui-custom-bar");
+        if (!bar) return;
         const track = Spicetify.Player.data.item;
         if (!track) {
             bar.innerHTML = "<div class='spotui-custom-bar-empty'>Nothing playing</div>";
             return;
         }
-        const progress = Spicetify.Player.getProgress();
-        const duration = Spicetify.Player.getDuration();
-        const volume = Spicetify.Player.getVolume();
-        const liked = Spicetify.Player.getHeart ? await Spicetify.Player.getHeart() : false;
-        const meta = track.metadata || {};
-        const title = track.name || meta.title || "Unknown";
-        const artist = track.artist || meta.artist_name || "Unknown";
-        const progressPct = duration > 0 ? progress / duration : 0;
-        const styleId = storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block";
-        const bar = document.getElementById("spotui-custom-bar");
         if (!bar) return;
         const left = drawCustomBarLeft(title, artist, liked);
         const progressEl = document.createElement("button");
@@ -3116,9 +3110,9 @@ function parseLrc(lrcText) {
     if (!lrcText) return [];
     const lines = [];
     for (const raw of String(lrcText).split(/\r?\n/)) {
-        const stamps = [...raw.matchAll(/\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g)];
+        const stamps = [...raw.matchAll(LRC_STAMP_REGEX)];
         if (!stamps.length) continue;
-        const text = raw.replace(/\[\d{1,2}:\d{2}(?:\.\d+)?\]/g, "").trim();
+        const text = raw.replace(LRC_STAMP_STRIP_REGEX, "").trim();
         if (!text) continue;
         for (const stamp of stamps) {
             lines.push({ startTime: (Number(stamp[1]) * 60 + Number(stamp[2])) * 1000, text });
@@ -3209,6 +3203,8 @@ function renderLyricsEmpty(message, detail = "") {
     const els = getLyricsEls();
     if (!els?.lines) return;
     lyricsActiveIndex = -1;
+    cachedLyricsRows = [];
+    cachedLyricsLoaders = [];
     els.lines.classList.remove("unsynced");
     els.lines.innerHTML = "";
     const empty = document.createElement("div");
@@ -3264,6 +3260,8 @@ function renderLyricsLoading() {
     const els = getLyricsEls();
     if (!els?.lines) return;
     lyricsActiveIndex = -1;
+    cachedLyricsRows = [];
+    cachedLyricsLoaders = [];
     els.lines.classList.remove("unsynced");
     els.lines.innerHTML = "";
     const wrap = document.createElement("div");
@@ -3280,31 +3278,35 @@ function renderLyricsLines(lines, synced = true) {
     els.lines.innerHTML = "";
     els.lines.classList.toggle("unsynced", !synced);
     lyricsActiveIndex = -1;
+    cachedLyricsRows = [];
+    cachedLyricsLoaders = [];
     if (!lines.length) { renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
-    
+
     const GAP_THRESHOLD = 8000;
     const LYRIC_DURATION_ESTIMATE = 2000;
-    
+
     if (synced && lines.length > 0 && lines[0].startTime > 3000) {
         const startLoader = document.createElement("div");
         startLoader.className = "spotui-lyrics-loader";
         startLoader.dataset.gapStart = "0";
         startLoader.dataset.gapEnd = String(lines[0].startTime);
         els.lines.appendChild(startLoader);
+        cachedLyricsLoaders.push(startLoader);
     }
-    
+
     lines.forEach((line, idx) => {
         const row = document.createElement("div");
         row.className = "spotui-lyrics-line";
         row.dataset.index = String(idx);
         row.textContent = line.text;
         els.lines.appendChild(row);
-        
+        cachedLyricsRows.push(row);
+
         if (synced && idx < lines.length - 1) {
             const currentLineStart = line.startTime;
             const nextLineStart = lines[idx + 1].startTime;
             const gap = nextLineStart - currentLineStart;
-            
+
             if (gap >= GAP_THRESHOLD) {
                 const currentLineEnd = currentLineStart + LYRIC_DURATION_ESTIMATE;
                 const loader = document.createElement("div");
@@ -3312,10 +3314,11 @@ function renderLyricsLines(lines, synced = true) {
                 loader.dataset.gapStart = String(currentLineEnd);
                 loader.dataset.gapEnd = String(nextLineStart);
                 els.lines.appendChild(loader);
+                cachedLyricsLoaders.push(loader);
             }
         }
     });
-    
+
     if (synced && lines.length > 0) {
         const lastLine = lines[lines.length - 1];
         const lastLineEnd = lastLine.startTime + LYRIC_DURATION_ESTIMATE;
@@ -3324,6 +3327,7 @@ function renderLyricsLines(lines, synced = true) {
         endLoader.dataset.gapStart = String(lastLineEnd);
         endLoader.dataset.gapEnd = "999999999";
         els.lines.appendChild(endLoader);
+        cachedLyricsLoaders.push(endLoader);
     }
 }
 
@@ -3343,11 +3347,11 @@ function syncLyricsHighlight(force = false) {
     if (!els?.lines) return;
     const progress = Spicetify.Player.getProgress() || 0;
     const next = findActiveLyricIndex(lyricsCache.lines, progress);
-    
+
     let activeLoaderIndex = -1;
-    const loaders = els.lines.querySelectorAll(".spotui-lyrics-loader");
+    const loaders = cachedLyricsLoaders;
     const animationEnabled = document.body.classList.contains("spotui-lyrics-animation-on");
-    
+
     loaders.forEach((loader, loaderIdx) => {
         const gapStart = Number(loader.dataset.gapStart);
         const gapEnd = Number(loader.dataset.gapEnd);
@@ -3361,18 +3365,18 @@ function syncLyricsHighlight(force = false) {
             loader.classList.remove("active");
         }
     });
-    
+
     const useLoader = activeLoaderIndex !== -1 && animationEnabled;
     const loaderStateChanged = useLoader && activeLoaderIndex !== lyricsActiveLoaderIndex;
     if (!force && next === lyricsActiveIndex && !useLoader && !loaderStateChanged) return;
-    
-    const rows = els.lines.querySelectorAll(".spotui-lyrics-line");
+
+    const rows = cachedLyricsRows;
     const allElements = Array.from(els.lines.children);
-    
+
     if (useLoader) {
         const activeLoader = loaders[activeLoaderIndex];
         const loaderPosition = allElements.indexOf(activeLoader);
-        
+
         rows.forEach((row) => {
             const rowPosition = allElements.indexOf(row);
             const distance = Math.abs(rowPosition - loaderPosition);
@@ -3386,10 +3390,10 @@ function syncLyricsHighlight(force = false) {
             row.classList.toggle("near", distance === 1);
         });
     }
-    
+
     lyricsActiveIndex = useLoader ? -1 : next;
     lyricsActiveLoaderIndex = useLoader ? activeLoaderIndex : -1;
-    
+
     if (!useLoader && next >= 0) {
         rows[next]?.scrollIntoView({ block: "center", behavior: force ? "auto" : "smooth" });
     } else if (useLoader && (loaderStateChanged || force)) {
