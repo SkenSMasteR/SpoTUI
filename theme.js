@@ -1183,8 +1183,13 @@ function saveKeybinds(map) {
     storageSet(KEYBIND_STORAGE_KEY, JSON.stringify(map));
 }
 
+function stripCommandPrefix(cmd) {
+    const raw = String(cmd || "").trim();
+    return raw.startsWith("/") || raw.startsWith(".") ? raw.slice(1).trim() : raw;
+}
+
 function isBindCommand(cmd) {
-    return /^\s*tui\s+(bind|unbind)\b/i.test(String(cmd || ""));
+    return /^tui\s+(bind|unbind)\b/i.test(stripCommandPrefix(cmd));
 }
 
 function normalizeKeyCombo(comboStr) {
@@ -2490,8 +2495,7 @@ function toggleLogo(state) {
 }
 
 async function execute(cmd, opts = {}) {
-    const rawCmd = cmd.trim();
-    const cleanedCmd = rawCmd.startsWith("/") || rawCmd.startsWith(".") ? rawCmd.slice(1).trim() : rawCmd;
+    const cleanedCmd = stripCommandPrefix(cmd);
     const [command, ...args] = cleanedCmd.split(/\s+/);
     const argText = args.join(" ").trim();
     const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
