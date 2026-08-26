@@ -1841,7 +1841,15 @@ async function updateCustomBar() {
             bar.innerHTML = "<div class='spotui-custom-bar-empty'>Nothing playing</div>";
             return;
         }
-        if (!bar) return;
+        const progress = Spicetify.Player.getProgress();
+        const duration = Spicetify.Player.getDuration();
+        const volume = Spicetify.Player.getVolume();
+        const liked = Spicetify.Player.getHeart ? await Spicetify.Player.getHeart() : false;
+        const meta = track.metadata || {};
+        const title = track.name || meta.title || "Unknown";
+        const artist = track.artist || meta.artist_name || "Unknown";
+        const progressPct = duration > 0 ? progress / duration : 0;
+        const styleId = storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block";
         const left = drawCustomBarLeft(title, artist, liked);
         const progressEl = document.createElement("button");
         progressEl.className = "spotui-custom-bar-progress";
