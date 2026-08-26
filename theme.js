@@ -26,6 +26,7 @@ const PANEL_BG = "spotui:panel-bg";
 const PANEL_BORDER = "spotui:panel-border";
 const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
+const KEYBIND_STORAGE_KEY = "spotui:keybinds";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
@@ -925,6 +926,9 @@ const COMMAND_LIST = [
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
     { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
+    { cmd: 'tui bind "&lt;Letter&gt;" "&lt;command&gt;"', desc: "Bind Alt+&lt;Letter&gt; to run a TUI command" },
+    { cmd: 'tui unbind "&lt;Letter&gt;"', desc: "Remove the Alt+&lt;Letter&gt; keybind" },
+    { cmd: "tui bind clear", desc: "Remove all keybinds" },
     { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
@@ -1157,6 +1161,92 @@ function handleColorArgs(args, flagToKey) {
         const value = args[idx + 1];
         if (isValidHexColor(value)) storageSet(flagToKey[flag], value);
     });
+}
+
+function getKeybinds() {
+    try {
+        const raw = storageGet(KEYBIND_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveKeybinds(map) {
+    storageSet(KEYBIND_STORAGE_KEY, JSON.stringify(map));
+}
+
+function isBindCommand(cmd) {
+    return /^\s*tui\s+bind\b/i.test(String(cmd || ""));
+}
+
+function normalizeKeyCombo(comboStr) {
+    const parts = String(comboStr).split("+").map((p) => p.trim()).filter(Boolean);
+    const mods = [];
+    let mainKey = "";
+    parts.forEach((p) => {
+        const lower = p.toLowerCase();
+        if (lower === "ctrl" || lower === "control") mods.push("Ctrl");
+        else if (lower === "alt") mods.push("Alt");
+        else if (lower === "shift") mods.push("Shift");
+        else if (lower === "meta" || lower === "cmd" || lower === "command" || lower === "win") mods.push("Meta");
+        else mainKey = p;
+    });
+    if (!mainKey) return "";
+    let keyName;
+    if (mainKey.length === 1) {
+        keyName = mainKey.toUpperCase();
+    } else {
+        const specialMap = {
+            esc: "Escape", escape: "Escape",
+            enter: "Enter", return: "Enter",
+            space: " ", spacebar: " ",
+            up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight",
+            tab: "Tab", backspace: "Backspace", delete: "Delete", del: "Delete",
+            home: "Home", end: "End", pageup: "PageUp", pagedown: "PageDown",
+            insert: "Insert",
+        };
+        const lower = mainKey.toLowerCase();
+        if (specialMap[lower]) keyName = specialMap[lower];
+        else if (/^f\d{1,2}$/i.test(mainKey)) keyName = mainKey.toUpperCase();
+        else keyName = mainKey;
+    }
+    const order = { Ctrl: 0, Alt: 1, Shift: 2, Meta: 3 };
+    mods.sort((a, b) => order[a] - order[b]);
+    return [...mods, keyName].join("+");
+}
+
+function eventToKeyCombo(e) {
+    const mods = [];
+    if (e.ctrlKey) mods.push("Ctrl");
+    if (e.altKey) mods.push("Alt");
+    if (e.shiftKey) mods.push("Shift");
+    if (e.metaKey) mods.push("Meta");
+    let keyName = e.key;
+    if (keyName.length === 1) keyName = keyName.toUpperCase();
+    return [...mods, keyName].join("+");
+}
+
+function handleKeybindKeydown(e) {
+    const binds = getKeybinds();
+    if (!Object.keys(binds).length) return;
+    const combo = eventToKeyCombo(e);
+    const cmd = binds[combo];
+    if (!cmd) return;
+
+    const activeEl = document.activeElement;
+    const isTypingField = activeEl && (
+        activeEl.id === "spotui-input" ||
+        activeEl.id === "spotui-theme-search" ||
+        activeEl.tagName === "TEXTAREA" ||
+        (activeEl.tagName === "INPUT" && activeEl.type !== "button")
+    );
+    const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
+    if (isTypingField && !hasModifier) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    execute(cmd);
 }
 
 function resetGrid() {
@@ -1999,6 +2089,7 @@ function applyThemeByName(themeName, opts = {}) {
                         theme.commands.forEach((cmd, idx) => {
                             const text = String(cmd || "").trim();
                             if (skipNonTui && !text.startsWith("tui")) return;
+                            if (isBindCommand(text)) return;
                             pending.push(
                                 new Promise((res, rej) => {
                                     setTimeout(() => {
@@ -2448,6 +2539,32 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
+        if (args[0] === "bind") {
+            if (args[1] === "clear") {
+                saveKeybinds({});
+                return;
+            }
+            const bindMatch = cleanedCmd.match(/^tui\s+bind\s+"([A-Za-z])"\s+"([^"]+)"\s*$/i);
+            if (bindMatch) {
+                const combo = "Alt+" + bindMatch[1].toUpperCase();
+                const binds = getKeybinds();
+                binds[combo] = bindMatch[2];
+                saveKeybinds(binds);
+            }
+            return;
+        }
+        if (args[0] === "unbind") {
+            const unbindMatch = cleanedCmd.match(/^tui\s+unbind\s+"([A-Za-z])"\s*$/i);
+            if (unbindMatch) {
+                const combo = "Alt+" + unbindMatch[1].toUpperCase();
+                const binds = getKeybinds();
+                delete binds[combo];
+                saveKeybinds(binds);
+            } else if (args[1] === "all") {
+                saveKeybinds({});
+            }
+            return;
+        }
         if (args.includes("-ly") && args.includes("-cp")) {
             handleColorArgs(args, {
                 "-active": LYRICS_COLOR_ACTIVE,
@@ -2564,10 +2681,12 @@ async function execute(cmd, opts = {}) {
             const fullRestore = args[1] === "-full";
             const launchedValue = storageGet(LAUNCHED_KEY);
             const bannerValue = storageGet(UPDATE_BANNER_KEY);
+            const keybindsValue = storageGet(KEYBIND_STORAGE_KEY);
             storageClear();
             if (!fullRestore) {
                 if (launchedValue !== null) storageSet(LAUNCHED_KEY, launchedValue);
                 if (bannerValue !== null) storageSet(UPDATE_BANNER_KEY, bannerValue);
+                if (keybindsValue !== null) storageSet(KEYBIND_STORAGE_KEY, keybindsValue);
             }
             showRestartPopup("Wait 5 seconds and relaunch Spotify", true);
             setTimeout(() => location.reload(), 100);
@@ -2787,7 +2906,7 @@ async function openThemePanel() {
                 if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
                     resetAllSettings();
                     const commands = JSON.parse(e.target.dataset.commands);
-                    commands.forEach(cmd => execute(cmd));
+                    commands.forEach(cmd => { if (!isBindCommand(cmd)) execute(cmd); });
                     closeThemePanel();
                 }
             });
@@ -3518,6 +3637,7 @@ function initUpdateBanner() {
 }
 
 injectStyle();
+document.addEventListener("keydown", handleKeybindKeydown, true);
 setTimeout(createControlButtons, 500);
 setTimeout(initLyricsBridge, 1000);
 
