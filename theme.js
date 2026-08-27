@@ -26,6 +26,10 @@ const PANEL_BG = "spotui:panel-bg";
 const PANEL_BORDER = "spotui:panel-border";
 const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
+const JAM_SERVER_URL = "https://relay-spotui.root.sx/";
+const JAM_STATE_KEY = "spotui:jam-state";
+const JAM_POLL_MS = 1000;
+const JAM_SEEK_DRIFT_MS = 400;
 const KEYBIND_STORAGE_KEY = "spotui:keybinds";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LIKED_SONGS_URI = "spotify:collection:tracks";
@@ -888,6 +892,29 @@ body.spotui-tui-hidden #spotui-tui {
     color: #ff8c42;
     text-decoration: underline;
 }
+
+#spotui-jam-tags {
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.spotui-jam-tag {
+    background: rgba(0,0,0,0.85);
+    border: 1px solid var(--spotui-accent, #ff8c42);
+    color: var(--spotui-accent, #ff8c42);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
 `;
 
 const PROGRESS_STYLES = {
@@ -977,6 +1004,9 @@ const COMMAND_LIST = [
     { cmd: "about", desc: "Show about panel" },
     { cmd: "theme", desc: "Browse and apply themes" },
     { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
+    { cmd: "jam create", desc: "Start a listening jam and get a PIN" },
+    { cmd: "jam join <pin>", desc: "Join a jam by PIN (volume/lyrics only)" },
+    { cmd: "jam leave", desc: "Leave the current jam" },
     { cmd: "help", desc: "Show this panel" },
 ];
 
@@ -1015,6 +1045,13 @@ let lyricsBound = false;
 let lyricsSyncInterval = null;
 let cachedLyricsRows = [];
 let cachedLyricsLoaders = [];
+
+let jamRole = null;
+let jamPin = null;
+let jamToken = null;
+let jamIntervalId = null;
+let jamBarPrevHidden = null;
+let jamLastAppliedUri = null;
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -2523,6 +2560,12 @@ async function execute(cmd, opts = {}) {
     const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
     if (allowedOnboardingCommands && !allowedOnboardingCommands.has(command)) return;
 
+    const allowedJamCommands = getAllowedJamGuestCommands();
+    if (allowedJamCommands && !allowedJamCommands.has(command)) {
+        jamSay("In a jam — only volume, lyrics, and 'jam leave' are available.");
+        return;
+    }
+
     if (command === "tui") {
         if (args.includes("-l") && args.includes("-a")) {
             const state = args[args.length - 1];
@@ -2785,6 +2828,15 @@ async function execute(cmd, opts = {}) {
     if (command === "loop") { handleRepeatCommand("loop", argText); return; }
     if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
     if (command === "lyrics") { handleLyricsCommand(argText); return; }
+
+    if (command === "jam") {
+        const sub = (args[0] || "").toLowerCase();
+        if (sub === "create") { await jamCreate(); return; }
+        if (sub === "join") { await jamJoin(args[1]); return; }
+        if (sub === "leave") { await jamLeave(); return; }
+        jamSay("Usage: jam create | jam join <pin> | jam leave");
+        return;
+    }
 }
 
 function handleGlobalEsc(e) {
@@ -3845,6 +3897,228 @@ function initUpdateBanner() {
     };
 }
 
+function getSpotuiAccentColor() {
+    try {
+        const accent = getComputedStyle(document.documentElement).getPropertyValue("--spotui-accent").trim();
+        return accent || "#ff8c42";
+    } catch (e) {
+        return "#ff8c42";
+    }
+}
+
+function jamSay(text) {
+    const accent = getSpotuiAccentColor();
+    const existing = document.getElementById("spotui-jam-toast");
+    if (existing) existing.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "spotui-jam-toast";
+    toast.textContent = text;
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.bottom = "120px";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.zIndex = "10000";
+    toast.style.background = "rgba(0,0,0,0.92)";
+    toast.style.border = `1px solid ${accent}`;
+    toast.style.borderRadius = "6px";
+    toast.style.padding = "12px 16px";
+    toast.style.color = accent;
+    toast.style.fontFamily = "\"JetBrains Mono\", monospace";
+    toast.style.fontSize = "14px";
+    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 4000);
+}
+
+function showJamTags(pin, role) {
+    hideJamTags();
+    const wrap = document.createElement("div");
+    wrap.id = "spotui-jam-tags";
+    const relayTag = document.createElement("div");
+    relayTag.className = "spotui-jam-tag";
+    relayTag.textContent = role === "host"
+        ? "This client is connected to the server."
+        : "This client is controlled by an autonomous relay server.";
+    const pinTag = document.createElement("div");
+    pinTag.className = "spotui-jam-tag";
+    pinTag.textContent = `Room pin: ${pin}`;
+    wrap.appendChild(relayTag);
+    wrap.appendChild(pinTag);
+    document.body.appendChild(wrap);
+}
+
+function hideJamTags() {
+    const el = document.getElementById("spotui-jam-tags");
+    if (el) el.remove();
+}
+
+function jamStorageSave() {
+    if (!jamRole) { storageRemove(JAM_STATE_KEY); return; }
+    storageSet(JAM_STATE_KEY, JSON.stringify({
+        role: jamRole, pin: jamPin, token: jamToken, barPrevHidden: jamBarPrevHidden,
+    }));
+}
+
+async function jamFetch(path, opts) {
+    const res = await fetch(JAM_SERVER_URL + path, opts);
+    return res.json().catch(() => ({}));
+}
+
+function jamStopPolling() {
+    if (jamIntervalId) { clearInterval(jamIntervalId); jamIntervalId = null; }
+}
+
+function jamForceHideBar() {
+    jamBarPrevHidden = document.body.classList.contains("spotui-bar-off");
+    document.body.classList.add("spotui-bar-off");
+}
+
+function jamRestoreBar() {
+    if (jamBarPrevHidden === true) {
+        document.body.classList.add("spotui-bar-off");
+    } else if (jamBarPrevHidden === false) {
+        document.body.classList.remove("spotui-bar-off");
+    } else {
+        applyPlayerBarVisibility();
+    }
+    jamBarPrevHidden = null;
+}
+
+function jamHostTick() {
+    try {
+        const item = Spicetify.Player?.data?.item;
+        const uri = item?.uri || null;
+        const position_ms = Spicetify.Player.getProgress() || 0;
+        const is_playing = Spicetify.Player.isPlaying();
+        jamFetch(`/jam/${jamPin}/state`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: jamToken, uri, position_ms, is_playing }),
+        }).catch(() => {});
+    } catch (e) {}
+}
+
+async function jamCreate() {
+    if (jamRole) { jamSay("Already in a jam — run 'jam leave' first."); return; }
+    try {
+        const res = await jamFetch("/jam/create", { method: "POST" });
+        if (!res.pin) { jamSay("Failed to create jam."); return; }
+        jamRole = "host";
+        jamPin = res.pin;
+        jamToken = res.token;
+        jamStorageSave();
+        jamStopPolling();
+        jamIntervalId = setInterval(jamHostTick, JAM_POLL_MS);
+        jamHostTick();
+        showJamTags(jamPin, "host");
+        jamSay(`Jam created — PIN ${jamPin}. Others join with: jam join ${jamPin}`);
+    } catch (e) {
+        jamSay("Failed to create jam: " + e.message);
+    }
+}
+
+async function jamGuestTick() {
+    try {
+        const data = await jamFetch(`/jam/${jamPin}/state?token=${encodeURIComponent(jamToken)}`);
+        if (data.ended || data.error === "invalid_token") {
+            jamSay("Jam ended.");
+            await jamLeave();
+            return;
+        }
+        const s = data.state;
+        if (!s) return;
+
+        const elapsedSinceUpdate = s.is_playing ? Math.max(0, (data.server_time - s.updated_at) * 1000) : 0;
+        const expectedPos = s.position_ms + elapsedSinceUpdate;
+
+        if (s.uri && s.uri !== jamLastAppliedUri) {
+            jamLastAppliedUri = s.uri;
+            await Spicetify.Player.playUri(s.uri);
+            setTimeout(() => { try { Spicetify.Player.seek(expectedPos); } catch (e) {} }, 250);
+        } else if (s.uri) {
+            const currentPos = Spicetify.Player.getProgress() || 0;
+            if (Math.abs(currentPos - expectedPos) > JAM_SEEK_DRIFT_MS) {
+                try { Spicetify.Player.seek(expectedPos); } catch (e) {}
+            }
+        }
+
+        const nowPlaying = Spicetify.Player.isPlaying();
+        if (s.is_playing && !nowPlaying) Spicetify.Player.togglePlay();
+        if (!s.is_playing && nowPlaying) Spicetify.Player.togglePlay();
+    } catch (e) {}
+}
+
+async function jamJoin(pin) {
+    if (jamRole) { jamSay("Already in a jam — run 'jam leave' first."); return; }
+    if (!pin) { jamSay("Usage: jam join <pin>"); return; }
+    try {
+        const res = await jamFetch(`/jam/${pin}/join`, { method: "POST" });
+        if (res.error) { jamSay("Could not join jam: " + res.error); return; }
+        jamRole = "guest";
+        jamPin = pin;
+        jamToken = res.token;
+        jamLastAppliedUri = null;
+        jamForceHideBar();
+        jamStorageSave();
+        jamStopPolling();
+        jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
+        jamGuestTick();
+        showJamTags(pin, "guest");
+        jamSay(`Joined jam ${pin}. Only volume, lyrics, and 'jam leave' are available.`);
+    } catch (e) {
+        jamSay("Failed to join jam: " + e.message);
+    }
+}
+
+async function jamLeave() {
+    if (!jamRole) { jamSay("Not in a jam."); return; }
+    const wasGuest = jamRole === "guest";
+    try {
+        await jamFetch(`/jam/${jamPin}/leave`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: jamToken }),
+        });
+    } catch (e) {}
+    jamStopPolling();
+    if (wasGuest) jamRestoreBar();
+    hideJamTags();
+    jamRole = null; jamPin = null; jamToken = null; jamLastAppliedUri = null;
+    jamStorageSave();
+    jamSay("Left jam.");
+}
+
+function getAllowedJamGuestCommands() {
+    if (jamRole !== "guest") return null;
+    return new Set(["v", "volume", "lyrics", "jam"]);
+}
+
+function resumeJamFromStorage() {
+    try {
+        const raw = storageGet(JAM_STATE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.role || !saved.pin || !saved.token) return;
+        jamRole = saved.role;
+        jamPin = saved.pin;
+        jamToken = saved.token;
+        jamBarPrevHidden = typeof saved.barPrevHiddesn === "boolean" ? saved.barPrevHidden : null;
+        showJamTags(jamPin, jamRole);
+        if (jamRole === "guest") {
+            document.body.classList.add("spotui-bar-off");
+            jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
+            jamGuestTick();
+        } else if (jamRole === "host") {
+            jamIntervalId = setInterval(jamHostTick, JAM_POLL_MS);
+            jamHostTick();
+        }
+    } catch (e) {}
+}
+
 injectStyle();
 document.addEventListener("keydown", handleKeybindKeydown, true);
 setTimeout(createControlButtons, 500);
@@ -3895,6 +4169,7 @@ try {
     applyInputColors();
     applyInputButtonsVisibility();
     applyPanelColors();
+    resumeJamFromStorage();
 } catch { }
 
 })();
