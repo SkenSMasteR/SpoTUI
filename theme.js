@@ -892,6 +892,29 @@ body.spotui-tui-hidden #spotui-tui {
     color: #ff8c42;
     text-decoration: underline;
 }
+
+#spotui-jam-tags {
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.spotui-jam-tag {
+    background: rgba(0,0,0,0.85);
+    border: 1px solid var(--spotui-accent, #ff8c42);
+    color: var(--spotui-accent, #ff8c42);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
 `;
 
 const PROGRESS_STYLES = {
@@ -3874,8 +3897,61 @@ function initUpdateBanner() {
     };
 }
 
+function getSpotuiAccentColor() {
+    try {
+        const accent = getComputedStyle(document.documentElement).getPropertyValue("--spotui-accent").trim();
+        return accent || "#ff8c42";
+    } catch (e) {
+        return "#ff8c42";
+    }
+}
+
 function jamSay(text) {
-    try { Spicetify.showNotification(text); } catch (e) { console.log("SpoTUI Jam:", text); }
+    const accent = getSpotuiAccentColor();
+    const existing = document.getElementById("spotui-jam-toast");
+    if (existing) existing.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "spotui-jam-toast";
+    toast.textContent = text;
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.bottom = "120px";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.zIndex = "10000";
+    toast.style.background = "rgba(0,0,0,0.92)";
+    toast.style.border = `1px solid ${accent}`;
+    toast.style.borderRadius = "6px";
+    toast.style.padding = "12px 16px";
+    toast.style.color = accent;
+    toast.style.fontFamily = "\"JetBrains Mono\", monospace";
+    toast.style.fontSize = "14px";
+    toast.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 4000);
+}
+
+function showJamTags(pin) {
+    hideJamTags();
+    const wrap = document.createElement("div");
+    wrap.id = "spotui-jam-tags";
+    const relayTag = document.createElement("div");
+    relayTag.className = "spotui-jam-tag";
+    relayTag.textContent = "This client is connected to an autonomous relay server.";
+    const pinTag = document.createElement("div");
+    pinTag.className = "spotui-jam-tag";
+    pinTag.textContent = `Room pin: ${pin}`;
+    wrap.appendChild(relayTag);
+    wrap.appendChild(pinTag);
+    document.body.appendChild(wrap);
+}
+
+function hideJamTags() {
+    const el = document.getElementById("spotui-jam-tags");
+    if (el) el.remove();
 }
 
 function jamStorageSave() {
@@ -3936,6 +4012,7 @@ async function jamCreate() {
         jamStopPolling();
         jamIntervalId = setInterval(jamHostTick, JAM_POLL_MS);
         jamHostTick();
+        showJamTags(jamPin);
         jamSay(`Jam created — PIN ${jamPin}. Others join with: jam join ${jamPin}`);
     } catch (e) {
         jamSay("Failed to create jam: " + e.message);
@@ -3988,6 +4065,7 @@ async function jamJoin(pin) {
         jamStopPolling();
         jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
         jamGuestTick();
+        showJamTags(pin);
         jamSay(`Joined jam ${pin}. Only volume, lyrics, and 'jam leave' are available.`);
     } catch (e) {
         jamSay("Failed to join jam: " + e.message);
@@ -4006,6 +4084,7 @@ async function jamLeave() {
     } catch (e) {}
     jamStopPolling();
     if (wasGuest) jamRestoreBar();
+    hideJamTags();
     jamRole = null; jamPin = null; jamToken = null; jamLastAppliedUri = null;
     jamStorageSave();
     jamSay("Left jam.");
@@ -4026,6 +4105,7 @@ function resumeJamFromStorage() {
         jamPin = saved.pin;
         jamToken = saved.token;
         jamBarPrevHidden = typeof saved.barPrevHidden === "boolean" ? saved.barPrevHidden : null;
+        showJamTags(jamPin);
         if (jamRole === "guest") {
             document.body.classList.add("spotui-bar-off");
             jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
