@@ -643,6 +643,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 #spotui-playlist-list, #spotui-song-list {
     width: 50%;
     overflow-y: auto;
+    scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding: 10px;
@@ -659,6 +660,18 @@ body.spotui-theme-panel #spotui-theme-panel {
 .playlist-item, .song-item {
     padding: 4px 6px;
     cursor: pointer;
+}
+
+.playlist-item, .song-item {
+    height: 26px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#spotui-playlist-list, #spotui-song-list {
+    position: relative;
 }
 
 .playlist-item.selected, .song-item.selected {
@@ -1245,6 +1258,10 @@ function eventToKeyCombo(e) {
 function handleKeybindKeydown(e) {
     const binds = getKeybinds();
     if (!Object.keys(binds).length) return;
+
+    const isAltGr = e.ctrlKey && e.altKey;
+    if (isAltGr) return;
+
     const combo = eventToKeyCombo(e);
     const cmd = binds[combo];
     if (!cmd) return;
@@ -1256,8 +1273,7 @@ function handleKeybindKeydown(e) {
         activeEl.tagName === "TEXTAREA" ||
         (activeEl.tagName === "INPUT" && activeEl.type !== "button")
     );
-    const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
-    if (isTypingField && !hasModifier) return;
+    if (isTypingField) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -2945,13 +2961,7 @@ async function renderPlaylistPanel() {
     const songList = document.getElementById("spotui-song-list");
     if (!playlistList || !songList) return;
 
-    playlistList.innerHTML = "";
-    playlists.forEach((p, idx) => {
-        const item = document.createElement("div");
-        item.className = "playlist-item" + (idx === selectedPlaylist ? " selected" : "");
-        item.textContent = p.name;
-        playlistList.appendChild(item);
-    });
+    renderPlaylistListVirtual();
 
     const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
     if (selectedPlaylistUri) {
@@ -2974,20 +2984,136 @@ async function renderPlaylistPanel() {
         playlistSongs = [];
     }
 
-    songList.innerHTML = "";
-    playlistSongs.forEach((s, idx) => {
-        const item = document.createElement("div");
-        item.className = "song-item" + (idx === selectedSong && activePane === 'song' ? " selected" : "");
-        item.textContent = `${s.name} - ${s.artist}`;
-        songList.appendChild(item);
-    });
-
+    renderSongListVirtual();
     scrollSelectedIntoView();
 }
 
+const SONG_ROW_HEIGHT = 26;
+const PLAYLIST_ROW_HEIGHT = 26;
+
+let playlistListScrollRaf = null;
+
+function ensurePlaylistListScaffold() {
+    const container = document.getElementById("spotui-playlist-list");
+    if (!container || document.getElementById("spotui-playlist-list-spacer")) return;
+    container.innerHTML = '<legend>Playlists</legend><div id="spotui-playlist-list-spacer" style="position:relative;"><div id="spotui-playlist-list-viewport" style="position:absolute;top:0;left:0;right:0;"></div></div>';
+    container.addEventListener("scroll", () => {
+        if (playlistListScrollRaf) return;
+        playlistListScrollRaf = requestAnimationFrame(() => {
+            playlistListScrollRaf = null;
+            renderPlaylistListVirtual();
+        });
+    });
+}
+
+function renderPlaylistListVirtual() {
+    const container = document.getElementById("spotui-playlist-list");
+    if (!container) return;
+    ensurePlaylistListScaffold();
+    const spacer = document.getElementById("spotui-playlist-list-spacer");
+    const viewport = document.getElementById("spotui-playlist-list-viewport");
+    if (!spacer || !viewport) return;
+
+    const total = playlists.length;
+    spacer.style.height = `${total * PLAYLIST_ROW_HEIGHT}px`;
+
+    const scrollTop = container.scrollTop;
+    const viewHeight = container.clientHeight || 400;
+    const buffer = 10;
+    const startIdx = Math.max(0, Math.floor(scrollTop / PLAYLIST_ROW_HEIGHT) - buffer);
+    const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / PLAYLIST_ROW_HEIGHT) + buffer);
+
+    viewport.style.transform = `translateY(${startIdx * PLAYLIST_ROW_HEIGHT}px)`;
+    viewport.innerHTML = "";
+    for (let idx = startIdx; idx < endIdx; idx++) {
+        const p = playlists[idx];
+        const item = document.createElement("div");
+        item.className = "playlist-item" + (idx === selectedPlaylist && activePane === "playlist" ? " selected" : "");
+        item.textContent = p.name;
+        viewport.appendChild(item);
+    }
+}
+
+function scrollPlaylistIntoView(idx, smooth = true) {
+    const container = document.getElementById("spotui-playlist-list");
+    if (!container) return;
+    const itemTop = idx * PLAYLIST_ROW_HEIGHT;
+    const itemCenter = itemTop + PLAYLIST_ROW_HEIGHT / 2;
+    const targetScrollTop = itemCenter - container.clientHeight / 2;
+    container.scrollTo({
+        top: targetScrollTop,
+        behavior: smooth ? "smooth" : "auto",
+    });
+}
+
+let songListScrollRaf = null;
+
+function ensureSongListScaffold() {
+    const container = document.getElementById("spotui-song-list");
+    if (!container || document.getElementById("spotui-song-list-spacer")) return;
+    container.innerHTML = '<legend>Songs</legend><div id="spotui-song-list-spacer" style="position:relative;"><div id="spotui-song-list-viewport" style="position:absolute;top:0;left:0;right:0;"></div></div>';
+    container.addEventListener("scroll", () => {
+        if (songListScrollRaf) return;
+        songListScrollRaf = requestAnimationFrame(() => {
+            songListScrollRaf = null;
+            renderSongListVirtual();
+        });
+    });
+}
+
+function renderSongListVirtual() {
+    const container = document.getElementById("spotui-song-list");
+    if (!container) return;
+    ensureSongListScaffold();
+    const spacer = document.getElementById("spotui-song-list-spacer");
+    const viewport = document.getElementById("spotui-song-list-viewport");
+    if (!spacer || !viewport) return;
+
+    const total = playlistSongs.length;
+    spacer.style.height = `${total * SONG_ROW_HEIGHT}px`;
+
+    const scrollTop = container.scrollTop;
+    const viewHeight = container.clientHeight || 400;
+    const buffer = 10;
+    const startIdx = Math.max(0, Math.floor(scrollTop / SONG_ROW_HEIGHT) - buffer);
+    const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / SONG_ROW_HEIGHT) + buffer);
+
+    viewport.style.transform = `translateY(${startIdx * SONG_ROW_HEIGHT}px)`;
+    viewport.innerHTML = "";
+    for (let idx = startIdx; idx < endIdx; idx++) {
+        const s = playlistSongs[idx];
+        const item = document.createElement("div");
+        item.className = "song-item" + (idx === selectedSong && activePane === "song" ? " selected" : "");
+        item.textContent = `${s.name} - ${s.artist}`;
+        viewport.appendChild(item);
+    }
+}
+
+function scrollSongIntoView(idx, smooth = true) {
+    const container = document.getElementById("spotui-song-list");
+    if (!container) return;
+    const itemTop = idx * SONG_ROW_HEIGHT;
+    const itemCenter = itemTop + SONG_ROW_HEIGHT / 2;
+    const targetScrollTop = itemCenter - container.clientHeight / 2;
+    container.scrollTo({
+        top: targetScrollTop,
+        behavior: smooth ? "smooth" : "auto",
+    });
+}
+
 function scrollSelectedIntoView() {
-    const selectedItem = document.querySelector(activePane === 'playlist' ? '.playlist-item.selected' : '.song-item.selected');
-    if (selectedItem) selectedItem.scrollIntoView({ block: 'nearest' });
+    if (activePane === 'playlist') {
+        scrollPlaylistIntoView(selectedPlaylist);
+    } else {
+        scrollSongIntoView(selectedSong);
+    }
+}
+
+let navRafPending = false;
+
+function commitSongNav(smooth) {
+    renderSongListVirtual();
+    scrollSongIntoView(selectedSong, smooth);
 }
 
 async function handlePlaylistPanelKeydown(e) {
@@ -2998,17 +3124,39 @@ async function handlePlaylistPanelKeydown(e) {
     }
 
     const isPlaylist = activePane === 'playlist';
-    if (e.key === "ArrowUp") {
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
-        if (isPlaylist && playlists.length) selectedPlaylist = (selectedPlaylist - 1 + playlists.length) % playlists.length;
-        if (!isPlaylist && playlistSongs.length) selectedSong = (selectedSong - 1 + playlistSongs.length) % playlistSongs.length;
-        await renderPlaylistPanel();
-    } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        if (isPlaylist && playlists.length) selectedPlaylist = (selectedPlaylist + 1) % playlists.length;
-        if (!isPlaylist && playlistSongs.length) selectedSong = (selectedSong + 1) % playlistSongs.length;
-        await renderPlaylistPanel();
-    } else if (e.key === "ArrowLeft") {
+        const dir = e.key === "ArrowUp" ? -1 : 1;
+
+        if (isPlaylist) {
+            if (!playlists.length) return;
+            selectedPlaylist = (selectedPlaylist + dir + playlists.length) % playlists.length;
+
+            if (navRafPending) return;
+            navRafPending = true;
+            requestAnimationFrame(async () => {
+                navRafPending = false;
+                renderPlaylistListVirtual();
+                scrollPlaylistIntoView(selectedPlaylist, !e.repeat);
+                if (!e.repeat) await renderPlaylistPanel(); // only refetch songs on the final keystroke
+            });
+            return;
+        }
+
+        if (!playlistSongs.length) return;
+        selectedSong = (selectedSong + dir + playlistSongs.length) % playlistSongs.length;
+
+        if (navRafPending) return;
+        navRafPending = true;
+        requestAnimationFrame(() => {
+            navRafPending = false;
+            commitSongNav(!e.repeat);
+        });
+        return;
+    }
+
+    if (e.key === "ArrowLeft") {
         e.preventDefault();
         activePane = 'playlist';
         await renderPlaylistPanel();
