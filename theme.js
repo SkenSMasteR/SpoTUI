@@ -28,6 +28,7 @@ const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
 const KEYBIND_STORAGE_KEY = "spotui:keybinds";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
+const LIKED_SONGS_URI = "spotify:collection:tracks";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
@@ -2955,10 +2956,17 @@ async function renderPlaylistPanel() {
     const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
     if (selectedPlaylistUri) {
         try {
-            const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
-            playlistSongs = (res.items || [])
-                .filter(item => item && item.uri && item.isPlayable !== false)
-                .map((item, index) => normalizeTrackItem(item, index));
+            if (selectedPlaylistUri === LIKED_SONGS_URI) {
+                const res = await Spicetify.Platform.LibraryAPI.getTracks({ offset: 0, limit: 10000 });
+                playlistSongs = (res.items || [])
+                    .filter(item => item && item.uri && item.isPlayable !== false)
+                    .map((item, index) => normalizeTrackItem(item, index));
+            } else {
+                const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
+                playlistSongs = (res.items || [])
+                    .filter(item => item && item.uri && item.isPlayable !== false)
+                    .map((item, index) => normalizeTrackItem(item, index));
+            }
         } catch (err) {
             playlistSongs = [{ name: "Error loading songs", artist: "" }];
         }
@@ -3071,7 +3079,7 @@ function handleRepeatCommand(kind, arg) {
 
 async function getPlaylists() {
     const rootlist = await Spicetify.Platform.RootlistAPI.getContents();
-    const list = [];
+    const list = [{ name: "Liked Songs", uri: LIKED_SONGS_URI }];
     function flatten(items) {
         for (const item of items) {
             if (item.type === "playlist") {
