@@ -994,6 +994,8 @@ let commandHistoryIndex = -1;
 let playlistPanelOpen = false;
 let playlists = [];
 let playlistSongs = [];
+let playlistSongsFetchToken = 0;
+let playlistSongsFetchTimer = null;
 let selectedPlaylist = 0;
 let selectedSong = 0;
 let activePane = "playlist";
@@ -1273,7 +1275,8 @@ function handleKeybindKeydown(e) {
         activeEl.tagName === "TEXTAREA" ||
         (activeEl.tagName === "INPUT" && activeEl.type !== "button")
     );
-    if (isTypingField) return;
+    const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
+    if (isTypingField && !hasModifier) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -2956,6 +2959,48 @@ async function openThemePanel() {
     );
 }
 
+const PLAYLIST_SONGS_FETCH_DELAY = 150;
+
+function scheduleSongsFetchForSelectedPlaylist() {
+    if (playlistSongsFetchTimer) clearTimeout(playlistSongsFetchTimer);
+    playlistSongsFetchTimer = setTimeout(() => {
+        playlistSongsFetchTimer = null;
+        fetchSongsForSelectedPlaylist();
+    }, PLAYLIST_SONGS_FETCH_DELAY);
+}
+
+async function fetchSongsForSelectedPlaylist() {
+    const token = ++playlistSongsFetchToken;
+    const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
+    let songs;
+
+    if (selectedPlaylistUri) {
+        try {
+            if (selectedPlaylistUri === LIKED_SONGS_URI) {
+                const res = await Spicetify.Platform.LibraryAPI.getTracks({ offset: 0, limit: 10000 });
+                songs = (res.items || [])
+                    .filter(item => item && item.uri && item.isPlayable !== false)
+                    .map((item, index) => normalizeTrackItem(item, index));
+            } else {
+                const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
+                songs = (res.items || [])
+                    .filter(item => item && item.uri && item.isPlayable !== false)
+                    .map((item, index) => normalizeTrackItem(item, index));
+            }
+        } catch (err) {
+            songs = [{ name: "Error loading songs", artist: "" }];
+        }
+    } else {
+        songs = [];
+    }
+
+    if (token !== playlistSongsFetchToken) return;
+
+    playlistSongs = songs;
+    renderSongListVirtual();
+    if (activePane === "song") scrollSongIntoView(selectedSong, false);
+}
+
 async function renderPlaylistPanel() {
     const playlistList = document.getElementById("spotui-playlist-list");
     const songList = document.getElementById("spotui-song-list");
@@ -2963,28 +3008,12 @@ async function renderPlaylistPanel() {
 
     renderPlaylistListVirtual();
 
-    const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
-    if (selectedPlaylistUri) {
-        try {
-            if (selectedPlaylistUri === LIKED_SONGS_URI) {
-                const res = await Spicetify.Platform.LibraryAPI.getTracks({ offset: 0, limit: 10000 });
-                playlistSongs = (res.items || [])
-                    .filter(item => item && item.uri && item.isPlayable !== false)
-                    .map((item, index) => normalizeTrackItem(item, index));
-            } else {
-                const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
-                playlistSongs = (res.items || [])
-                    .filter(item => item && item.uri && item.isPlayable !== false)
-                    .map((item, index) => normalizeTrackItem(item, index));
-            }
-        } catch (err) {
-            playlistSongs = [{ name: "Error loading songs", artist: "" }];
-        }
-    } else {
-        playlistSongs = [];
+    if (playlistSongsFetchTimer) {
+        clearTimeout(playlistSongsFetchTimer);
+        playlistSongsFetchTimer = null;
     }
+    await fetchSongsForSelectedPlaylist();
 
-    renderSongListVirtual();
     scrollSelectedIntoView();
 }
 
@@ -3135,12 +3164,13 @@ async function handlePlaylistPanelKeydown(e) {
 
             if (navRafPending) return;
             navRafPending = true;
-            requestAnimationFrame(async () => {
+            requestAnimationFrame(() => {
                 navRafPending = false;
                 renderPlaylistListVirtual();
                 scrollPlaylistIntoView(selectedPlaylist, !e.repeat);
-                if (!e.repeat) await renderPlaylistPanel(); // only refetch songs on the final keystroke
             });
+
+            scheduleSongsFetchForSelectedPlaylist();
             return;
         }
 
