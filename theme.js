@@ -3934,13 +3934,15 @@ function jamSay(text) {
     }, 4000);
 }
 
-function showJamTags(pin) {
+function showJamTags(pin, role) {
     hideJamTags();
     const wrap = document.createElement("div");
     wrap.id = "spotui-jam-tags";
     const relayTag = document.createElement("div");
     relayTag.className = "spotui-jam-tag";
-    relayTag.textContent = "This client is connected to an autonomous relay server.";
+    relayTag.textContent = role === "host"
+        ? "This client is connected to the server."
+        : "This client is controlled by an autonomous relay server.";
     const pinTag = document.createElement("div");
     pinTag.className = "spotui-jam-tag";
     pinTag.textContent = `Room pin: ${pin}`;
@@ -4012,7 +4014,7 @@ async function jamCreate() {
         jamStopPolling();
         jamIntervalId = setInterval(jamHostTick, JAM_POLL_MS);
         jamHostTick();
-        showJamTags(jamPin);
+        showJamTags(jamPin, "host");
         jamSay(`Jam created — PIN ${jamPin}. Others join with: jam join ${jamPin}`);
     } catch (e) {
         jamSay("Failed to create jam: " + e.message);
@@ -4065,7 +4067,7 @@ async function jamJoin(pin) {
         jamStopPolling();
         jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
         jamGuestTick();
-        showJamTags(pin);
+        showJamTags(pin, "guest");
         jamSay(`Joined jam ${pin}. Only volume, lyrics, and 'jam leave' are available.`);
     } catch (e) {
         jamSay("Failed to join jam: " + e.message);
@@ -4104,8 +4106,8 @@ function resumeJamFromStorage() {
         jamRole = saved.role;
         jamPin = saved.pin;
         jamToken = saved.token;
-        jamBarPrevHidden = typeof saved.barPrevHidden === "boolean" ? saved.barPrevHidden : null;
-        showJamTags(jamPin);
+        jamBarPrevHidden = typeof saved.barPrevHiddesn === "boolean" ? saved.barPrevHidden : null;
+        showJamTags(jamPin, jamRole);
         if (jamRole === "guest") {
             document.body.classList.add("spotui-bar-off");
             jamIntervalId = setInterval(jamGuestTick, JAM_POLL_MS);
