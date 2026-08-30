@@ -1205,12 +1205,13 @@ function isValidHexColor(value) {
 }
 
 function handleColorArgs(args, flagToKey) {
-    if (args.includes("off")) {
+    const argsLower = args.map((a) => a.toLowerCase());
+    if (argsLower.includes("off")) {
         Object.keys(flagToKey).forEach((flag) => storageRemove(flagToKey[flag]));
         return;
     }
     Object.keys(flagToKey).forEach((flag) => {
-        const idx = args.indexOf(flag);
+        const idx = argsLower.indexOf(flag);
         if (idx === -1) return;
         const value = args[idx + 1];
         if (isValidHexColor(value)) storageSet(flagToKey[flag], value);
@@ -2554,7 +2555,8 @@ function toggleLogo(state) {
 
 async function execute(cmd, opts = {}) {
     const cleanedCmd = stripCommandPrefix(cmd);
-    const [command, ...args] = cleanedCmd.split(/\s+/);
+    const [rawCommand, ...args] = cleanedCmd.split(/\s+/);
+    const command = (rawCommand || "").toLowerCase();
     const argText = args.join(" ").trim();
     const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
     if (allowedOnboardingCommands && !allowedOnboardingCommands.has(command)) return;
@@ -2566,8 +2568,9 @@ async function execute(cmd, opts = {}) {
     }
 
     if (command === "tui") {
-        if (args.includes("-l") && args.includes("-a")) {
-            const state = args[args.length - 1];
+        const argsLower = args.map((a) => a.toLowerCase());
+        if (argsLower.includes("-l") && argsLower.includes("-a")) {
+            const state = (args[args.length - 1] || "").toLowerCase();
             if (state === "off") {
                 asciiEnabled = false;
                 resetGrid();
@@ -2578,17 +2581,17 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args[0] === "-l") {
-            const state = args[1];
+        if (argsLower[0] === "-l") {
+            const state = (args[1] || "").toLowerCase();
             if (state === "on" || state === "off") {
                 toggleLogo(state);
             }
             return;
         }
-        if (args.includes("-wp")) {
-            const urlIdx = args.indexOf("-wp") + 1;
+        if (argsLower.includes("-wp")) {
+            const urlIdx = argsLower.indexOf("-wp") + 1;
             const url = args[urlIdx];
-            if (url === "off") {
+            if ((url || "").toLowerCase() === "off") {
                 const wp = document.getElementById("spotui-wallpaper");
                 if (wp) wp.remove();
                 storageRemove(WP_URL_KEY);
@@ -2597,15 +2600,15 @@ async function execute(cmd, opts = {}) {
             }
             if (url) {
                 let opacity = "1";
-                const oIdx = args.indexOf("-o");
+                const oIdx = argsLower.indexOf("-o");
                 if (oIdx !== -1 && args[oIdx + 1]) opacity = args[oIdx + 1];
                 setWallpaper(url, opacity);
             }
             return;
         }
-        if (args.includes("-t")) {
-            const tIndex = args.indexOf("-t");
-            if (args[tIndex+1] === "pull" && args[tIndex+2]) {
+        if (argsLower.includes("-t")) {
+            const tIndex = argsLower.indexOf("-t");
+            if (argsLower[tIndex+1] === "pull" && args[tIndex+2]) {
                 const base64Name = args[tIndex+2];
                 try {
                     const themeName = atob(base64Name);
@@ -2614,8 +2617,8 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args[0] === "bind") {
-            if (args[1] === "clear" && args.length === 2) {
+        if (argsLower[0] === "bind") {
+            if (argsLower[1] === "clear" && args.length === 2) {
                 saveKeybinds({});
                 return;
             }
@@ -2628,19 +2631,19 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args[0] === "unbind") {
+        if (argsLower[0] === "unbind") {
             const unbindMatch = cleanedCmd.match(/^tui\s+unbind\s+"([A-Za-z])"\s*$/i);
             if (unbindMatch) {
                 const combo = "Alt+" + unbindMatch[1].toUpperCase();
                 const binds = getKeybinds();
                 delete binds[combo];
                 saveKeybinds(binds);
-            } else if (args[1] === "all") {
+            } else if (argsLower[1] === "all") {
                 saveKeybinds({});
             }
             return;
         }
-        if (args.includes("-ly") && args.includes("-cp")) {
+        if (argsLower.includes("-ly") && argsLower.includes("-cp")) {
             handleColorArgs(args, {
                 "-active": LYRICS_COLOR_ACTIVE,
                 "-inactive": LYRICS_COLOR_INACTIVE,
@@ -2649,9 +2652,9 @@ async function execute(cmd, opts = {}) {
             applyLyricColors();
             return;
         }
-        if (args.includes("-ly") && args.includes("-animation")) {
-            const idx = args.indexOf("-animation");
-            const state = args[idx + 1];
+        if (argsLower.includes("-ly") && argsLower.includes("-animation")) {
+            const idx = argsLower.indexOf("-animation");
+            const state = (args[idx + 1] || "").toLowerCase();
             if (state === "on") {
                 document.body.classList.add("spotui-lyrics-animation-on");
                 storageSet(LYRICS_ANIMATION_KEY, "on");
@@ -2664,10 +2667,10 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args.includes("-bar")) {
-            if (args.includes("-v")) {
-                const idx = args.indexOf("-v");
-                const state = args[idx + 1];
+        if (argsLower.includes("-bar")) {
+            if (argsLower.includes("-v")) {
+                const idx = argsLower.indexOf("-v");
+                const state = (args[idx + 1] || "").toLowerCase();
                 if (state === "on" || state === "off") {
                     storageSet(PLAYER_BAR_VISIBLE, state);
                     applyPlayerBarVisibility();
@@ -2682,16 +2685,16 @@ async function execute(cmd, opts = {}) {
                     });
                     applyPlayerBarColors();
                 }
-            } else if (args.includes("-c")) {
-                const idx = args.indexOf("-c");
-                const state = args[idx + 1];
+            } else if (argsLower.includes("-c")) {
+                const idx = argsLower.indexOf("-c");
+                const state = (args[idx + 1] || "").toLowerCase();
                 if (state === "on" || state === "off") {
                     storageSet(CUSTOM_BAR_ENABLED, state);
                     applyCustomBarState();
                 }
-                if (args.includes("-progress")) {
-                    const pIdx = args.indexOf("-progress");
-                    const styleId = args[pIdx + 1];
+                if (argsLower.includes("-progress")) {
+                    const pIdx = argsLower.indexOf("-progress");
+                    const styleId = (args[pIdx + 1] || "").toLowerCase();
                     if (styleId && PROGRESS_STYLES[styleId]) {
                         storageSet(CUSTOM_BAR_PROGRESS_STYLE, styleId);
                         if (storageGet(CUSTOM_BAR_ENABLED) === "on") updateCustomBar();
@@ -2707,7 +2710,7 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args.includes("-progress")) {
+        if (argsLower.includes("-progress")) {
             handleColorArgs(args, {
                 "-bg": PROGRESS_BAR_BG,
                 "-fg": PROGRESS_BAR_FG,
@@ -2715,7 +2718,7 @@ async function execute(cmd, opts = {}) {
             applyProgressBarColors();
             return;
         }
-        if (args.includes("-panel")) {
+        if (argsLower.includes("-panel")) {
             handleColorArgs(args, {
                 "-bg": PANEL_BG,
                 "-border": PANEL_BORDER,
@@ -2724,10 +2727,10 @@ async function execute(cmd, opts = {}) {
             applyPanelColors();
             return;
         }
-        if (args.includes("-inputs")) {
-            if (args.includes("-buttons")) {
-                const idx = args.indexOf("-buttons");
-                const state = args[idx + 1];
+        if (argsLower.includes("-inputs")) {
+            if (argsLower.includes("-buttons")) {
+                const idx = argsLower.indexOf("-buttons");
+                const state = (args[idx + 1] || "").toLowerCase();
                 if (state === "on" || state === "off") {
                     storageSet(INPUT_BUTTONS, state);
                     applyInputButtonsVisibility();
@@ -2735,13 +2738,13 @@ async function execute(cmd, opts = {}) {
             }
             const filteredArgs = [];
             for (let i = 0; i < args.length; i++) {
-                if (args[i] === "-buttons") {
+                if (argsLower[i] === "-buttons") {
                     i++;
                 } else {
                     filteredArgs.push(args[i]);
                 }
             }
-            if (filteredArgs.length > 1 || (filteredArgs.length === 1 && filteredArgs[0] === "off")) {
+            if (filteredArgs.length > 1 || (filteredArgs.length === 1 && filteredArgs[0].toLowerCase() === "off")) {
                 handleColorArgs(filteredArgs, {
                     "-bg": INPUT_BG,
                     "-bg-hover": INPUT_BG_HOVER,
@@ -2752,8 +2755,8 @@ async function execute(cmd, opts = {}) {
             }
             return;
         }
-        if (args[0] === "restore") {
-            const fullRestore = args[1] === "-full";
+        if (argsLower[0] === "restore") {
+            const fullRestore = argsLower[1] === "-full";
             const launchedValue = storageGet(LAUNCHED_KEY);
             const bannerValue = storageGet(UPDATE_BANNER_KEY);
             const keybindsValue = storageGet(KEYBIND_STORAGE_KEY);
@@ -3315,10 +3318,11 @@ function handleRepeatCommand(kind, arg) {
         const current = Spicetify.Player.getRepeat();
         const targetMode = kind === "loop" ? 1 : 2;
         let nextMode = targetMode;
+        const normalizedArg = String(arg || "").trim().toLowerCase();
 
-        if (arg === "on") nextMode = targetMode;
-        else if (arg === "off") nextMode = 0;
-        else if (arg === "") nextMode = current === targetMode ? 0 : targetMode;
+        if (normalizedArg === "on") nextMode = targetMode;
+        else if (normalizedArg === "off") nextMode = 0;
+        else if (normalizedArg === "") nextMode = current === targetMode ? 0 : targetMode;
         else return;
 
         Spicetify.Player.setRepeat(nextMode);
