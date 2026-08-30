@@ -32,7 +32,6 @@ const JAM_POLL_MS = 1000;
 const JAM_SEEK_DRIFT_MS = 400;
 const KEYBIND_STORAGE_KEY = "spotui:keybinds";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
-const LIKED_SONGS_URI = "spotify:collection:tracks";
 const LAUNCHED_KEY = "spotui:launched";
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
@@ -3021,24 +3020,43 @@ function scheduleSongsFetchForSelectedPlaylist() {
     }, PLAYLIST_SONGS_FETCH_DELAY);
 }
 
+async function fetchAllLikedSongs() {
+    const pageSize = 250;
+    let offset = 0;
+    let all = [];
+    while (true) {
+        const res = await Spicetify.Platform.LibraryAPI.getTracks({ offset, limit: pageSize });
+        const items = (res && (res.items || res)) || [];
+        if (!items.length) break;
+        all = all.concat(items);
+        const total = res?.totalLength ?? res?.unfilteredTotalLength ?? res?.total ?? all.length;
+        offset += items.length;
+        if (offset >= total) break;
+    }
+    return all;
+}
+
 async function fetchSongsForSelectedPlaylist() {
     const token = ++playlistSongsFetchToken;
-    const selectedPlaylistUri = playlists[selectedPlaylist]?.uri;
+    const selectedPlaylistEntry = playlists[selectedPlaylist];
+    const selectedPlaylistUri = selectedPlaylistEntry?.uri;
     let songs;
 
-    if (selectedPlaylistUri) {
+    if (selectedPlaylistEntry?.isLikedSongs) {
         try {
-            if (selectedPlaylistUri === LIKED_SONGS_URI) {
-                const res = await Spicetify.Platform.LibraryAPI.getTracks({ offset: 0, limit: 10000 });
-                songs = (res.items || [])
-                    .filter(item => item && item.uri && item.isPlayable !== false)
-                    .map((item, index) => normalizeTrackItem(item, index));
-            } else {
-                const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
-                songs = (res.items || [])
-                    .filter(item => item && item.uri && item.isPlayable !== false)
-                    .map((item, index) => normalizeTrackItem(item, index));
-            }
+            const items = await fetchAllLikedSongs();
+            songs = items
+                .filter(item => item && item.uri)
+                .map((item, index) => normalizeTrackItem(item, index));
+        } catch (err) {
+            songs = [{ name: "Error loading songs", artist: "" }];
+        }
+    } else if (selectedPlaylistUri) {
+        try {
+            const res = await Spicetify.Platform.PlaylistAPI.getContents(selectedPlaylistUri);
+            songs = (res.items || [])
+                .filter(item => item && item.uri && item.isPlayable !== false)
+                .map((item, index) => normalizeTrackItem(item, index));
         } catch (err) {
             songs = [{ name: "Error loading songs", artist: "" }];
         }
@@ -3307,9 +3325,23 @@ function handleRepeatCommand(kind, arg) {
     } catch (err) {}
 }
 
+function getLikedSongsUri() {
+    try {
+        const username = Spicetify.Platform.LocalStorageAPI?.namespace;
+        if (!username) return "";
+        return `spotify:user:${username}:collection`;
+    } catch (e) {
+        return "";
+    }
+}
+
 async function getPlaylists() {
     const rootlist = await Spicetify.Platform.RootlistAPI.getContents();
-    const list = [{ name: "Liked Songs", uri: LIKED_SONGS_URI }];
+    const list = [];
+    const likedSongsUri = getLikedSongsUri();
+    if (likedSongsUri) {
+        list.push({ name: "Liked Songs", uri: likedSongsUri, isLikedSongs: true });
+    }
     function flatten(items) {
         for (const item of items) {
             if (item.type === "playlist") {
