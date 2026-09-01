@@ -789,3 +789,135 @@ body.spotui-custom-bar-on #spotui-custom-bar {
     color: var(--player-bar-text-color, #b3b3b3);
     font-variant-numeric: tabular-nums;
 }
+
+body.spotui-spotify-enabled .marketplace-grid.main-gridContainer-gridContainer.main-gridContainer-fixedWidth {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    width: 100% !important;
+}
+
+body.spotui-spotify-enabled .marketplace-grid.main-gridContainer-gridContainer.main-gridContainer-fixedWidth > .main-card-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+}
+
+body.spotui-spotify-enabled .main-card-card.marketplace-card--extension,
+body.spotui-spotify-enabled .main-card-card.marketplace-card--theme,
+body.spotui-spotify-enabled .main-card-card.marketplace-card--snippet,
+body.spotui-spotify-enabled .main-card-card.marketplace-card--app {
+    background: #000 !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 0 0 1px rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    transition: none !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .main-card-draggable {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+}
+
+body.spotui-spotify-enabled .main-card-card:hover {
+    background: rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.08) !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .main-cardImage-imageWrapper,
+body.spotui-spotify-enabled .main-card-card .main-cardImage-image {
+    border-radius: 0 !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .main-card-cardMetadata {
+    background: #000 !important;
+    padding: 12px !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .main-cardHeader-text,
+body.spotui-spotify-enabled .main-card-card .main-cardHeader-link {
+    color: var(--spotui-accent, #ff8c42) !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-cardSubHeader,
+body.spotui-spotify-enabled .main-card-card .marketplace-card__authors,
+body.spotui-spotify-enabled .main-card-card .marketplace-card__author {
+    color: #b3b3b3 !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-card-desc {
+    color: #b3b3b3 !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+    opacity: 0.85;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-card__tags-container,
+body.spotui-spotify-enabled .main-card-card .marketplace-card__bottom-meta {
+    color: #777 !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-card__tag {
+    background: transparent !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    color: var(--spotui-accent, #ff8c42) !important;
+    border-radius: 0 !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-installButton {
+    background: transparent !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    border-radius: 0 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-installButton:hover {
+    background: var(--spotui-accent, #ff8c42) !important;
+    color: #000 !important;
+}
+
+body.spotui-spotify-enabled .main-card-card .marketplace-installButton svg {
+    fill: currentColor !important;
+}
+
+body.spotui-spotify-enabled .marketplace-tabBar-headerItemLink {
+    color: #777 !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .marketplace-tabBar-headerItemLink.marketplace-tabBar-active {
+    color: var(--spotui-accent, #ff8c42) !important;
+}
+
+body.spotui-spotify-enabled .marketplace-header,
+body.spotui-spotify-enabled .marketplace-header__label,
+body.spotui-spotify-enabled .marketplace-card-type-heading {
+    color: #ddd !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .searchbar-bar {
+    background: #000 !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    border-radius: 0 !important;
+    color: var(--spotui-accent, #ff8c42) !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
+
+body.spotui-spotify-enabled .marketplace-header-icon-button {
+    color: var(--spotui-accent, #ff8c42) !important;
+}
+
+body.spotui-spotify-enabled .marketplace-footer button {
+    color: var(--spotui-accent, #ff8c42) !important;
+    font-family: "JetBrains Mono", "Fira Code", monospace !important;
+}
