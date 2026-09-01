@@ -8,12 +8,12 @@
 # Todo List
 
 ## Documentation
-- [ ] Expand Documentation to include guides for installing, using, uninstalling SpoTUI, etc.
+- [x] Expand Documentation to include guides for installing, using, uninstalling SpoTUI, etc.
 - [ ] Add documentation for the SpoTUI CLI.
 
 ## Features
 - [ ] Migrate the theme upload to the WIP Docs.
-- [ ] Save themes to users accounts.
+- [x] Save themes to users accounts.
 - [ ] Add a theme browser pane.
 - [ ] Add edit, delete, and private themes functionality.
 
