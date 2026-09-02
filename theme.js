@@ -4189,7 +4189,7 @@ function jamHostTick() {
 }
 
 // Create a new jam session as host
-// Returns PIN for others to join
+// Displays the PIN for others to join
 async function jamCreate() {
     if (jamRole) { jamSay("You are already in a jam, run 'jam leave' first."); return; }
     try {
