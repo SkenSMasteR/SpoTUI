@@ -1,6 +1,8 @@
 (function () {
+// Theme feed host for pulling community themes
 const THEME_HOST = "https://spotui.root.sx/";
 
+// LocalStorage keys for user preferences
 const ANIMATION_KEY = "spotui:ascii-animation";
 const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
 const LYRICS_ANIMATION_KEY = "spotui:lyrics-animation";
@@ -26,13 +28,18 @@ const PANEL_BG = "spotui:panel-bg";
 const PANEL_BORDER = "spotui:panel-border";
 const PANEL_TEXT = "spotui:panel-text";
 const UPDATE_BANNER_KEY = "spotui:update-banner";
+
+// Jam configs
 const JAM_SERVER_URL = "https://relay-spotui.root.sx/";
 const JAM_STATE_KEY = "spotui:jam-state";
 const JAM_POLL_MS = 1000;
-const JAM_SEEK_DRIFT_MS = 400;
+const JAM_SEEK_DRIFT_MS = 400; // Tolerated position drift before forcing seek
+
 const KEYBIND_STORAGE_KEY = "spotui:keybinds";
 const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 const LAUNCHED_KEY = "spotui:launched";
+
+// Theme IDs shown in first-boot onboarding
 const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
     "UmFuZG9tIGFuaW1lIHRoZW1l",
@@ -916,10 +923,11 @@ body.spotui-tui-hidden #spotui-tui {
 }
 `;
 
+// Progress bar styles for custom player bar
 const PROGRESS_STYLES = {
     "classic-block": { fg: "█", bg: "░" },
     "dark-block": { fg: "▓", bg: "░" },
-    "gradient": { fg: "█▓▒", bg: "░" },
+    "gradient": { fg: "█▓▒", bg: "░" }, // Multi-char gradient from filled to empty
     "thin": { fg: "━", bg: "░" },
     "line": { fg: "━", bg: "─" },
     "square": { fg: "■", bg: "□" },
@@ -945,6 +953,8 @@ const SPOTUI_ASCII_ART = [
 ];
 
 const GLITCH_CHARS = "01";
+
+// Orange-to-yellow gradient palette for logo coloring
 const ORANGE_PALETTE_RGB = [
     [255, 106, 0],
     [255, 122, 10],
@@ -956,15 +966,19 @@ const ORANGE_PALETTE_RGB = [
     [255, 230, 153],
 ];
 
+// Validation and parsing patterns
 const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const BIND_CMD_REGEX = /^tui\s+(bind|unbind)\b/i;
-const F_KEY_REGEX = /^f\d{1,2}$/i;
-const LRC_STAMP_REGEX = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g;
+const F_KEY_REGEX = /^f\d{1,2}$/i; // Match F1-F12
+const LRC_STAMP_REGEX = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g; // LRC timestamp [mm:ss.ms]
 const LRC_STAMP_STRIP_REGEX = /\[\d{1,2}:\d{2}(?:\.\d+)?\]/g;
 
+// Placeholder images for "Add Theme" card in theme browser
 const ADD_THEME_IMG_OK = `https://imgs.search.brave.com/2VYp5kTKXFu84NcOgmYXQM8zyBByOalm9xwmIOX4Lp8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvOTU5Ni85NTk2/MTU2LnBuZw`;
 const ADD_THEME_IMG_ERR = `https://imgs.search.brave.com/qsWzCiBrdeOE9PQmFvp0eS0rfLyVkcm97DyHxEXGNBk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLm1h/Z25pZmljLmNvbS8y/NTYvMTAwODQvMTAw/ODQzOTAucG5nP3Nl/bXQ9YWlzX3doaXRl/X2xhYmVs`;
 
+// Available commands shown in help panel
+// This renders as innerHTML
 const COMMAND_LIST = [
     { cmd: "tui -l &lt;on/off&gt;", desc: "Toggle ASCII logo visibility" },
     { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
@@ -1009,32 +1023,38 @@ const COMMAND_LIST = [
     { cmd: "help", desc: "Show this panel" },
 ];
 
+// ASCII animation state
 let asciiAnimationInitialized = false;
-let asciiCharData = [];
+let asciiCharData = []; // Each character in the logo grid with its position and color
 let asciiEnabled = true;
 
+// Command input state
 let tuiMode = "command";
-let results = [];
-let selected = 0;
-let lyricsObserver = null;
-let commandHistory = [];
-let commandHistoryIndex = -1;
+let results = []; // Search/selection results
+let selected = 0; // Currently selected result index
+let lyricsObserver = null; // MutationObserver for Spotify's lyrics panel
+let commandHistory = []; // Recently executed commands
+let commandHistoryIndex = -1; // Position in history during arrow key navigation
 
+// Playlist panel state
 let playlistPanelOpen = false;
 let playlists = [];
 let playlistSongs = [];
-let playlistSongsFetchToken = 0;
+let playlistSongsFetchToken = 0; // Incremented to cancel stale fetches
 let playlistSongsFetchTimer = null;
 let selectedPlaylist = 0;
 let selectedSong = 0;
-let activePane = "playlist";
+let activePane = "playlist"; // "playlist" or "song"
+
+// Panel visibility state
 let helpPanelOpen = false;
 let aboutPanelOpen = false;
 let themePanelOpen = false;
 let onboardingPanelOpen = false;
-let onboardingStage = "commands";
-let onboardingShowAllThemes = false;
+let onboardingStage = "commands"; // "commands", "themes", "theme-picked", "done"
+let onboardingShowAllThemes = false; // Whether to show all themes or just curated ones
 
+// Lyrics panel state
 let lyricsPanelOpen = false;
 let lyricsLoadToken = 0;
 let lyricsActiveIndex = -1;
@@ -1045,17 +1065,20 @@ let lyricsSyncInterval = null;
 let cachedLyricsRows = [];
 let cachedLyricsLoaders = [];
 
-let jamRole = null;
-let jamPin = null;
-let jamToken = null;
-let jamIntervalId = null;
-let jamBarPrevHidden = null;
-let jamLastAppliedUri = null;
+// Jam state
+let jamRole = null; // "host" or "guest"
+let jamPin = null; // Room PIN for sharing
+let jamToken = null; // Authentication token
+let jamIntervalId = null; // Polling interval
+let jamBarPrevHidden = null; // Player bar visibility before joining as guest
+let jamLastAppliedUri = null; // Track URI applied in last sync tick
 
+// async delay
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// randomizing animation sequences - fisher-yates
 function shuffleArray(array) {
     for (let index = array.length - 1; index > 0; index -= 1) {
         const j = Math.floor(Math.random() * (index + 1));
@@ -1064,6 +1087,7 @@ function shuffleArray(array) {
     return array;
 }
 
+// Generate random character for glitch effects
 function randomGlitchChar() {
     return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
 }
@@ -1101,10 +1125,10 @@ function storageClear() {
 function getCharColor(row, col, totalRows, totalCols) {
     const normRow = row / Math.max(totalRows - 1, 1);
     const normCol = col / Math.max(totalCols - 1, 1);
-    const mix = normRow * 0.55 + normCol * 0.45;
+    const mix = normRow * 0.55 + normCol * 0.45; // Weighted blend favoring vertical
     const len = ORANGE_PALETTE_RGB.length;
     const idx = Math.floor(mix * (len - 1));
-    const frac = mix * (len - 1) - idx;
+    const frac = mix * (len - 1) - idx; // Fractional position for interpolation
     const i = Math.min(idx, len - 2);
     const [r1, g1, b1] = ORANGE_PALETTE_RGB[i];
     const [r2, g2, b2] = ORANGE_PALETTE_RGB[i + 1] || ORANGE_PALETTE_RGB[i];
@@ -1114,6 +1138,7 @@ function getCharColor(row, col, totalRows, totalCols) {
     return `rgb(${r},${g},${b})`;
 }
 
+// create button element with event listener
 function createButton(id, className, text, onClick) {
     const btn = document.createElement("button");
     btn.id = id;
@@ -1123,8 +1148,10 @@ function createButton(id, className, text, onClick) {
     return btn;
 }
 
+// Singleton promise for theme feed
 let themesFeedPromise = null;
 
+// Load theme catalog from remote server
 function loadThemeFeed(onLoad, onError) {
     if (window.spotuiThemes && window.spotuiThemes.length) {
         onLoad();
@@ -1200,10 +1227,12 @@ function applyCssVar(key, cssVar) {
     else root.style.removeProperty(cssVar);
 }
 
+// Validate hex color format
 function isValidHexColor(value) {
     return typeof value === "string" && HEX_COLOR_REGEX.test(value);
 }
 
+// Parse color flag arguments and save valid hex colors to storage
 function handleColorArgs(args, flagToKey) {
     const argsLower = args.map((a) => a.toLowerCase());
     if (argsLower.includes("off")) {
@@ -1218,6 +1247,7 @@ function handleColorArgs(args, flagToKey) {
     });
 }
 
+// Retrieve stored keyboard shortcuts
 function getKeybinds() {
     try {
         const raw = storageGet(KEYBIND_STORAGE_KEY);
@@ -1238,15 +1268,18 @@ function saveKeybinds(map) {
     storageSet(KEYBIND_STORAGE_KEY, JSON.stringify(map));
 }
 
+// Remove leading slash or dot from command strings
 function stripCommandPrefix(cmd) {
     const raw = String(cmd || "").trim();
     return raw.startsWith("/") || raw.startsWith(".") ? raw.slice(1).trim() : raw;
 }
 
+// Check if command is a keybind configuration command
 function isBindCommand(cmd) {
     return BIND_CMD_REGEX.test(stripCommandPrefix(cmd));
 }
 
+// Normalize keyboard shortcuts to canonical format
 function normalizeKeyCombo(comboStr) {
     const parts = String(comboStr).split("+").map((p) => p.trim()).filter(Boolean);
     const mods = [];
@@ -1264,6 +1297,7 @@ function normalizeKeyCombo(comboStr) {
     if (mainKey.length === 1) {
         keyName = mainKey.toUpperCase();
     } else {
+        // Map common key name variations to standard names
         const specialMap = {
             esc: "Escape", escape: "Escape",
             enter: "Enter", return: "Enter",
@@ -1294,10 +1328,12 @@ function eventToKeyCombo(e) {
     return [...mods, keyName].join("+");
 }
 
+// Global keydown handler for custom keybinds
 function handleKeybindKeydown(e) {
     const binds = getKeybinds();
     if (!Object.keys(binds).length) return;
 
+    // Ignore AltGr
     const isAltGr = e.ctrlKey && e.altKey;
     if (isAltGr) return;
 
@@ -1320,6 +1356,7 @@ function handleKeybindKeydown(e) {
     execute(cmd);
 }
 
+// Reset ASCII logo animation to original state
 function resetGrid() {
     asciiCharData.forEach(({ el, original, color }) => {
         el.textContent = original;
@@ -1345,6 +1382,7 @@ function initAsciiAnimation() {
     const charData = [];
     const rowSpansCache = [];
 
+    // Build grid with each character as a positioned span
     SPOTUI_ASCII_ART.forEach((line, rowIdx) => {
         const rowDiv = document.createElement("div");
         rowDiv.className = "spotui-ascii-row";
@@ -1382,6 +1420,7 @@ function initAsciiAnimation() {
         return rowSpansCache[rowIdx] || [];
     }
 
+    // Decrypt animation
     async function decryptRow(rowIdx) {
         const spans = getRowSpans(rowIdx);
         if (!spans.length) return;
@@ -1410,6 +1449,7 @@ function initAsciiAnimation() {
         }
     }
 
+    // Glitch wave
     async function glitchRowWave(rowIdx, duration = 500) {
         const spans = getRowSpans(rowIdx);
         if (!spans.length) return;
@@ -1429,6 +1469,7 @@ function initAsciiAnimation() {
         });
     }
 
+    // run glitch effect based on distance from center
     async function runGlitchByDist(duration, logic) {
         const centerRow = Math.floor(rows / 2);
         const centerCol = Math.floor(cols / 2);
@@ -1442,6 +1483,7 @@ function initAsciiAnimation() {
         resetGrid();
     }
 
+    // Burst
     async function burstGlitch(duration = 800) {
         const steps = 8;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
@@ -1465,6 +1507,7 @@ function initAsciiAnimation() {
         });
     }
 
+    // Pulse
     async function pulseGlitch(duration = 1200) {
         const waves = 3;
         const stepsPerWave = 10;
@@ -1492,6 +1535,7 @@ function initAsciiAnimation() {
         });
     }
 
+    // Implosion
     async function implosionGlitch(duration = 900) {
         const steps = 10;
         await runGlitchByDist(duration, async (withDist, maxDist) => {
@@ -1514,6 +1558,7 @@ function initAsciiAnimation() {
         });
     }
 
+    // Spiral
     async function spiralGlitch(duration = 1000) {
         const centerRow = Math.floor(rows / 2);
         const centerCol = Math.floor(cols / 2);
@@ -1545,6 +1590,7 @@ function initAsciiAnimation() {
         resetGrid();
     }
 
+    // Fuzz wave
     async function fuzzWaveGlitch(duration = 1000) {
         const steps = 20;
         const bandWidth = 0.25;
@@ -1568,6 +1614,7 @@ function initAsciiAnimation() {
         });
     }
 
+    // Static
     async function staticGlitch(duration = 600) {
         const steps = 6;
         for (let step = 0; step < steps; step += 1) {
@@ -1582,6 +1629,8 @@ function initAsciiAnimation() {
         resetGrid();
     }
 
+    // Horizontal band
+    // 1 = downward, -1 = upward
     async function horizontalBand(direction = 1, duration = 800) {
         const start = direction === 1 ? 0 : rows - 1;
         const totalSteps = rows + 2;
@@ -1602,6 +1651,8 @@ function initAsciiAnimation() {
         resetGrid();
     }
 
+    // Vertical slice
+    // 1 = rightward, -1 = leftward
     async function verticalSlice(direction = 1, duration = 800) {
         const start = direction === 1 ? 0 : cols - 1;
         const totalSteps = cols + 2;
@@ -1621,6 +1672,7 @@ function initAsciiAnimation() {
         resetGrid();
     }
 
+    // Stage functions
     async function stageWaveDown() {
         for (let row = 0; row < rows; row += 1) {
             await glitchRowWave(row, 300);
@@ -1691,12 +1743,14 @@ function initAsciiAnimation() {
     runLoop().catch(console.error);
 }
 
+// Inject theme CSS into document head
 function injectStyle() {
     const s = document.createElement("style");
     s.textContent = style;
     document.head.appendChild(s);
 }
 
+// Check if URL points to video file
 function isVideoWallpaperUrl(url) {
     try {
         const clean = String(url).split("?")[0].split("#")[0];
@@ -1706,6 +1760,7 @@ function isVideoWallpaperUrl(url) {
     }
 }
 
+// Set background wallpaper (image or video)
 function setWallpaper(url, opacity, save = true) {
     let tui = document.getElementById("spotui-tui");
     if (!tui) return;
@@ -1781,6 +1836,7 @@ function setWallpaper(url, opacity, save = true) {
     }
 }
 
+// Apply stored lyric color preferences from localStorage
 function applyLyricColors() {
     try {
         applyCssVar(LYRICS_COLOR_ACTIVE, "--lyrics-color-active");
@@ -1791,6 +1847,7 @@ function applyLyricColors() {
     }
 }
 
+// Apply stored player bar color preferences from localStorage
 function applyPlayerBarColors() {
     try {
         const root = document.documentElement;
@@ -1812,6 +1869,7 @@ function applyPlayerBarColors() {
     }
 }
 
+// Toggle player bar visibility
 function applyPlayerBarVisibility() {
     try {
         const visible = storageGet(PLAYER_BAR_VISIBLE);
@@ -1825,6 +1883,7 @@ function applyPlayerBarVisibility() {
     }
 }
 
+// Render progress bar using specified style and fill percentage
 function renderProgressBar(progress, styleId, width) {
     const style = PROGRESS_STYLES[styleId] || PROGRESS_STYLES["classic-block"];
     const filled = Math.round(progress * width);
@@ -1845,6 +1904,7 @@ function renderProgressBar(progress, styleId, width) {
     return filledStr + emptyStr;
 }
 
+// Recalculate custom bar progress width on window resize
 function updateCustomBarWidth() {
     if (!document.body.classList.contains("spotui-custom-bar-on")) return;
     const bar = document.getElementById("spotui-custom-bar");
@@ -1861,6 +1921,7 @@ function updateCustomBarWidth() {
     progressEl.textContent = renderProgressBar(progressPct, styleId, width);
 }
 
+// Draw left section of custom bar: heart button, track title, artist
 function drawCustomBarLeft(track, artist, liked) {
     const left = document.createElement("div");
     left.className = "spotui-custom-bar-left";
@@ -1889,6 +1950,7 @@ function drawCustomBarLeft(track, artist, liked) {
     return left;
 }
 
+// Update custom player bar
 async function updateCustomBar() {
     try {
         const bar = document.getElementById("spotui-custom-bar");
@@ -1951,6 +2013,7 @@ async function updateCustomBar() {
     }
 }
 
+// Apply custom player bar state
 function applyCustomBarState() {
     if (window.spotuiCustomBarInterval) {
         clearInterval(window.spotuiCustomBarInterval);
@@ -1982,6 +2045,7 @@ function applyCustomBarState() {
     }
 }
 
+// Apply stored progress bar colors
 function applyProgressBarColors() {
     try {
         applyCssVar(PROGRESS_BAR_BG, "--progress-bar-background");
@@ -1991,6 +2055,7 @@ function applyProgressBarColors() {
     }
 }
 
+// Apply stored input field colors
 function applyInputColors() {
     try {
         applyCssVar(INPUT_BG, "--input-bg-color");
@@ -2002,6 +2067,7 @@ function applyInputColors() {
     }
 }
 
+// Darken hex color by multiplying RGB values
 function darkenHexColor(hex, factor) {
     const clean = hex.replace("#", "");
     const expand = clean.length === 3 || clean.length === 4
@@ -2017,6 +2083,7 @@ function darkenHexColor(hex, factor) {
     return `#${[nr, ng, nb].map((v) => v.toString(16).padStart(2, "0")).join("")}${alpha}`;
 }
 
+// Apply stored panel colors
 function applyPanelColors() {
     try {
         applyCssVar(PANEL_BG, "--panel-bg-color");
@@ -2034,6 +2101,7 @@ function applyPanelColors() {
     }
 }
 
+// Apply input control buttons
 function applyInputButtonsVisibility() {
     try {
         const state = storageGet(INPUT_BUTTONS) || "on";
@@ -2052,6 +2120,7 @@ function setTuiMode(mode) {
     document.body.classList.toggle("spotui-command-mode", tuiMode !== "cli");
 }
 
+// Create control buttons - Hide TUI, Enable Spotify, Back
 function createControlButtons() {
     const controls = document.createElement("div");
     controls.id = "spotui-controls";
@@ -2090,6 +2159,7 @@ function createControlButtons() {
     document.body.appendChild(backBtn);
 }
 
+// Check if Spotifys lyrics panel is visible in DOM
 function detectLyricsSurface() {
     return Boolean(
         document.querySelector(
@@ -2104,6 +2174,7 @@ function syncLyricsState() {
     }
 }
 
+// Hook into Spotifys native lyrics button to track panel state changes
 function hookLyricsButton() {
     const button = document.querySelector(".main-nowPlayingBar-lyricsButton");
     if (!button || button.dataset.spotuiTuiLyricsHooked === "1") return;
@@ -2119,6 +2190,7 @@ function hookLyricsButton() {
     );
 }
 
+// Track Spotifys lyrics panel visibility
 function initLyricsBridge() {
     if (!document.body) {
         setTimeout(initLyricsBridge, 250);
@@ -2145,6 +2217,7 @@ function initLyricsBridge() {
     }
 }
 
+// Apply community theme by name
 function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
     return new Promise((resolve, reject) => {
@@ -2181,6 +2254,7 @@ function applyThemeByName(themeName, opts = {}) {
     });
 }
 
+// Encode theme name for theme ID generation
 function encodeThemeName(name) {
     try {
         return btoa(unescape(encodeURIComponent(String(name || ""))));
@@ -2202,9 +2276,12 @@ function getThemeSelectionList(themes, showAll = false) {
     return themes.slice(0, 3);
 }
 
+// Mark that the user has launched SpoTUI at least once
 function markLaunched() {
     storageSet(LAUNCHED_KEY, "1");
 }
+
+// Check if this is the users first time using SpoTUI
 function isFirstBoot() {
     return storageGet(LAUNCHED_KEY) !== "1";
 }
@@ -2223,6 +2300,8 @@ function closeOnboardingPanel() {
     if (wasFirstBoot) initUpdateBanner();
 }
 
+// Display restart notification popup
+// persistSession - to survive the reload after all settings get reset
 function showRestartPopup(message = "Wait 5 seconds and relaunch Spotify", persistSession = false) {
     const existing = document.getElementById("spotui-restart-popup");
     if (existing) existing.remove();
@@ -2261,6 +2340,7 @@ function openOnboardingPanel() {
     document.addEventListener("keydown", handleGlobalEsc);
 }
 
+// Create theme card for onboarding selection
 function onboardingThemeCard(theme) {
     const button = document.createElement("button");
     button.className = "spotui-onboarding-theme";
@@ -2275,6 +2355,7 @@ function onboardingThemeCard(theme) {
     return button;
 }
 
+// Render current onboarding stage content
 function renderOnboardingStage(panel) {
     const themes = getThemeSelectionList(window.spotuiThemes || [], onboardingShowAllThemes);
     const themeCards = themes.map(onboardingThemeCard);
@@ -2396,6 +2477,7 @@ function renderOnboardingFeedError(panel) {
     });
 }
 
+// Apply theme during onboarding flow
 function applyOnboardingTheme(themeName) {
     const panel = document.getElementById("spotui-onboarding-panel");
     if (!panel) return;
@@ -2442,6 +2524,7 @@ function renderOnboardingPanel() {
     );
 }
 
+// Launch first-boot onboarding if user has never launched before
 async function launchFirstBootIfNeeded() {
     if (!isFirstBoot()) return;
     openOnboardingPanel();
@@ -2450,6 +2533,7 @@ async function launchFirstBootIfNeeded() {
     renderOnboardingPanel();
 }
 
+// Create main terminal interface
 function createTerminal() {
     const box = document.createElement("div");
     box.id = "spotui-tui";
@@ -2522,6 +2606,7 @@ function createTerminal() {
     });
 }
 
+// Placeholder print function (output is handled differently now)
 function print(text) {}
 
 function renderResults() {
@@ -2535,12 +2620,15 @@ function renderResults() {
     });
 }
 
+// Return set of allowed commands during onboarding stages
+// Restricts the user to safe commands until onboarding is complete
 function getAllowedOnboardingCommands() {
     if (!onboardingPanelOpen) return null;
     if (onboardingStage === "done") return new Set(["p", "v", "loop", "list", "playlist"]);
     return new Set(["p", "v", "loop"]);
 }
 
+// Toggle ASCII logo visibility
 function toggleLogo(state) {
     if (state === "on") {
         document.body.classList.remove("logo-off");
@@ -2553,6 +2641,7 @@ function toggleLogo(state) {
     }
 }
 
+// opts.bypassOnboarding - skip onboarding command restrictions
 async function execute(cmd, opts = {}) {
     const cleanedCmd = stripCommandPrefix(cmd);
     const [rawCommand, ...args] = cleanedCmd.split(/\s+/);
@@ -2841,6 +2930,7 @@ async function execute(cmd, opts = {}) {
     }
 }
 
+// Global Escape key handler - closes active panels
 function handleGlobalEsc(e) {
     if (e.key !== "Escape") return;
     if (onboardingPanelOpen) {
@@ -2851,6 +2941,7 @@ function handleGlobalEsc(e) {
     closeActivePanel();
 }
 
+// Close all open panels
 function closeActivePanel() {
     if (helpPanelOpen) setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false);
     if (aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false);
@@ -2860,6 +2951,7 @@ function closeActivePanel() {
     if (onboardingPanelOpen) closeOnboardingPanel();
 }
 
+// Generic panel state manager
 function setPanelState(panelId, className, openVarName, targetState) {
     const panels = {
         'helpPanelOpen': () => helpPanelOpen = targetState,
@@ -2880,6 +2972,7 @@ function setPanelState(panelId, className, openVarName, targetState) {
     else document.removeEventListener("keydown", handleGlobalEsc);
 }
 
+// Open or toggle help panel
 function openHelpPanel() {
     if (helpPanelOpen) { setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false); return; }
     closeActivePanel();
@@ -2893,6 +2986,7 @@ function openHelpPanel() {
     }
 }
 
+// Open or toggle about panel
 function openAboutPanel() {
     if (aboutPanelOpen) { setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false); return; }
     closeActivePanel();
@@ -2919,6 +3013,7 @@ function closePlaylistPanel() {
     document.removeEventListener("keydown", handlePlaylistPanelKeydown);
 }
 
+// Open playlist panel and load users playlists
 async function openPlaylistPanel() {
     if (playlistPanelOpen) { closePlaylistPanel(); return; }
     closeActivePanel();
@@ -2950,6 +3045,7 @@ function closeThemePanel() {
     setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", false);
 }
 
+// Open theme browser panel (with search and theme cards)
 async function openThemePanel() {
     if (themePanelOpen) { closeThemePanel(); return; }
     closeActivePanel();
@@ -3023,6 +3119,8 @@ function scheduleSongsFetchForSelectedPlaylist() {
     }, PLAYLIST_SONGS_FETCH_DELAY);
 }
 
+// Fetch all liked songs with pagination
+// Spotify's API returns max 250 per request
 async function fetchAllLikedSongs() {
     const pageSize = 250;
     let offset = 0;
@@ -3039,6 +3137,7 @@ async function fetchAllLikedSongs() {
     return all;
 }
 
+// Fetch tracks for currently selected playlist, fetchAllLikedSongs is a special case for the "Liked Songs" playlist
 async function fetchSongsForSelectedPlaylist() {
     const token = ++playlistSongsFetchToken;
     const selectedPlaylistEntry = playlists[selectedPlaylist];
@@ -3090,8 +3189,9 @@ async function renderPlaylistPanel() {
     scrollSelectedIntoView();
 }
 
-const SONG_ROW_HEIGHT = 26;
-const PLAYLIST_ROW_HEIGHT = 26;
+// Virtual scrolling constants for performance with large playlists
+const SONG_ROW_HEIGHT = 26; // px
+const PLAYLIST_ROW_HEIGHT = 26; // px
 
 let playlistListScrollRaf = null;
 
@@ -3108,6 +3208,7 @@ function ensurePlaylistListScaffold() {
     });
 }
 
+// Render visible playlist items using virtual scrolling
 function renderPlaylistListVirtual() {
     const container = document.getElementById("spotui-playlist-list");
     if (!container) return;
@@ -3163,6 +3264,7 @@ function ensureSongListScaffold() {
     });
 }
 
+// Render visible song items with virtual scrolling
 function renderSongListVirtual() {
     const container = document.getElementById("spotui-song-list");
     if (!container) return;
@@ -3213,11 +3315,13 @@ function scrollSelectedIntoView() {
 
 let navRafPending = false;
 
+// Update song list after navigation
 function commitSongNav(smooth) {
     renderSongListVirtual();
     scrollSongIntoView(selectedSong, smooth);
 }
 
+// Handle keyboard navigation in playlist panel
 async function handlePlaylistPanelKeydown(e) {
     if (e.key === "Escape") {
         e.preventDefault();
@@ -3304,6 +3408,7 @@ function getTrackArtist(track) {
     return "";
 }
 
+// Normalize track object to consistent {uri, name, artist} format
 function normalizeTrackItem(track, index = 0) {
     const uri = track?.uri || track?.contextTrack?.uri || "";
     return {
@@ -3359,6 +3464,7 @@ async function getPlaylists() {
     return list;
 }
 
+// Get lyrics panel DOM elements
 function getLyricsEls() {
     const root = document.getElementById("spotui-lyrics");
     if (!root) return null;
@@ -3370,6 +3476,7 @@ function getLyricsEls() {
     };
 }
 
+// Extract current playing track metadata for lyrics fetching
 function getCurrentTrackLyricsInfo() {
     const item = Spicetify.Player?.data?.item;
     if (!item?.uri || !String(item.uri).includes(":track:")) return null;
@@ -3388,6 +3495,9 @@ function getCurrentTrackLyricsInfo() {
     };
 }
 
+// Parse LRC format lyrics to line objects with timestamps
+// LRC format: [mm:ss.ms]lyric text
+// Return an array of {startTime: milliseconds, text: string}
 function parseLrc(lrcText) {
     if (!lrcText) return [];
     const lines = [];
@@ -3404,10 +3514,14 @@ function parseLrc(lrcText) {
     return lines;
 }
 
+// Convert plain text lyrics to line objects (unsynced)
+// startTime -1 indicates no timing data
 function plainLyricsToLines(plainText) {
     return String(plainText || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(text => ({ startTime: -1, text }));
 }
 
+// Fetch lyrics from Spotify's color-lyrics API
+// Returns {lines, synced, provider, instrumental} or null
 async function fetchSpotifyColorLyrics(uri) {
     if (!uri || !Spicetify.CosmosAsync?.get) return null;
     const id = uri.split(":").pop();
@@ -3427,6 +3541,8 @@ async function fetchSpotifyColorLyrics(uri) {
     } catch { return null; }
 }
 
+// Fetch lyrics from lrclib.net (fallback source)
+// Tries exact match first, then searches by closest duration
 async function fetchLrclibLyrics(info) {
     const headers = { "Lrclib-Client": "SpoTUI (https://github.com/SkenS/SpoTUI)" };
     const exactParams = new URLSearchParams({
@@ -3463,6 +3579,7 @@ async function fetchLrclibLyrics(info) {
     } catch { return null; }
 }
 
+// Normalize lrclib API response to common format
 function normalizeLrclibPayload(data) {
     if (!data) return null;
     if (data.instrumental) return { lines: [], synced: false, provider: "lrclib", instrumental: true };
@@ -3473,6 +3590,8 @@ function normalizeLrclibPayload(data) {
     return null;
 }
 
+// Fetch lyrics from all available sources
+// Tries Spotify first, then lrclib as fallback
 async function resolveTrackLyrics(info) {
     const spotify = await fetchSpotifyColorLyrics(info.uri);
     if (spotify) return spotify;
@@ -3481,6 +3600,7 @@ async function resolveTrackLyrics(info) {
     return { lines: [], synced: false, provider: "", instrumental: false, error: "No lyrics found" };
 }
 
+// Display empty state message in lyrics panel
 function renderLyricsEmpty(message, detail = "") {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3495,6 +3615,7 @@ function renderLyricsEmpty(message, detail = "") {
     els.lines.appendChild(empty);
 }
 
+// Animate lyrics panel sliding out (exit transition)
 function slideLyricsOut() {
     return new Promise((resolve) => {
         const els = getLyricsEls();
@@ -3515,6 +3636,7 @@ function slideLyricsOut() {
     });
 }
 
+// Reset transform classes after slide transition
 function resetLyricsTransform() {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3525,6 +3647,7 @@ function resetLyricsTransform() {
     lines.style.transition = "";
 }
 
+// Animate lyrics panel sliding in (enter transition)
 function slideLyricsIn() {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3538,6 +3661,7 @@ function slideLyricsIn() {
     }, 400);
 }
 
+// Display a loader while fetching lyrics
 function renderLyricsLoading() {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3554,6 +3678,7 @@ function renderLyricsLoading() {
     els.lines.appendChild(wrap);
 }
 
+// Render lyric lines with optional gap loaders for synced lyrics
 function renderLyricsLines(lines, synced = true) {
     const els = getLyricsEls();
     if (!els?.lines) return;
@@ -3623,6 +3748,7 @@ function findActiveLyricIndex(lines, progressMs) {
     return idx;
 }
 
+// Update lyric highlight and scroll position based on playback progress
 function syncLyricsHighlight(force = false) {
     if (!lyricsPanelOpen || !lyricsCache.synced || !lyricsCache.lines.length) return;
     const els = getLyricsEls();
@@ -3683,6 +3809,7 @@ function syncLyricsHighlight(force = false) {
     }
 }
 
+// Update lyrics panel header with track title and status
 function setLyricsHeader(info, statusText) {
     const els = getLyricsEls();
     if (!els) return;
@@ -3690,6 +3817,7 @@ function setLyricsHeader(info, statusText) {
     if (els.meta) els.meta.textContent = statusText || "";
 }
 
+// Load lyrics for currently playing track with optional slide transition
 async function loadLyricsForCurrentTrack(isTransition = false) {
     const token = ++lyricsLoadToken;
     const info = getCurrentTrackLyricsInfo();
@@ -3746,15 +3874,19 @@ async function loadLyricsForCurrentTrack(isTransition = false) {
     if (isTransition) slideLyricsIn();
 }
 
+// Persist lyrics panel open/closed state
 function storeLyricsOpen(open) {
     storageSet(LYRICS_STORAGE_KEY, open ? "1" : "0");
 }
 
+// Check if a playable track is loaded in Spotify player
 function hasPlayableTrackItem() {
     const item = Spicetify?.Player?.data?.item;
     return Boolean(item?.uri && String(item.uri).includes(":track:"));
 }
 
+// Wait for player to load a track, then execute callback
+// Polls up to 40 times (10 seconds) before giving up
 function waitForPlayerReadyThen(callback, attempt = 0) {
     if (hasPlayableTrackItem()) {
         callback();
@@ -3768,6 +3900,7 @@ function waitForPlayerReadyThen(callback, attempt = 0) {
     setTimeout(() => waitForPlayerReadyThen(callback, attempt + 1), 250);
 }
 
+// Poll for track availability and reload lyrics when found
 function pollForTrackThenReload() {
     if (!lyricsPanelOpen) return;
     if (hasPlayableTrackItem()) {
@@ -3777,6 +3910,7 @@ function pollForTrackThenReload() {
     setTimeout(pollForTrackThenReload, 1000);
 }
 
+// Open lyrics panel and start syncing with playback
 function openLyricsPanel() {
     closeActivePanel();
     lyricsPanelOpen = true;
@@ -3808,6 +3942,7 @@ function openLyricsPanel() {
     }
 }
 
+// Close lyrics panel and clean up interval/listeners
 function closeLyricsPanel() {
     if (!lyricsPanelOpen) return;
     lyricsPanelOpen = false;
@@ -3830,6 +3965,7 @@ function closeLyricsPanel() {
     if (lyricsSyncInterval) { clearInterval(lyricsSyncInterval); lyricsSyncInterval = null; }
 }
 
+// Attach event listener for track changes to reload lyrics
 function bindLyricsEvents() {
     if (lyricsBound || !Spicetify.Player?.addEventListener) return;
     lyricsBound = true;
@@ -3840,6 +3976,7 @@ function bindLyricsEvents() {
     });
 }
 
+// Handle lyrics command
 function handleLyricsCommand(arg) {
     const mode = String(arg || "").trim().toLowerCase();
     if (mode === "on" || mode === "open") { openLyricsPanel(); return; }
@@ -3849,6 +3986,8 @@ function handleLyricsCommand(arg) {
     else { openLyricsPanel(); }
 }
 
+// Reset all theme customizations to defaults
+// Preserves launched state, update banner preference, and keybinds unless fullRestore
 function resetAllSettings() {
     const wp = document.getElementById("spotui-wallpaper");
     if (wp) wp.remove();
@@ -3894,6 +4033,8 @@ function resetAllSettings() {
     applyPanelColors();
 }
 
+// Initialize Discord community update banner
+// Shows unless user has dismissed with "never show again"
 function initUpdateBanner() {
     if (document.getElementById("spotui-update-banner")) return;
     if (storageGet(UPDATE_BANNER_KEY) === "never") return;
@@ -3933,6 +4074,7 @@ function initUpdateBanner() {
     };
 }
 
+// Get current theme accent color from CSS variables
 function getSpotuiAccentColor() {
     try {
         const accent = getComputedStyle(document.documentElement).getPropertyValue("--spotui-accent").trim();
@@ -3942,6 +4084,7 @@ function getSpotuiAccentColor() {
     }
 }
 
+// Show temporary toast notification for jam-related messages
 function jamSay(text) {
     const accent = getSpotuiAccentColor();
     const existing = document.getElementById("spotui-jam-toast");
@@ -3970,6 +4113,7 @@ function jamSay(text) {
     }, 4000);
 }
 
+// Display jam session status tags (role and PIN)
 function showJamTags(pin, role) {
     hideJamTags();
     const wrap = document.createElement("div");
@@ -3987,11 +4131,13 @@ function showJamTags(pin, role) {
     document.body.appendChild(wrap);
 }
 
+// Remove jam status tags from display
 function hideJamTags() {
     const el = document.getElementById("spotui-jam-tags");
     if (el) el.remove();
 }
 
+// Save current jam state to localStorage for session persistence
 function jamStorageSave() {
     if (!jamRole) { storageRemove(JAM_STATE_KEY); return; }
     storageSet(JAM_STATE_KEY, JSON.stringify({
@@ -3999,15 +4145,18 @@ function jamStorageSave() {
     }));
 }
 
+// Make fetch request to jam server
 async function jamFetch(path, opts) {
     const res = await fetch(JAM_SERVER_URL + path, opts);
     return res.json().catch(() => ({}));
 }
 
+// Stop jam polling interval
 function jamStopPolling() {
     if (jamIntervalId) { clearInterval(jamIntervalId); jamIntervalId = null; }
 }
 
+// Hide player bar when joining jam as guest
 function jamForceHideBar() {
     jamBarPrevHidden = document.body.classList.contains("spotui-bar-off");
     document.body.classList.add("spotui-bar-off");
@@ -4024,6 +4173,7 @@ function jamRestoreBar() {
     jamBarPrevHidden = null;
 }
 
+// Broadcast current playback state to jam server (host only)
 function jamHostTick() {
     try {
         const item = Spicetify.Player?.data?.item;
@@ -4038,8 +4188,10 @@ function jamHostTick() {
     } catch (e) {}
 }
 
+// Create a new jam session as host
+// Displays the PIN for others to join
 async function jamCreate() {
-    if (jamRole) { jamSay("Already in a jam — run 'jam leave' first."); return; }
+    if (jamRole) { jamSay("You are already in a jam, run 'jam leave' first."); return; }
     try {
         const res = await jamFetch("/jam/create", { method: "POST" });
         if (!res.pin) { jamSay("Failed to create jam."); return; }
@@ -4057,6 +4209,7 @@ async function jamCreate() {
     }
 }
 
+// Fetch and sync playback state (guest only)
 async function jamGuestTick() {
     try {
         const data = await jamFetch(`/jam/${jamPin}/state?token=${encodeURIComponent(jamToken)}`);
@@ -4088,6 +4241,7 @@ async function jamGuestTick() {
     } catch (e) {}
 }
 
+// Join an existing jam session as guest using PIN
 async function jamJoin(pin) {
     if (jamRole) { jamSay("Already in a jam — run 'jam leave' first."); return; }
     if (!pin) { jamSay("Usage: jam join <pin>"); return; }
@@ -4110,6 +4264,7 @@ async function jamJoin(pin) {
     }
 }
 
+// Leave current jam session (host or guest)
 async function jamLeave() {
     if (!jamRole) { jamSay("Not in a jam."); return; }
     const wasGuest = jamRole === "guest";
@@ -4128,11 +4283,13 @@ async function jamLeave() {
     jamSay("Left jam.");
 }
 
+// Return set of commands available to jam guests
 function getAllowedJamGuestCommands() {
     if (jamRole !== "guest") return null;
     return new Set(["v", "volume", "lyrics", "jam"]);
 }
 
+// Resume jam session from localStorage after page reload
 function resumeJamFromStorage() {
     try {
         const raw = storageGet(JAM_STATE_KEY);
@@ -4155,30 +4312,36 @@ function resumeJamFromStorage() {
     } catch (e) {}
 }
 
+// Inject styles, set up event listeners, and restore saved state
 injectStyle();
 document.addEventListener("keydown", handleKeybindKeydown, true);
 setTimeout(createControlButtons, 500);
 setTimeout(initLyricsBridge, 1000);
 
+// Apply stored logo visibility preference
 if (storageGet("spotui:logo-visible") === "off") {
     document.body.classList.add("logo-off");
 } else {
     document.body.classList.add("logo-on");
 }
 
+// Apply stored lyrics animation preference
 if (storageGet(LYRICS_ANIMATION_KEY) === "off") {
     document.body.classList.remove("spotui-lyrics-animation-on");
 } else {
     document.body.classList.add("spotui-lyrics-animation-on");
 }
 
+// Create terminal when Spicetify API is ready
 if (Spicetify?.Platform) createTerminal();
 else setTimeout(createTerminal, 1500);
 
+// Initialize update banner after first boot onboarding is complete
 if (!isFirstBoot()) {
     setTimeout(initUpdateBanner, 1600);
 }
 
+// Restore restart popup message across page reloads if present
 try {
     const restartMessage = sessionStorage.getItem("spotui:restart-popup");
     if (restartMessage) {
@@ -4186,8 +4349,10 @@ try {
     }
 } catch (e) {}
 
+// Launch first-boot onboarding for new users
 setTimeout(() => { launchFirstBootIfNeeded().catch(() => {}); }, 2000);
 
+// Restore saved state: lyrics panel, wallpaper, colors, jam session
 try {
     if (storageGet(LYRICS_STORAGE_KEY) === "1") {
         waitForPlayerReadyThen(() => {
