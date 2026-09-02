@@ -142,12 +142,6 @@ You can add your own theme to the theme browser by visiting [spotui.root.sx](htt
 
 **Note:** To help prevent broken themes and spam, you must sign in with GitHub to submit a theme.
 
-## Code Signing
-
-SpoTUI CLI uses the SignPath Foundation for code signing.
-
-Learn more about the SignPath Foundation at https://signpath.org/
-
 ## Author
 
 SkenS - https://github.com/SkenSMasteR
