@@ -1,7 +1,7 @@
 name: build theme.js
 
 on:
-    push:
+    pull_request_target:
         branches:
             - master
 
@@ -16,7 +16,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
               with:
-                  ref: master
+                  ref: ${{ github.event.pull_request.head.sha }}
                   fetch-depth: 0
 
             - uses: actions/setup-node@v4
