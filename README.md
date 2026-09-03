@@ -136,11 +136,25 @@ To set a progress style, use the command: `tui -bar -c -progress <id>`
 | `pixel` | `█▀█▀█▀█▀░░░░░░░░` | Checkerboard pixel progress |
 | `dashed` | `━━━━━━━╸────────` | Dashed track with end handle |
 
+## Bundling from Source
+
+The theme's JavaScript lives as ES modules in `src/` and must be bundled into a single `theme.js` before it can be loaded by Spicetify.
+
+From the theme root, run:
+
+```bash
+npx rollup src/main.js --file theme.js --format iife
+```
+
+This bundles `src/main.js` and outputs `theme.js` in the theme root (next to `manifest.json` and `user.css`).
+
 ## Contributing
 
 You can add your own theme to the theme browser by visiting [spotui.root.sx](https://spotui.root.sx/).
 
 **Note:** To help prevent broken themes and spam, you must sign in with GitHub to submit a theme.
+
+**Note:** Do not commit the bundled `theme.js`. All PRs with the bundled JS will be closed.
 
 ## Author
 
