@@ -11,24 +11,6 @@
 
 SpoTUI is a terminal-inspired theme for Spotify that overlays a custom, keyboard-driven interface directly inside the Spotify client. It is built for [Spicetify](https://spicetify.app/).
 
-## How It Works
-
-SpoTUI is a self-contained Spicetify theme that uses:
-- **`theme.js`**: A vanilla JavaScript component that creates and manages the entire TUI, including panels, commands, and Spotify API interactions.
-- **`user.css`**: CSS overrides to hide the default Spotify UI and style the SpoTUI interface.
-- **`color.ini`**: Standard Spicetify color definitions.
-
-## Features
-
-- **Terminal Interface**: A command-driven overlay with a familiar feel.
-- **Multiple Panels**:
-    - **Lyrics**: Synced, auto-scrolling lyrics view.
-    - **Playlists**: A two-pane view to browse playlists and their tracks.
-    - **Help**: A quick reference for all available commands.
-- **Keyboard Navigation**: Control everything without touching the mouse.
-- **Built-in Commands**: Manage playback, volume, playlists, and more.
-- **Spotify Native Fallback**: Seamlessly switch back to the standard Spotify UI when needed.
-
 ## Screenshots
 
 
