@@ -532,6 +532,20 @@ body.spotui-theme-panel #spotui-theme-panel {
     display: flex;
 }
 
+.spotui-theme-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+#spotui-theme-panel .spotui-lyrics-loader {
+    display: block !important;
+    animation: spotui-loader-anim 0.8s infinite linear;
+}
+
 .theme-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
