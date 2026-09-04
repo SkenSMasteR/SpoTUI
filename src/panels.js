@@ -133,7 +133,7 @@ export async function openThemePanel() {
     const panel = document.getElementById("spotui-theme-panel");
     if (!panel) return;
 
-    panel.innerHTML = "<p>Loading themes...</p>";
+    panel.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
 
     loadThemeFeed(
         () => {
