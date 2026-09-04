@@ -1704,7 +1704,7 @@
         const panel = document.getElementById("spotui-theme-panel");
         if (!panel) return;
 
-        panel.innerHTML = "<p>Loading themes...</p>";
+        panel.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
 
         loadThemeFeed(
             () => {
@@ -3894,6 +3894,20 @@ body.spotui-help-panel #spotui-help-panel,
 body.spotui-about-panel #spotui-about-panel,
 body.spotui-theme-panel #spotui-theme-panel {
     display: flex;
+}
+
+.spotui-theme-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+#spotui-theme-panel .spotui-lyrics-loader {
+    display: block !important;
+    animation: spotui-loader-anim 0.8s infinite linear;
 }
 
 .theme-grid {
