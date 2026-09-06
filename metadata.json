@@ -1,0 +1,20 @@
+{
+  "name": "spotui",
+  "tags": [
+    "theme"
+  ],
+  "version": "2.0.0",
+  "authors": [
+    "SkenS"
+  ],
+  "description": "Terminal interface for Spotify...",
+  "entries": {
+    "js": "theme.js",
+    "css": "user.css"
+  },
+  "hasMixins": false,
+  "dependencies": {
+    "stdlib": "^1.2.0"
+  },
+  "preview": "https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/dba99b101cf4b2467f173042d7dfe13146bbc2bc/preview.gif"
+}
