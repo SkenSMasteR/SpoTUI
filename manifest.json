@@ -1,7 +1,7 @@
 {
     "name": "SpoTUI",
     "description": "Terminal interface for Spotify...",
-    "preview": "preview.gif",
+    "preview": "https://github.com/SkenSMasteR/SpoTUI/raw/dba99b101cf4b2467f173042d7dfe13146bbc2bc/preview.gif",
     "usercss": "user.css",
     "schemes": "color.ini",
     "include": ["https://cdn.jsdelivr.net/gh/SkenSMasteR/SpoTUI@master/theme.js"],
