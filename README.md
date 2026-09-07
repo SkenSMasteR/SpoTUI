@@ -86,7 +86,7 @@ Actions run a command when a listener fires. Create one, then bind it:
 
 ```bash
 tui actions create autolyrics
-tui actions "autolyrics" "actions:spotui@pane_close" "lyrics on"
+tui actions "autolyrics" "actions:spotui@pane_close>!lyrics" "lyrics on"
 ```
 
 | Target | Description |
