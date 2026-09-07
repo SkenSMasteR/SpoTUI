@@ -21,55 +21,33 @@
 
 ![SpoTUI preview](https://img.ge/i/OJuvD46.png)
 
-
-## Installation
-
-<details>
-<summary>Linux</summary>
-
-1.  Open a terminal.
-2.  Run the installer:
-    ```bash
-    curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/master/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
-    ```
-3.  Select "Install" from the menu.
-
-</details>
-
-<details>
-<summary>Windows</summary>
-
-1.  Open PowerShell.
-2.  Run the installer:
-    ```powershell
-    iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/master/scripts/install/windows/install.ps1 | iex
-    ```
-3.  Select "Install" from the menu.
-</details>
-
-<details>
-<summary>Marketplace</summary>
-
-1.  In Spotify, go to the Spicetify Marketplace.
-2.  Select "Themes" and search for `SpoTUI`.
-3.  Install the theme.
-
-</details>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="https://img.ge/i/aZzwF75.png" alt="Installation">
+    </td>
+    <td align="center" width="50%">
+      <a href="#linux">Linux</a><br><br>
+      <a href="#windows">Windows</a><br><br>
+      <a href="#marketplace">Marketplace</a>
+    </td>
+  </tr>
+</table>
 
 ## Usage
 
 Type `help` in the SpoTUI command bar to see a list of available commands.
 
-| Command                | Description                    |
-| -----------------------| -------------------------------|
-| `tui -l <on/off>`      | Toggle ASCII logo visibility   |
-| `tui -l -a <on/off>`   | Toggle ASCII animation         |
+| Command | Description |
+|---------|-------------|
+| `tui -l <on/off>` | Toggle ASCII logo visibility |
+| `tui -l -a <on/off>` | Toggle ASCII animation |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
 | `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
 | `tui bind "<Letter>" "<command>"` | Binds Alt+`<Letter>` to run a TUI command |
 | `tui unbind "<Letter>"` | Remove the Alt+<Letter> keybind |
 | `tui bind clear` | Remove all keybinds |
-| `tui -wp off`          | Remove wallpaper               |
+| `tui -wp off` | Remove wallpaper |
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |
 | `tui -ly -animation <on/off>` | Toggle lyrics loader animation |
@@ -81,20 +59,20 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -progress -bg <#hex> -fg <#hex>` | Set progress bar colors |
 | `tui -progress off` | Reset progress bar colors |
 | `tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>` | Set input colors |
-| `tui -inputs -buttons <on/off>` | Toggle bottom right buttons visibility  |
+| `tui -inputs -buttons <on/off>` | Toggle bottom right buttons visibility |
 | `tui -inputs off` | Reset input colors |
-| `playlist` / `list`    | Open playlist viewer           |
-| `play` / `pause` / `p` | Toggle playback                |
-| `skip`                 | Next track                     |
-| `s` / `seek <mm:ss>`      | Jump to a specific time        |
-| `v` / `volume <%>`     | Set volume (0-100)             |
-| `shuffle`              | Toggle shuffle                 |
-| `loop` / `superloop`   | Toggle repeat mode             |
-| `lyrics`               | Toggle lyrics panel            |
-| `search`               | Open Spotify's native search   |
-| `theme`                | Browse and apply themes        |
-| `discord`              | Show the Discord update banner and re-enable it on boot |
-| `help`                 | Show the help panel            |
+| `playlist` / `list` | Open playlist viewer |
+| `play` / `pause` / `p` | Toggle playback |
+| `skip` | Next track |
+| `s` / `seek <mm:ss>` | Jump to a specific time |
+| `v` / `volume <%>` | Set volume (0-100) |
+| `shuffle` | Toggle shuffle |
+| `loop` / `superloop` | Toggle repeat mode |
+| `lyrics` | Toggle lyrics panel |
+| `search` | Open Spotify's native search |
+| `theme` | Browse and apply themes |
+| `discord` | Show the Discord update banner and re-enable it on boot |
+| `help` | Show the help panel |
 
 ## Custom Play Bar Progress Styles
 
@@ -105,7 +83,7 @@ To set a progress style, use the command: `tui -bar -c -progress <id>`
 ### Available Styles
 
 | ID | Preview Example | Description |
-|---|---|---|
+|----|-----------------|-------------|
 | `classic-block` | `████████░░░░░░░░` | Classic TUI block progress |
 | `dark-block` | `▓▓▓▓▓▓▓▓░░░░░░░░` | Dark block progress |
 | `gradient` | `██████▓▓▒▒░░░░░░` | Smooth block gradient |
@@ -141,6 +119,86 @@ You can add your own theme to the theme browser by visiting [spotui.root.sx](htt
 
 **Note:** Do not commit the bundled `theme.js`. All PRs with the bundled JS will be closed.
 
+---
+
+<div align="center">
+
 ## Author
 
 SkenS - https://github.com/SkenSMasteR
+
+</div>
+
+<div align="center">
+  <img src="https://img.ge/i/tYsJn12.png" alt="End of file" width="45%" height="400px">
+  <img src="https://img.ge/i/tYsJn12.png" alt="End of file" width="45%" height="400px">
+</div>
+
+---
+
+<br><br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br><br>
+
+<div align="center">
+  <img src="https://img.ge/i/J1uPn48.png" alt="Install"/>
+</div>
+
+## Linux
+
+<details>
+  <summary>Linux</summary>
+
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="https://img.ge/i/38eEU30.png" alt="Linux Installation" width="100%">
+      </td>
+      <td width="50%">
+        1. Go in the <a href="https://spotui.root.sx/">SpoTUI Docs</a>.<br>
+        2. Select <strong>"Getting Started"</strong>.<br>
+        3. Follow the guide.
+      </td>
+    </tr>
+  </table>
+  > Note: If you are using Spicetify v3, follow the guide in the "spotui@&lt;version&gt;" release.
+</details>
+
+## Windows
+
+<details>
+  <summary>Windows</summary>
+
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="https://img.ge/i/MgChs45.png" alt="Windows Installation" width="100%">
+      </td>
+      <td width="50%">
+        1. Go in the <a href="https://spotui.root.sx/">SpoTUI Docs</a>.<br>
+        2. Select <strong>"Getting Started"</strong>.<br>
+        3. Follow the guide.
+      </td>
+    </tr>
+  </table>
+  > Note: If you are using Spicetify v3, follow the guide in the "spotui@&lt;version&gt;" release.
+</details>
+
+## Marketplace
+
+<details>
+  <summary>Marketplace</summary>
+
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="https://img.ge/i/xMjX154.png" alt="Marketplace Installation" width="100%">
+      </td>
+      <td width="50%">
+        1. In Spotify, go to the <strong>Spicetify Marketplace</strong>.<br>
+        2. Select <strong>"Themes"</strong> and search for <code>SpoTUI</code>.<br>
+        3. Install the theme.
+      </td>
+    </tr>
+  </table>
+  > Note: If you are using Spicetify v3, follow the guide in the "spotui@&lt;version&gt;" release.
+</details>
