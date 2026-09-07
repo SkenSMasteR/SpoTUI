@@ -97,6 +97,7 @@ tui actions "autolyrics" "actions:spotui@pane_close" "lyrics on"
 | `actions:spotui@pane_close>theme` | Fires when the theme pane closes |
 | `actions:spotui@pane_close>lyrics` | Fires when the lyrics pane closes |
 | `actions:spotui@pane_close>onboarding` | Fires when the onboarding pane closes |
+| `actions:spotui@pane_close>!<pane>` | Fires when any pane except `<pane>` closes |
 
 ## Custom Play Bar Progress Styles
 
@@ -216,7 +217,7 @@ SkenS - https://github.com/SkenSMasteR
     <tr>
       <td align="center" width="50%">
         <img src="https://img.ge/i/xMjX154.png" alt="Marketplace Installation" width="100%">
-      <!-- </td> -->
+      </td>
       <td width="50%">
         1. In Spotify, go to the <strong>Spicetify Marketplace</strong>.<br>
         2. Select <strong>"Themes"</strong> and search for <code>SpoTUI</code>.<br>

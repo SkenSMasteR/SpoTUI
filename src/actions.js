@@ -5,7 +5,7 @@ import { storageGet, storageSet } from "./storage.js";
 
 const PANE_CLOSE_EVENT = "pane_close";
 const RESERVED_NAMES = new Set(["create", "list", "enable", "disable"]);
-const LISTENER_RE = /^actions:spotui@([a-z_]+)(?:>([a-z0-9_-]+))?$/i;
+const LISTENER_RE = /^actions:spotui@([a-z_]+)(?:>(!?)([a-z0-9_-]+))?$/i;
 
 let runningActions = false;
 
@@ -52,7 +52,7 @@ function validName(name) {
 function parseListener(listener) {
     const m = String(listener || "").trim().match(LISTENER_RE);
     if (!m) return null;
-    return { event: m[1].toLowerCase(), target: (m[2] || "").toLowerCase() };
+    return { event: m[1].toLowerCase(), exclude: m[2] === "!", target: (m[3] || "").toLowerCase() };
 }
 
 function listenerMatches(listener, event, target) {
@@ -60,7 +60,9 @@ function listenerMatches(listener, event, target) {
     if (!parsed) return false;
     if (parsed.event !== event) return false;
     if (!parsed.target) return true;
-    return parsed.target === String(target || "").toLowerCase();
+    const closed = String(target || "").toLowerCase();
+    if (parsed.exclude) return closed !== parsed.target;
+    return closed === parsed.target;
 }
 
 export async function emitPaneClose(target) {
