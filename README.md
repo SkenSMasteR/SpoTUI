@@ -98,6 +98,8 @@ tui actions "autolyrics" "actions:spotui@pane_close>!lyrics" "lyrics on"
 | `actions:spotui@pane_close>theme` | Fires when the theme pane closes |
 | `actions:spotui@pane_close>lyrics` | Fires when the lyrics pane closes |
 | `actions:spotui@pane_close>!<pane>` | Fires when any pane except `<pane>` closes |
+| `actions:spotui@pane_close><pane> \| spotui@pane_close><pane>` | Fires when any listed pane closes |
+| `actions:spotui@pane_close>!<pane> \| spotui@pane_close>!<pane>` | Fires when the closed pane is none of the listed panes |
 
 ## Custom Play Bar Progress Styles
 

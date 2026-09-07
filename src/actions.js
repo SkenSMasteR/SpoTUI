@@ -5,7 +5,7 @@ import { storageGet, storageSet } from "./storage.js";
 
 const PANE_CLOSE_EVENT = "pane_close";
 const RESERVED_NAMES = new Set(["create", "list", "enable", "disable", "delete"]);
-const LISTENER_RE = /^actions:spotui@([a-z_]+)(?:>(!?)([a-z0-9_-]+))?$/i;
+const CLAUSE_RE = /^(?:actions:)?spotui@([a-z_]+)(?:>(!?)([a-z0-9_-]+))?$/i;
 
 let runningActions = false;
 
@@ -50,21 +50,46 @@ function validName(name) {
 }
 
 function parseListener(listener) {
-    const m = String(listener || "").trim().match(LISTENER_RE);
-    if (!m) return null;
-    const target = (m[3] || "").toLowerCase();
-    if (target === "onboarding") return null;
-    return { event: m[1].toLowerCase(), exclude: m[2] === "!", target };
+    const raw = String(listener || "").trim();
+    if (!raw.toLowerCase().startsWith("actions:")) return null;
+    const parts = raw.split("|").map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return null;
+    const clauses = [];
+    for (let i = 0; i < parts.length; i++) {
+        const m = parts[i].match(CLAUSE_RE);
+        if (!m) return null;
+        const event = m[1].toLowerCase();
+        const exclude = m[2] === "!";
+        const target = (m[3] || "").toLowerCase();
+        if (event !== PANE_CLOSE_EVENT) return null;
+        if (target === "onboarding") return null;
+        clauses.push({ event, exclude, target });
+    }
+    return clauses;
 }
 
 function listenerMatches(listener, event, target) {
-    const parsed = parseListener(listener);
-    if (!parsed) return false;
-    if (parsed.event !== event) return false;
-    if (!parsed.target) return true;
+    const clauses = parseListener(listener);
+    if (!clauses) return false;
+    const matching = clauses.filter((c) => c.event === event);
+    if (!matching.length) return false;
     const closed = String(target || "").toLowerCase();
-    if (parsed.exclude) return closed !== parsed.target;
-    return closed === parsed.target;
+    const includes = [];
+    const excludes = [];
+    let anyPane = false;
+    for (let i = 0; i < matching.length; i++) {
+        const clause = matching[i];
+        if (!clause.target) {
+            anyPane = true;
+            continue;
+        }
+        if (clause.exclude) excludes.push(clause.target);
+        else includes.push(clause.target);
+    }
+    if (excludes.indexOf(closed) !== -1) return false;
+    if (anyPane) return true;
+    if (includes.length) return includes.indexOf(closed) !== -1;
+    return true;
 }
 
 function paneTarget(target) {
@@ -174,7 +199,7 @@ export function handleActionsCommand(cleanedCmd) {
             return;
         }
         const parsed = parseListener(listener);
-        if (!parsed || parsed.event !== PANE_CLOSE_EVENT) {
+        if (!parsed) {
             jamSay("Unknown listener");
             return;
         }
