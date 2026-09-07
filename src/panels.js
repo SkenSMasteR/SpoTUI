@@ -14,7 +14,6 @@ const PANE_TARGETS = {
     helpPanelOpen: "help",
     aboutPanelOpen: "about",
     themePanelOpen: "theme",
-    onboardingPanelOpen: "onboarding",
 };
 
 // Global Escape key handler - closes active panels

@@ -52,7 +52,9 @@ function validName(name) {
 function parseListener(listener) {
     const m = String(listener || "").trim().match(LISTENER_RE);
     if (!m) return null;
-    return { event: m[1].toLowerCase(), exclude: m[2] === "!", target: (m[3] || "").toLowerCase() };
+    const target = (m[3] || "").toLowerCase();
+    if (target === "onboarding") return null;
+    return { event: m[1].toLowerCase(), exclude: m[2] === "!", target };
 }
 
 function listenerMatches(listener, event, target) {
@@ -65,7 +67,17 @@ function listenerMatches(listener, event, target) {
     return closed === parsed.target;
 }
 
-export async function emitPaneClose(target) {
+function paneTarget(target) {
+    return String(target || "").toLowerCase();
+}
+
+export function emitPaneClose(target) {
+    const closed = paneTarget(target);
+    if (!closed || closed === "onboarding") return;
+    queueMicrotask(() => runPaneClose(closed));
+}
+
+async function runPaneClose(target) {
     if (runningActions) return;
     runningActions = true;
     try {
