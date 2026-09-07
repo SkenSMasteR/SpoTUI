@@ -35,6 +35,7 @@ export const JAM_POLL_MS = 1000;
 export const JAM_SEEK_DRIFT_MS = 400; // Tolerated position drift before forcing seek
 
 export const KEYBIND_STORAGE_KEY = "spotui:keybinds";
+export const ACTIONS_STORAGE_KEY = "spotui:actions";
 export const DISCORD_INVITE_URL = "https://discord.gg/WTzBEKDeKg";
 export const LAUNCHED_KEY = "spotui:launched";
 
@@ -109,6 +110,11 @@ export const COMMAND_LIST = [
     { cmd: 'tui bind "&lt;Letter&gt;" "&lt;command&gt;"', desc: "Bind Alt+&lt;Letter&gt; to run a TUI command" },
     { cmd: 'tui unbind "&lt;Letter&gt;"', desc: "Remove the Alt+&lt;Letter&gt; keybind" },
     { cmd: "tui bind clear", desc: "Remove all keybinds" },
+    { cmd: "tui actions create &lt;name&gt;", desc: "Create a named action" },
+    { cmd: "tui actions &lt;name&gt; &lt;listener&gt; &lt;command&gt;", desc: "Bind an action to a listener" },
+    { cmd: "tui actions list", desc: "List saved actions" },
+    { cmd: "tui actions enable &lt;name&gt;", desc: "Enable an action" },
+    { cmd: "tui actions disable &lt;name&gt;", desc: "Disable an action" },
     { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },

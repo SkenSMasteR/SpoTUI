@@ -1,3 +1,4 @@
+import { emitPaneClose } from "./actions.js";
 import { execute } from "./commands.js";
 import { LRC_STAMP_REGEX, LRC_STAMP_STRIP_REGEX, LYRICS_STORAGE_KEY } from "./constants.js";
 import { closeActivePanel, handleGlobalEsc } from "./panels.js";
@@ -562,6 +563,7 @@ export function closeLyricsPanel() {
         document.body.classList.remove("spotui-lyrics-panel");
     }
     if (app.lyricsSyncInterval) { clearInterval(app.lyricsSyncInterval); app.lyricsSyncInterval = null; }
+    emitPaneClose("lyrics");
 }
 
 // Attach event listener for track changes to reload lyrics

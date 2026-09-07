@@ -1,3 +1,4 @@
+import { emitPaneClose } from "./actions.js";
 import { initUpdateBanner } from "./banner.js";
 import { LAUNCHED_KEY } from "./constants.js";
 import { closeActivePanel, handleGlobalEsc } from "./panels.js";
@@ -16,6 +17,7 @@ export function isFirstBoot() {
 }
 
 export function closeOnboardingPanel() {
+    const wasOpen = app.onboardingPanelOpen;
     const wasFirstBoot = app.onboardingPanelOpen && app.onboardingStage === "done";
     app.onboardingPanelOpen = false;
     app.onboardingStage = "commands";
@@ -27,6 +29,7 @@ export function closeOnboardingPanel() {
     if (input) input.focus();
     document.removeEventListener("keydown", handleGlobalEsc);
     if (wasFirstBoot) initUpdateBanner();
+    if (wasOpen) emitPaneClose("onboarding");
 }
 export function openOnboardingPanel() {
     if (app.onboardingPanelOpen) return;

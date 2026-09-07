@@ -1,3 +1,4 @@
+import { emitPaneClose } from "./actions.js";
 import { resetAllSettings } from "./appearance.js";
 import { execute } from "./commands.js";
 import { ADD_THEME_IMG_ERR, ADD_THEME_IMG_OK, COMMAND_LIST } from "./constants.js";
@@ -8,6 +9,13 @@ import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistPanel } from ".
 import { app } from "./state.js";
 import { print } from "./terminal.js";
 import { createAddThemeCard, createThemeCard, loadThemeFeed } from "./themes.js";
+
+const PANE_TARGETS = {
+    helpPanelOpen: "help",
+    aboutPanelOpen: "about",
+    themePanelOpen: "theme",
+    onboardingPanelOpen: "onboarding",
+};
 
 // Global Escape key handler - closes active panels
 export function handleGlobalEsc(e) {
@@ -32,6 +40,7 @@ export function closeActivePanel() {
 
 // Generic panel state manager
 export function setPanelState(panelId, className, openVarName, targetState) {
+    const wasOpen = Boolean(app[openVarName]);
     const panels = {
         'helpPanelOpen': () => app.helpPanelOpen = targetState,
         'aboutPanelOpen': () => app.aboutPanelOpen = targetState,
@@ -49,6 +58,7 @@ export function setPanelState(panelId, className, openVarName, targetState) {
     }
     if (targetState) document.addEventListener("keydown", handleGlobalEsc);
     else document.removeEventListener("keydown", handleGlobalEsc);
+    if (!targetState && wasOpen) emitPaneClose(PANE_TARGETS[openVarName] || "");
 }
 
 // Open or toggle help panel
@@ -83,6 +93,7 @@ export function openAboutPanel() {
 }
 
 export function closePlaylistPanel() {
+    const wasOpen = app.playlistPanelOpen;
     app.playlistPanelOpen = false;
     document.body.classList.remove("spotui-playlist-panel");
     const panel = document.getElementById("spotui-playlist-panel");
@@ -90,6 +101,7 @@ export function closePlaylistPanel() {
     const input = document.getElementById("spotui-input");
     if (input) input.focus();
     document.removeEventListener("keydown", handlePlaylistPanelKeydown);
+    if (wasOpen) emitPaneClose("playlist");
 }
 
 // Open playlist panel and load users playlists
