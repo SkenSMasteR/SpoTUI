@@ -52,6 +52,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui actions list` | List saved actions |
 | `tui actions enable <name>` | Enable an action |
 | `tui actions disable <name>` | Disable an action |
+| `tui actions delete <name>` | Delete an action |
 | `tui -wp off` | Remove wallpaper |
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |

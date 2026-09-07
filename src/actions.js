@@ -4,7 +4,7 @@ import { jamSay } from "./jam.js";
 import { storageGet, storageSet } from "./storage.js";
 
 const PANE_CLOSE_EVENT = "pane_close";
-const RESERVED_NAMES = new Set(["create", "list", "enable", "disable"]);
+const RESERVED_NAMES = new Set(["create", "list", "enable", "disable", "delete"]);
 const LISTENER_RE = /^actions:spotui@([a-z_]+)(?:>(!?)([a-z0-9_-]+))?$/i;
 
 let runningActions = false;
@@ -85,7 +85,7 @@ export async function emitPaneClose(target) {
 export function handleActionsCommand(cleanedCmd) {
     const rest = parseQuotedTokens(cleanedCmd).slice(2);
     if (!rest.length) {
-        jamSay('Usage: tui actions create <name> | tui actions "<name>" "<listener>" "<command>" | tui actions list | tui actions enable <name> | tui actions disable <name>');
+        jamSay('Usage: tui actions create <name> | tui actions "<name>" "<listener>" "<command>" | tui actions list | tui actions enable <name> | tui actions disable <name> | tui actions delete <name>');
         return;
     }
     const sub = rest[0].toLowerCase();
@@ -119,6 +119,22 @@ export function handleActionsCommand(cleanedCmd) {
             const command = a.command || "-";
             return n + " [" + state + "] " + listener + " -> " + command;
         }).join("\n"));
+        return;
+    }
+    if (sub === "delete") {
+        const name = rest[1];
+        if (!name) {
+            jamSay("Usage: tui actions delete <name>");
+            return;
+        }
+        const actions = getActions();
+        if (!actions[name]) {
+            jamSay("Unknown action: " + name);
+            return;
+        }
+        delete actions[name];
+        saveActions(actions);
+        jamSay("Deleted action: " + name);
         return;
     }
     if (sub === "enable" || sub === "disable") {
@@ -165,5 +181,5 @@ export function handleActionsCommand(cleanedCmd) {
         jamSay("Updated action: " + name);
         return;
     }
-    jamSay('Usage: tui actions create <name> | tui actions "<name>" "<listener>" "<command>" | tui actions list | tui actions enable <name> | tui actions disable <name>');
+    jamSay('Usage: tui actions create <name> | tui actions "<name>" "<listener>" "<command>" | tui actions list | tui actions enable <name> | tui actions disable <name> | tui actions delete <name>');
 }

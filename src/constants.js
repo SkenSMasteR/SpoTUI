@@ -115,6 +115,7 @@ export const COMMAND_LIST = [
     { cmd: "tui actions list", desc: "List saved actions" },
     { cmd: "tui actions enable &lt;name&gt;", desc: "Enable an action" },
     { cmd: "tui actions disable &lt;name&gt;", desc: "Disable an action" },
+    { cmd: "tui actions delete &lt;name&gt;", desc: "Delete an action" },
     { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
