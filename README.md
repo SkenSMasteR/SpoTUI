@@ -9,7 +9,7 @@
 
 ## Documentation
 - [x] Expand Documentation to include guides for installing, using, uninstalling SpoTUI, etc.
-- [ ] Add documentation for the SpoTUI CLI.
+- [ ] Expand the documentation for the SpoTUI CLI.
 
 ## Features
 - [ ] Migrate the theme upload to the WIP Docs.
