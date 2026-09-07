@@ -1,23 +1,26 @@
 <div align="center">
-  <img src="assets/logo.png" alt="SpoTUI Logo" width="200"/>
+  <table>
+    <tr>
+      <td>
+        <img src="assets/logo.png" alt="SpoTUI Logo" width="200"/>
+      </td>
+      <td>
+        <img src="banner-gif.gif" alt="SpoTUI Banner"/>
+      </td>
+    </tr>
+  </table>
+
   <h1>SpoTUI</h1>
-  <img src="banner-gif.gif"/>
+
+  <p>
+    SpoTUI is a terminal-inspired theme for Spotify that overlays a custom,<br>
+    keyboard-driven interface directly inside the Spotify client.<br>
+    It is built for <a href="https://spicetify.app/">Spicetify</a>.
+  </p>
 </div>
 
-# SpoTUI
+![SpoTUI preview](https://img.ge/i/OJuvD46.png)
 
-
-[![Live Preview](https://img.shields.io/badge/Live%20Preview-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://skensmaster.github.io/SpoTUI-Docs/)
-
-SpoTUI is a terminal-inspired theme for Spotify that overlays a custom, keyboard-driven interface directly inside the Spotify client. It is built for [Spicetify](https://spicetify.app/).
-
-## Screenshots
-
-
-![SpoTUI preview](assets/preview.png)
-
-### Lyrics View
-![SpoTUI preview](assets/lyrics.png)
 
 ## Installation
 
