@@ -2,7 +2,7 @@ import { emitPaneClose } from "./actions.js";
 import { resetAllSettings } from "./appearance.js";
 import { execute } from "./commands.js";
 import { ADD_THEME_IMG_ERR, ADD_THEME_IMG_OK, COMMAND_LIST } from "./constants.js";
-import { isBindCommand } from "./keybinds.js";
+import { isRestrictedThemeCommand } from "./keybinds.js";
 import { closeLyricsPanel } from "./lyrics.js";
 import { closeOnboardingPanel } from "./onboarding.js";
 import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistPanel } from "./playlists.js";
@@ -179,7 +179,7 @@ export async function openThemePanel() {
                 if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
                     resetAllSettings();
                     const commands = JSON.parse(e.target.dataset.commands);
-                    commands.forEach(cmd => { if (!isBindCommand(cmd)) execute(cmd); });
+                    commands.forEach(cmd => { if (!isRestrictedThemeCommand(cmd)) execute(cmd, { fromTheme: true }); });
                     closeThemePanel();
                 }
             });

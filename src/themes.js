@@ -1,7 +1,7 @@
 import { resetAllSettings } from "./appearance.js";
 import { execute } from "./commands.js";
 import { FIRST_BOOT_THEME_IDS, THEME_HOST } from "./constants.js";
-import { isBindCommand } from "./keybinds.js";
+import { isRestrictedThemeCommand } from "./keybinds.js";
 import { app } from "./state.js";
 
 // Singleton promise for theme feed
@@ -90,11 +90,11 @@ export function applyThemeByName(themeName, opts = {}) {
                         theme.commands.forEach((cmd, idx) => {
                             const text = String(cmd || "").trim();
                             if (skipNonTui && !text.startsWith("tui")) return;
-                            if (isBindCommand(text)) return;
+                            if (isRestrictedThemeCommand(text)) return;
                             pending.push(
                                 new Promise((res, rej) => {
                                     setTimeout(() => {
-                                        execute(cmd, { bypassOnboarding: skipNonTui }).then(res, rej);
+                                        execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
                                     }, idx * 120);
                                 })
                             );

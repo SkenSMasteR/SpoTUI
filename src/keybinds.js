@@ -1,5 +1,5 @@
 import { execute } from "./commands.js";
-import { BIND_CMD_REGEX, F_KEY_REGEX, KEYBIND_STORAGE_KEY } from "./constants.js";
+import { BIND_CMD_REGEX, F_KEY_REGEX, KEYBIND_STORAGE_KEY, THEME_SKIP_CMD_REGEX } from "./constants.js";
 import { storageGet, storageSet } from "./storage.js";
 
 // Retrieve stored keyboard shortcuts
@@ -32,6 +32,14 @@ export function stripCommandPrefix(cmd) {
 // Check if command is a keybind configuration command
 export function isBindCommand(cmd) {
     return BIND_CMD_REGEX.test(stripCommandPrefix(cmd));
+}
+
+export function isRestrictedThemeCommand(cmd) {
+    const cleaned = stripCommandPrefix(cmd).toLowerCase();
+    const [command, sub] = cleaned.split(/\s+/);
+    if (command === "jam") return true;
+    if (command === "tui" && (sub === "bind" || sub === "unbind" || sub === "actions" || sub === "restore")) return true;
+    return THEME_SKIP_CMD_REGEX.test(cleaned);
 }
 
 // Normalize keyboard shortcuts to canonical format

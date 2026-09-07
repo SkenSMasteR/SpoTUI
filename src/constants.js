@@ -91,6 +91,7 @@ export const ORANGE_PALETTE_RGB = [
 // Validation and parsing patterns
 export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 export const BIND_CMD_REGEX = /^tui\s+(bind|unbind)\b/i;
+export const THEME_SKIP_CMD_REGEX = /^(?:tui\s+(?:bind|unbind|actions|restore)\b|jam\b)/i;
 export const F_KEY_REGEX = /^f\d{1,2}$/i; // Match F1-F12
 export const LRC_STAMP_REGEX = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/g; // LRC timestamp [mm:ss.ms]
 export const LRC_STAMP_STRIP_REGEX = /\[\d{1,2}:\d{2}(?:\.\d+)?\]/g;
