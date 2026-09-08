@@ -1,9 +1,10 @@
+import { handleActionsCommand } from "./actions.js";
 import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
 import { resetGrid } from "./ascii.js";
 import { initUpdateBanner, showRestartPopup } from "./banner.js";
-import { ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
+import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { getAllowedJamGuestCommands, jamCreate, jamJoin, jamLeave, jamSay } from "./jam.js";
-import { getKeybinds, saveKeybinds, stripCommandPrefix } from "./keybinds.js";
+import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix } from "./keybinds.js";
 import { handleLyricsCommand, syncLyricsHighlight, syncLyricsState } from "./lyrics.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
 import { openAboutPanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
@@ -17,6 +18,8 @@ export async function execute(cmd, opts = {}) {
     const [rawCommand, ...args] = cleanedCmd.split(/\s+/);
     const command = (rawCommand || "").toLowerCase();
     const argText = args.join(" ").trim();
+    if (opts.fromTheme && isRestrictedThemeCommand(cleanedCmd)) return;
+
     const allowedOnboardingCommands = opts.bypassOnboarding ? null : getAllowedOnboardingCommands();
     if (allowedOnboardingCommands && !allowedOnboardingCommands.has(command)) return;
 
@@ -100,6 +103,10 @@ export async function execute(cmd, opts = {}) {
             } else if (argsLower[1] === "all") {
                 saveKeybinds({});
             }
+            return;
+        }
+        if (argsLower[0] === "actions") {
+            handleActionsCommand(cleanedCmd);
             return;
         }
         if (argsLower.includes("-ly") && argsLower.includes("-cp")) {
@@ -219,11 +226,13 @@ export async function execute(cmd, opts = {}) {
             const launchedValue = storageGet(LAUNCHED_KEY);
             const bannerValue = storageGet(UPDATE_BANNER_KEY);
             const keybindsValue = storageGet(KEYBIND_STORAGE_KEY);
+            const actionsValue = storageGet(ACTIONS_STORAGE_KEY);
             storageClear();
             if (!fullRestore) {
                 if (launchedValue !== null) storageSet(LAUNCHED_KEY, launchedValue);
                 if (bannerValue !== null) storageSet(UPDATE_BANNER_KEY, bannerValue);
                 if (keybindsValue !== null) storageSet(KEYBIND_STORAGE_KEY, keybindsValue);
+                if (actionsValue !== null) storageSet(ACTIONS_STORAGE_KEY, actionsValue);
             }
             showRestartPopup("Wait 5 seconds and relaunch Spotify", true);
             setTimeout(() => location.reload(), 100);

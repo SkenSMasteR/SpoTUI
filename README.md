@@ -47,6 +47,12 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui bind "<Letter>" "<command>"` | Binds Alt+`<Letter>` to run a TUI command |
 | `tui unbind "<Letter>"` | Remove the Alt+<Letter> keybind |
 | `tui bind clear` | Remove all keybinds |
+| `tui actions create <name>` | Create a named action |
+| `tui actions "<name>" "<listener>" "<command>"` | Bind an action to a listener |
+| `tui actions list` | List saved actions |
+| `tui actions enable <name>` | Enable an action |
+| `tui actions disable <name>` | Disable an action |
+| `tui actions delete <name>` | Delete an action |
 | `tui -wp off` | Remove wallpaper |
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |
@@ -73,6 +79,27 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `theme` | Browse and apply themes |
 | `discord` | Show the Discord update banner and re-enable it on boot |
 | `help` | Show the help panel |
+
+## Action Targets
+
+Actions run a command when a listener fires. Create one, then bind it:
+
+```bash
+tui actions create autolyrics
+tui actions "autolyrics" "actions:spotui@pane_close>!lyrics" "lyrics on"
+```
+
+| Target | Description |
+|--------|-------------|
+| `actions:spotui@pane_close` | Fires when any pane closes |
+| `actions:spotui@pane_close>help` | Fires when the help pane closes |
+| `actions:spotui@pane_close>about` | Fires when the about pane closes |
+| `actions:spotui@pane_close>playlist` | Fires when the playlist pane closes |
+| `actions:spotui@pane_close>theme` | Fires when the theme pane closes |
+| `actions:spotui@pane_close>lyrics` | Fires when the lyrics pane closes |
+| `actions:spotui@pane_close>!<pane>` | Fires when any pane except `<pane>` closes |
+| `actions:spotui@pane_close><pane> \| spotui@pane_close><pane>` | Fires when any listed pane closes |
+| `actions:spotui@pane_close>!<pane> \| spotui@pane_close>!<pane>` | Fires when the closed pane is none of the listed panes |
 
 ## Custom Play Bar Progress Styles
 
