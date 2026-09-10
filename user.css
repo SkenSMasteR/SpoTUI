@@ -921,3 +921,70 @@ body.spotui-spotify-enabled .marketplace-footer button {
     color: var(--spotui-accent, #ff8c42) !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
+
+/* Credit: darkthemer */
+.main-home-content::before, .uFQUpbITgGovaKRr6I_g h1, #searchPage::before, .collection-collection-header h1, .marketplace-header::before, .x-settings-headerContainer h1, .queue-queuePage-header, .n6LsTkKvpO88xeRyRTdw {
+    display: block;
+    width: fit-content;
+    font-family: var(--font-family);
+    font-size: 50px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--spice-button);
+    border: 5px solid var(--spice-button);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px 0 rgba(var(--spice-rgb-shadow), .2);
+    padding: 5px 20px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.main-home-content::before {
+    content: 'home';
+    margin: 50px 0;
+}
+.main-home-home, .nav-ylx .main-home-home {
+    padding-top: 0;
+}
+
+.uFQUpbITgGovaKRr6I_g h1 {
+    margin: 60px 0;
+}
+
+#searchPage::before {
+    content: 'search';
+    margin: 50px 0;
+}
+
+.collection-collection-header h1 {
+    margin: 34px 0;
+}
+
+.marketplace-header::before {
+    content: 'marketplace';
+    visibility: visible;
+    margin: 34px 0;
+}
+.marketplace-header h1 {
+    visibility: hidden;
+    font-size: 0;
+}
+.marketplace-header {
+    flex-direction: row;
+}
+
+.x-settings-headerContainer h1 {
+    margin: 18px 0;
+}
+.x-settings-header {
+    flex: unset;
+}
+.x-settings-headerContainer {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.queue-queuePage-header, .n6LsTkKvpO88xeRyRTdw {
+    margin: 50px 0;
+}
+/* --- */
