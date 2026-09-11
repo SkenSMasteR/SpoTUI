@@ -1,31 +1,34 @@
-cmake_minimum_required(VERSION 3.16)
-project(spotui_installer LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.14)
+
+project(spotui LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+include(FetchContent)
+
+FetchContent_Declare(
+    ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui.git
+    GIT_TAG v6.1.9
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+
+FetchContent_MakeAvailable(ftxui)
 
 add_executable(spotui app.cpp)
 
-set_target_properties(spotui PROPERTIES
-    OUTPUT_NAME "spotui"
+target_link_libraries(
+    spotui
+    PRIVATE
+        ftxui::screen
+        ftxui::dom
+        ftxui::component
 )
 
-if(MSVC)
-    target_compile_options(spotui PRIVATE /W4 /O2)
-    target_link_libraries(spotui PRIVATE user32.lib)
-else()
-    target_compile_options(spotui PRIVATE -Wall -Wextra -O2)
-    if(WIN32)
-        set_target_properties(spotui PROPERTIES LINK_FLAGS "-static")
-    endif()
-endif()
-
-if(WIN32)
-    install(TARGETS spotui RUNTIME DESTINATION .)
-else()
-    install(TARGETS spotui RUNTIME DESTINATION bin)
+if(MINGW)
+    target_link_options(spotui PRIVATE -static)
 endif()

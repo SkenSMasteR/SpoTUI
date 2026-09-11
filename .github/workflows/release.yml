@@ -39,13 +39,19 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.new_tag }}
 
-      - name: Build linux-amd64
-        run: g++ -std=c++17 -O2 -static -o spotui-linux-amd64 app.cpp
+      - name: Configure CMake
+        run: cmake -S . -B build
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Rename binary
+        run: mv build/spotui build/spotui-linux-amd64
 
       - uses: actions/upload-artifact@v4
         with:
           name: spotui-linux-amd64
-          path: spotui-linux-amd64
+          path: build/spotui-linux-amd64
 
   build-windows:
     needs: version
@@ -55,11 +61,15 @@ jobs:
       matrix:
         include:
           - target: i686-w64-mingw32
+            arch: x86
             out: spotui-win32.exe
           - target: x86_64-w64-mingw32
+            arch: AMD64
             out: spotui-win64.exe
           - target: aarch64-w64-mingw32
+            arch: ARM64
             out: spotui-winarm64.exe
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,25 +82,38 @@ jobs:
             https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest \
             | grep "browser_download_url.*ucrt-ubuntu-22.04-x86_64.tar.xz" \
             | cut -d '"' -f 4)
+
           echo "Resolved URL: $url"
+
           if [ -z "$url" ]; then
             echo "Could not find a matching llvm-mingw asset URL" >&2
             exit 1
           fi
+
           curl -L -o llvm-mingw.tar.xz "$url"
           tar tf llvm-mingw.tar.xz > filelist.txt
           dir=$(head -1 filelist.txt | cut -f1 -d/)
           tar xf llvm-mingw.tar.xz
           echo "$PWD/$dir/bin" >> "$GITHUB_PATH"
 
-      - name: Build ${{ matrix.out }}
+      - name: Configure CMake
         run: |
-          ${{ matrix.target }}-clang++ -std=c++17 -O2 -static -o ${{ matrix.out }} app.cpp
+          cmake -S . -B build \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.arch }} \
+            -DCMAKE_C_COMPILER=${{ matrix.target }}-clang \
+            -DCMAKE_CXX_COMPILER=${{ matrix.target }}-clang++
+
+      - name: Build ${{ matrix.out }}
+        run: cmake --build build
+
+      - name: Rename binary
+        run: mv build/spotui.exe build/${{ matrix.out }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.out }}
-          path: ${{ matrix.out }}
+          path: build/${{ matrix.out }}
 
   release:
     needs: [version, build-linux, build-windows]

@@ -1,102 +1,77 @@
-// Linux - g++ -std=c++17 -O2 -o spotui app.cpp
-
-// Windows - x86_64-w64-mingw32-g++ -std=c++17 -O2 -static -o spotui.exe app.cpp
-
-// CMake - cmake -B build && cmake --build build
-
-
 #include <algorithm>
 #include <cctype>
-#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <vector>
+
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_options.hpp"
+#include "ftxui/component/event.hpp"
+#include "ftxui/component/screen_interactive.hpp"
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/color.hpp"
 
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <conio.h>
-#else
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
+#ifdef RGB
+#undef RGB
 #endif
+#else
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
+using namespace ftxui;
+namespace fs = std::filesystem;
 
 namespace {
 
 const char* THEME_NAME = "SpoTUI";
-const char* REPO_URL = "https://github.com/SkenSMasteR/SpoTUI";
-const char* MASTER_BRANCH = "master";
+const char* RELEASES_API =
+    "https://api.github.com/repos/SkenSMasteR/SpoTUI/releases";
+const char* VERSION_PREFIX = "spotui@";
+
+const Color kOrangeLight = Color::RGB(255, 140, 66);
+const Color kOrangeMid = Color::RGB(240, 131, 61);
+const Color kOrangeDark = Color::RGB(224, 123, 57);
+const Color kSelectFg = Color::RGB(0, 0, 0);
+const Color kGreen = Color::RGB(140, 255, 140);
+const Color kGray = Color::RGB(140, 140, 140);
+const Color kRed = Color::RGB(255, 90, 90);
 
 const char* BLOCK_FULL = "\u2588";
 const char* BLOCK_LOWER = "\u2584";
 const char* BLOCK_UPPER = "\u2580";
 const char* BLOCK_LEFT = "\u258c";
 
-// ANSI
+const std::vector<std::string> kHeaderTemplates = {
+    "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA    AAA    AB   BA  ",
+    "  AAA    AAA   AAA    AAA AAA    AAA CAAAAAAAAAB AAA    AAA AAA  ",
+    "  AAA    AC    AAA    AAA AAA    AAA    CAAACCAA AAA    AAA AAAD ",
+    "  AAA          AAA    AAA AAA    AAA     AAA   C AAA    AAA AAAD ",
+    "CAAAAAAAAAAA CAAAAAAAAAC  AAA    AAA     AAA     AAA    AAA AAAD ",
+    "         AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  ",
+    "   BA    AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  ",
+    " BAAAAAAAAC   BAAAAC       CAAAAAAC     BAAAAC   AAAAAAAAC  AC   ",
+};
 
-std::string rgb_code(int r, int g, int b) {
-    return "\x1b[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" +
-           std::to_string(b) + "m";
-}
-
-std::string esc(int n) {
-    return "\x1b[" + std::to_string(n) + "m";
-}
-
-const std::string RESET = esc(0);
-const std::string WHITE = esc(97);
-const std::string GRAY = esc(90);
-const std::string RED = esc(91);
-const std::string GREEN = esc(92);
-const std::string CYAN = esc(96);
-const std::string ORANGE_LIGHT = rgb_code(255, 140, 66);
-const std::string ORANGE_DARK = rgb_code(224, 123, 57);
-const std::string ORANGE_MID = rgb_code(240, 131, 61);
-const std::string GREEN_ANSI = rgb_code(140, 255, 140);
-const std::string SELECT_BG =
-    "\x1b[48;2;255;140;66m\x1b[38;2;0;0;0m";
-
-bool g_vt_enabled = true;
-
-void enable_vt() {
-#ifdef _WIN32
-    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD mode = 0;
-    if (h != INVALID_HANDLE_VALUE && GetConsoleMode(h, &mode)) {
-        if (SetConsoleMode(h, mode | 0x0004)) {  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
-            g_vt_enabled = true;
-        } else {
-            g_vt_enabled = false;
-        }
-    }
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-#else
-    g_vt_enabled = true;
-#endif
-}
-
-// strings
-
-std::string gradient_color(int index, int total) {
+Color gradient_color(int index, int total) {
     int r1 = 255, g1 = 140, b1 = 66;
     int r2 = 224, g2 = 123, b2 = 57;
     double t = (total <= 1) ? 0.0 : static_cast<double>(index) / (total - 1);
     int r = static_cast<int>(r1 + (r2 - r1) * t);
     int g = static_cast<int>(g1 + (g2 - g1) * t);
     int b = static_cast<int>(b1 + (b2 - b1) * t);
-    return rgb_code(r, g, b);
+    return Color::RGB(r, g, b);
 }
 
 std::string ascii_art_line(const std::string& tpl) {
@@ -113,38 +88,23 @@ std::string ascii_art_line(const std::string& tpl) {
     return out;
 }
 
-const std::vector<std::string> kHeaderTemplates = {
-    "   BAAAAAAAA    BAAAAAAAB  BAAAAAAAB      AAA    AAA    AB   BA  ",
-    "  AAA    AAA   AAA    AAA AAA    AAA CAAAAAAAAAB AAA    AAA AAA  ",
-    "  AAA    AC    AAA    AAA AAA    AAA    CAAACCAA AAA    AAA AAAD ",
-    "  AAA          AAA    AAA AAA    AAA     AAA   C AAA    AAA AAAD ",
-    "CAAAAAAAAAAA CAAAAAAAAAC  AAA    AAA     AAA     AAA    AAA AAAD ",
-    "         AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  ",
-    "   BA    AAA   AAA        AAA    AAA     AAA     AAA    AAA AAA  ",
-    " BAAAAAAAAC   BAAAAC       CAAAAAAC     BAAAAC   AAAAAAAAC  AC   ",
-};
-
-std::vector<std::string> header_lines() {
-    std::vector<std::string> lines;
-    lines.emplace_back("");
+Element logo() {
+    Elements lines;
     int total = static_cast<int>(kHeaderTemplates.size());
     for (int i = 0; i < total; i++) {
-        lines.push_back(gradient_color(i, total) +
-                        ascii_art_line(kHeaderTemplates[i]) + RESET);
+        lines.push_back(text(ascii_art_line(kHeaderTemplates[i])) |
+                        color(gradient_color(i, total)));
     }
-    lines.emplace_back("");
-    lines.push_back(ORANGE_MID + "                     Spicetify Theme Manager" + RESET);
-    lines.push_back(ORANGE_DARK +
-                    "  =============================================================" + RESET);
-    lines.emplace_back("");
-    return lines;
+    return vbox(std::move(lines)) | hcenter;
 }
 
 std::string trim(const std::string& s) {
     std::string r = s;
     while (!r.empty() && (r.back() == '\n' || r.back() == '\r' || r.back() == ' '))
         r.pop_back();
-    return r;
+    size_t i = 0;
+    while (i < r.size() && (r[i] == ' ' || r[i] == '\n' || r[i] == '\r')) i++;
+    return r.substr(i);
 }
 
 std::vector<std::string> split(const std::string& s, char delim) {
@@ -155,100 +115,20 @@ std::vector<std::string> split(const std::string& s, char delim) {
     return parts;
 }
 
-std::vector<std::string> split_n(const std::string& s, char delim, size_t limit) {
-    std::vector<std::string> parts;
-    std::string cur;
-    std::istringstream ss(s);
-    while (parts.size() + 1 < limit && std::getline(ss, cur, delim))
-        parts.push_back(cur);
-    std::string rest;
-    if (std::getline(ss, rest)) parts.push_back(rest);
-    return parts;
+std::string quote(const std::string& s) {
+    return "\"" + s + "\"";
 }
 
-size_t visible_length(const std::string& s) {
-    size_t len = 0;
-    for (size_t i = 0; i < s.size(); i++) {
-        if (s[i] == '\x1b') {
-            while (i < s.size() && s[i] != 'm') i++;
-        } else {
-            unsigned char c = static_cast<unsigned char>(s[i]);
-            if ((c & 0xC0) != 0x80) len++;
-        }
-    }
-    return len;
-}
-
-// platform
-
-void clear_screen() {
 #ifdef _WIN32
-    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO info;
-    if (g_vt_enabled) {
-        std::cout << "\x1b[2J\x1b[H";
-    } else if (GetConsoleScreenBufferInfo(h, &info)) {
-        COORD top = {0, 0};
-        DWORD n;
-        DWORD cells = info.dwSize.X * info.dwSize.Y;
-        FillConsoleOutputCharacterW(h, L' ', cells, top, &n);
-        SetConsoleCursorPosition(h, top);
+std::string ps_quote(const std::string& s) {
+    std::string r;
+    for (char c : s) {
+        if (c == '\'') r += "''";
+        else r += c;
     }
-#else
-    std::cout << "\x1b[2J\x1b[H";
+    return "'" + r + "'";
+}
 #endif
-    std::cout.flush();
-}
-
-int console_width() {
-#ifdef _WIN32
-    if (g_vt_enabled) {
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info))
-            return info.srWindow.Right - info.srWindow.Left + 1;
-    }
-#else
-    struct winsize w;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0)
-        return w.ws_col;
-#endif
-    return 80;
-}
-
-int console_height() {
-#ifdef _WIN32
-    if (g_vt_enabled) {
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info))
-            return info.srWindow.Bottom - info.srWindow.Top + 1;
-    }
-#else
-    struct winsize w;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_row > 0)
-        return w.ws_row;
-#endif
-    return 30;
-}
-
-void write_frame(const std::vector<std::string>& frame) {
-    std::cout << "\x1b[H";
-    int width = console_width();
-    for (const auto& line : frame) {
-        size_t vis = visible_length(line);
-        int pad = width - static_cast<int>(vis) - 1;
-        if (pad < 0) pad = 0;
-        std::cout << line << std::string(pad, ' ') << "\n";
-    }
-    std::cout.flush();
-}
-
-void show_header() {
-    clear_screen();
-    for (const auto& line : header_lines()) std::cout << line << "\n";
-    std::cout.flush();
-}
-
-// process
 
 int run_cmd(const std::string& cmd) {
     int rc = std::system(cmd.c_str());
@@ -278,99 +158,6 @@ std::string run_capture(const std::string& cmd) {
     return out;
 }
 
-int get_ch() {
-#ifdef _WIN32
-    return _getch();
-#else
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    char c;
-    ssize_t n = read(STDIN_FILENO, &c, 1);
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    if (n != 1) return EOF;
-    return static_cast<unsigned char>(c);
-#endif
-}
-
-void wait_key() {
-#ifdef _WIN32
-    _getch();
-#else
-    get_ch();
-#endif
-}
-
-std::string read_key() {
-#ifdef _WIN32
-    int ch = _getch();
-    if (ch == 0 || ch == 224) {
-        int sc = _getch();
-        if (sc == 72) return "UP";
-        if (sc == 80) return "DOWN";
-        return "OTHER";
-    }
-    if (ch == '\r' || ch == '\n') return "ENTER";
-    if (ch == 27) {
-        if (_kbhit()) {
-            int c1 = _getch();
-            if (c1 == '[' || c1 == 'O') {
-                int c2 = _getch();
-                if (c2 == 'A') return "UP";
-                if (c2 == 'B') return "DOWN";
-            }
-        }
-        return "ESC";
-    }
-    return "OTHER";
-#else
-    int ch = get_ch();
-    if (ch == '\n' || ch == '\r') return "ENTER";
-    if (ch == 27) {
-        struct termios oldt, newt;
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
-        newt.c_cc[VMIN] = 0;
-        newt.c_cc[VTIME] = 0;
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        int c1 = EOF, c2 = EOF;
-        char buf;
-        if (read(STDIN_FILENO, &buf, 1) == 1) c1 = buf;
-        if (c1 != EOF && read(STDIN_FILENO, &buf, 1) == 1) c2 = buf;
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-        if (c1 == '[' || c1 == 'O') {
-            if (c2 == 'A') return "UP";
-            if (c2 == 'B') return "DOWN";
-        }
-        return "ESC";
-    }
-    return "OTHER";
-#endif
-}
-
-bool read_confirm(const char* prompt, const char* yes_char) {
-    std::cout << "  " << prompt << ": ";
-    std::cout.flush();
-    std::string line;
-    std::getline(std::cin, line);
-    if (line.empty()) {
-        int ch = get_ch();
-        std::cout << static_cast<char>(ch) << "\n";
-        char c = static_cast<char>(ch);
-        return c == yes_char[0] || c == std::toupper(yes_char[0]);
-    }
-    std::string up = line;
-    std::transform(up.begin(), up.end(), up.begin(), ::tolower);
-    std::string low_yes = yes_char;
-    std::transform(low_yes.begin(), low_yes.end(), low_yes.begin(), ::tolower);
-    return up == low_yes;
-}
-
-// paths
-
 std::string get_env(const char* name) {
     const char* v = std::getenv(name);
     return v ? std::string(v) : "";
@@ -388,48 +175,33 @@ std::string themes_dir() {
 #ifdef _WIN32
     std::string appdata = get_env("APPDATA");
     if (appdata.empty()) appdata = home_dir() + "\\AppData\\Roaming";
-    return appdata + "\\spicetify\\Themes";
+    return (fs::path(appdata) / "spicetify" / "Themes").string();
 #else
-    return home_dir() + "/.config/spicetify/Themes";
+    return (fs::path(home_dir()) / ".config" / "spicetify" / "Themes").string();
 #endif
 }
 
 std::string theme_path() {
-#ifdef _WIN32
-    return themes_dir() + "\\" + THEME_NAME;
-#else
-    return themes_dir() + "/" + THEME_NAME;
-#endif
+    return (fs::path(themes_dir()) / THEME_NAME).string();
+}
+
+std::string version_file() {
+    return (fs::path(theme_path()) / "version.txt").string();
 }
 
 bool path_exists(const std::string& p) {
-#ifdef _WIN32
-    DWORD attr = GetFileAttributesA(p.c_str());
-    return attr != INVALID_FILE_ATTRIBUTES;
-#else
-    std::ifstream f(p);
-    if (f.good()) return true;
-    struct stat st;
-    return ::stat(p.c_str(), &st) == 0;
-#endif
+    std::error_code ec;
+    return fs::exists(p, ec);
 }
-
-// dependencies
 
 std::string which(const std::string& name) {
 #ifdef _WIN32
     std::string out = run_capture("where " + name + " 2>nul");
-    if (!trim(out).empty()) return trim(out);
-    std::vector<std::string> candidates = {
-        "C:\\Program Files\\Git\\cmd\\git.exe",
-        "C:\\Program Files (x86)\\Git\\cmd\\git.exe",
-        home_dir() + "\\AppData\\Local\\Programs\\Git\\cmd\\git.exe",
-        get_env("ProgramFiles") + "\\Git\\cmd\\git.exe",
-    };
-    for (const auto& c : candidates) {
-        if (path_exists(c)) return c;
+    if (!trim(out).empty()) {
+        auto lines = split(out, '\n');
+        if (!lines.empty()) return trim(lines[0]);
     }
-    std::string sp = themes_dir() + "\\..\\spicetify.exe";
+    std::string sp = (fs::path(themes_dir()).parent_path() / "spicetify.exe").string();
     if (path_exists(sp)) return sp;
     return "";
 #else
@@ -442,102 +214,15 @@ bool command_exists(const std::string& name) {
     return !which(name).empty();
 }
 
-std::string detect_pkg_manager() {
-#ifdef _WIN32
-    return command_exists("winget") ? "winget" : "";
-#else
-    for (const char* m : {"apt-get", "dnf", "pacman", "zypper", "apk"}) {
-        if (command_exists(m)) return m;
-    }
-    return "";
-#endif
-}
-
-[[maybe_unused]] bool refresh_pkg_manager() {
-    std::string mgr = detect_pkg_manager();
-    std::cout << ORANGE_MID << "  Refreshing package lists..." << RESET << "\n";
-    if (mgr.empty()) return false;
-#ifdef _WIN32
-    return true;
-#else
-    if (mgr == "apt-get") return run_cmd("sudo apt-get update -y") == 0;
-    if (mgr == "dnf") { run_cmd("sudo dnf check-update -y"); return true; }
-    if (mgr == "pacman") return run_cmd("sudo pacman -Sy --noconfirm") == 0;
-    if (mgr == "zypper") return run_cmd("sudo zypper refresh") == 0;
-    if (mgr == "apk") return run_cmd("sudo apk update") == 0;
-    return false;
-#endif
-}
-
-bool g_pkg_refresh_attempted = false;
-
-bool install_git() {
-#ifdef _WIN32
-    std::cout << GRAY << "  Launching winget to install Git..." << RESET << "\n";
-    std::string base =
-        "winget install --id Git.Git -e --source winget "
-        "--accept-package-agreements --accept-source-agreements";
-    int rc = run_cmd(base);
-    std::cout << "  winget exited with code " << rc << "\n";
-    if (rc == -1073741819 && !g_pkg_refresh_attempted) {
-        g_pkg_refresh_attempted = true;
-        std::cout << RED << "  winget crashed. Attempting to update winget and retry..." << RESET << "\n";
-        if (command_exists("winget")) {
-            run_cmd("winget upgrade --id Microsoft.AppInstaller -e --source winget "
-                    "--accept-package-agreements --accept-source-agreements");
-            run_cmd("winget source reset --force");
-        }
-        std::cout << GRAY << "  Retrying Git install..." << RESET << "\n";
-        rc = run_cmd(base);
-        std::cout << "  winget exited with code " << rc << "\n";
-    }
-    for (int i = 0; i < 10 && !command_exists("git"); i++) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-    return command_exists("git");
-#else
-    std::string mgr = detect_pkg_manager();
-    if (mgr.empty()) {
-        std::cout << RED
-                  << "  No supported package manager was found. Install git manually."
-                  << RESET << "\n";
-        return false;
-    }
-    std::cout << GRAY << "  Installing git via " << mgr << "..." << RESET << "\n";
-    std::string install_cmd;
-    if (mgr == "apt-get") install_cmd = "sudo apt-get install -y git";
-    else if (mgr == "dnf") install_cmd = "sudo dnf install -y git";
-    else if (mgr == "pacman") install_cmd = "sudo pacman -S --noconfirm git";
-    else if (mgr == "zypper") install_cmd = "sudo zypper install -y git";
-    else if (mgr == "apk") install_cmd = "sudo apk add git";
-
-    int rc = run_cmd(install_cmd);
-    std::cout << "  package manager exited with code " << rc << "\n";
-
-    if (rc != 0 && !g_pkg_refresh_attempted) {
-        g_pkg_refresh_attempted = true;
-        std::cout << RED << "  Install failed. Refreshing package lists and retrying..." << RESET << "\n";
-        refresh_pkg_manager();
-        std::cout << GRAY << "  Retrying git install..." << RESET << "\n";
-        rc = run_cmd(install_cmd);
-    }
-    return command_exists("git");
-#endif
-}
-
 bool install_spicetify() {
 #ifdef _WIN32
     const char* cmd =
         "powershell -NoProfile -ExecutionPolicy Bypass -Command "
         "\"iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex\"";
-    std::cout << GRAY << "  Opening a new window to install Spicetify. Waiting for it to finish..." << RESET << "\n";
     run_cmd(cmd);
-    std::cout << GRAY << "  Spicetify installer window closed." << RESET << "\n";
     return command_exists("spicetify");
 #else
-    std::cout << GRAY << "  Installing Spicetify..." << RESET << "\n";
     run_cmd("curl -fsSL https://raw.githubusercontent.com/spicetify/cli/main/install.sh | sh");
-    std::cout << GRAY << "  Spicetify installer finished." << RESET << "\n";
     return command_exists("spicetify");
 #endif
 }
@@ -548,7 +233,8 @@ void refresh_path() {
     HKEY key;
     char buf[32768];
     DWORD sz = sizeof(buf);
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                      "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
                       0, KEY_READ, &key) == ERROR_SUCCESS) {
         if (RegQueryValueExA(key, "Path", nullptr, nullptr, (LPBYTE)buf, &sz) == ERROR_SUCCESS)
             machine = buf;
@@ -567,608 +253,561 @@ void refresh_path() {
 #endif
 }
 
-bool test_dependencies() {
-    std::vector<std::string> missing;
-    if (!command_exists("git")) missing.push_back("git");
-    if (!command_exists("spicetify")) missing.push_back("spicetify");
-
-    if (missing.empty()) return true;
-
-    std::cout << RED << "  Missing dependencies: ";
-    for (size_t i = 0; i < missing.size(); i++) {
-        if (i) std::cout << ", ";
-        std::cout << missing[i];
-    }
-    std::cout << RESET << "\n\n";
-
-    if (!read_confirm("Press I to install them now, or any other key to cancel", "I"))
-        return false;
-
-    for (const auto& dep : missing) {
-        std::cout << "\n";
-        std::cout << ORANGE_MID << "  Installing " << dep << "..." << RESET << "\n";
-        if (dep == "git") install_git();
-        else if (dep == "spicetify") install_spicetify();
-    }
-
-    std::cout << "\n";
-    std::cout << ORANGE_MID << "  Refreshing environment PATH..." << RESET << "\n";
+bool ensure_spicetify() {
+    if (command_exists("spicetify")) return true;
+    install_spicetify();
     refresh_path();
+    return command_exists("spicetify");
+}
 
-    std::vector<std::string> still_missing;
-    if (!command_exists("git")) still_missing.push_back("git");
-    if (!command_exists("spicetify")) still_missing.push_back("spicetify");
+std::string read_installed_version() {
+    if (!path_exists(theme_path())) return "";
+    std::ifstream in(version_file());
+    if (!in) return "unknown";
+    std::string line;
+    std::getline(in, line);
+    line = trim(line);
+    return line.empty() ? "unknown" : line;
+}
 
-    if (!still_missing.empty()) {
-        std::cout << "\n";
-        std::cout << RED << "  Still missing: ";
-        for (size_t i = 0; i < still_missing.size(); i++) {
-            if (i) std::cout << ", ";
-            std::cout << still_missing[i];
+void write_installed_version(const std::string& version) {
+    std::ofstream out(version_file());
+    out << version << "\n";
+}
+
+std::string json_unescape(const std::string& s) {
+    std::string out;
+    for (size_t i = 0; i < s.size(); i++) {
+        if (s[i] == '\\' && i + 1 < s.size()) {
+            char n = s[i + 1];
+            if (n == '"' || n == '\\' || n == '/') {
+                out += n;
+                i++;
+                continue;
+            }
         }
-        std::cout << ". You may need to restart your terminal." << RESET << "\n";
-        return false;
+        out += s[i];
     }
+    return out;
+}
 
-    std::cout << "\n";
-    std::cout << GREEN << "  All dependencies installed successfully." << RESET << "\n";
+std::string extract_quoted(const std::string& s, size_t from, const std::string& key) {
+    std::string pat = "\"" + key + "\"";
+    size_t p = s.find(pat, from);
+    if (p == std::string::npos) return "";
+    p = s.find(':', p + pat.size());
+    if (p == std::string::npos) return "";
+    p = s.find('"', p + 1);
+    if (p == std::string::npos) return "";
+    size_t e = p + 1;
+    while (e < s.size()) {
+        if (s[e] == '\\' && e + 1 < s.size()) {
+            e += 2;
+            continue;
+        }
+        if (s[e] == '"') break;
+        e++;
+    }
+    if (e >= s.size()) return "";
+    return json_unescape(s.substr(p + 1, e - p - 1));
+}
+
+std::vector<int> version_parts(const std::string& name) {
+    std::vector<int> parts;
+    size_t at = name.find('@');
+    std::string v = at == std::string::npos ? name : name.substr(at + 1);
+    std::string cur;
+    for (char c : v) {
+        if (std::isdigit(static_cast<unsigned char>(c))) {
+            cur += c;
+        } else if (c == '.') {
+            parts.push_back(cur.empty() ? 0 : std::atoi(cur.c_str()));
+            cur.clear();
+        } else {
+            break;
+        }
+    }
+    if (!cur.empty()) parts.push_back(std::atoi(cur.c_str()));
+    return parts;
+}
+
+int compare_versions(const std::string& a, const std::string& b) {
+    auto pa = version_parts(a);
+    auto pb = version_parts(b);
+    size_t n = std::max(pa.size(), pb.size());
+    for (size_t i = 0; i < n; i++) {
+        int av = i < pa.size() ? pa[i] : 0;
+        int bv = i < pb.size() ? pb[i] : 0;
+        if (av != bv) return av > bv ? 1 : -1;
+    }
+    return 0;
+}
+
+struct Release {
+    std::string name;
+    std::string zip_url;
+};
+
+std::string url_unescape(const std::string& s) {
+    std::string out;
+    auto hex = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        return -1;
+    };
+    for (size_t i = 0; i < s.size(); i++) {
+        if (s[i] == '%' && i + 2 < s.size()) {
+            int hi = hex(s[i + 1]);
+            int lo = hex(s[i + 2]);
+            if (hi >= 0 && lo >= 0) {
+                out += static_cast<char>((hi << 4) | lo);
+                i += 2;
+                continue;
+            }
+        }
+        out += s[i];
+    }
+    return out;
+}
+
+std::string filename_from_url(const std::string& url) {
+    std::string u = url_unescape(url);
+    size_t slash = u.find_last_of('/');
+    if (slash == std::string::npos) return u;
+    return u.substr(slash + 1);
+}
+
+std::vector<Release> parse_releases(const std::string& json) {
+    std::vector<Release> out;
+    size_t pos = 0;
+    const std::string key = "\"browser_download_url\"";
+    while (true) {
+        size_t p = json.find(key, pos);
+        if (p == std::string::npos) break;
+        std::string url = extract_quoted(json, p, "browser_download_url");
+        pos = p + key.size();
+        if (url.empty()) continue;
+        std::string file = filename_from_url(url);
+        if (file.rfind(VERSION_PREFIX, 0) != 0) continue;
+        if (file.size() < 5 || file.substr(file.size() - 4) != ".zip") continue;
+        std::string name = file.substr(0, file.size() - 4);
+        bool exists = false;
+        for (const auto& r : out) {
+            if (r.name == name) {
+                exists = true;
+                break;
+            }
+        }
+        if (exists) continue;
+        out.push_back({name, url});
+    }
+    std::sort(out.begin(), out.end(), [](const Release& a, const Release& b) {
+        return compare_versions(a.name, b.name) > 0;
+    });
+    return out;
+}
+
+std::string http_get(const std::string& url) {
+#ifdef _WIN32
+    std::string cmd =
+        "curl.exe -fsSL -L -A SpoTUI -H \"Accept: application/vnd.github+json\" " +
+        quote(url) + " 2>nul";
+    std::string body = run_capture(cmd);
+    if (!trim(body).empty()) return body;
+    cmd = "powershell -NoProfile -Command "
+          "\"(Invoke-WebRequest -UseBasicParsing -Uri " +
+          ps_quote(url) + ").Content\"";
+    return run_capture(cmd);
+#else
+    std::string cmd =
+        "curl -fsSL -L -A SpoTUI -H 'Accept: application/vnd.github+json' " +
+        quote(url) + " 2>/dev/null";
+    return run_capture(cmd);
+#endif
+}
+
+bool download_file(const std::string& url, const std::string& dest) {
+#ifdef _WIN32
+    std::string cmd =
+        "curl.exe -fsSL -L -A SpoTUI -o " + quote(dest) + " " + quote(url);
+    if (run_cmd(cmd) == 0 && path_exists(dest)) return true;
+    cmd = "powershell -NoProfile -Command \"Invoke-WebRequest -UseBasicParsing -Uri " +
+          ps_quote(url) + " -OutFile " + ps_quote(dest) + "\"";
+    return run_cmd(cmd) == 0 && path_exists(dest);
+#else
+    std::string cmd =
+        "curl -fsSL -L -A SpoTUI -o " + quote(dest) + " " + quote(url);
+    return run_cmd(cmd) == 0 && path_exists(dest);
+#endif
+}
+
+bool extract_zip(const std::string& zip, const std::string& dest) {
+#ifdef _WIN32
+    std::string cmd =
+        "powershell -NoProfile -Command \"Expand-Archive -Force -LiteralPath " +
+        ps_quote(zip) + " -DestinationPath " + ps_quote(dest) + "\"";
+    return run_cmd(cmd) == 0;
+#else
+    std::string cmd =
+        "python3 -c \"import zipfile; zipfile.ZipFile(r'''" + zip +
+        "''').extractall(r'''" + dest + "''')\"";
+    if (run_cmd(cmd) == 0) return true;
+    cmd = "unzip -o " + quote(zip) + " -d " + quote(dest);
+    return run_cmd(cmd) == 0;
+#endif
+}
+
+bool copy_extracted(const std::string& extracted, const std::string& dest) {
+    std::error_code ec;
+    fs::path src(extracted);
+    fs::path content = src;
+    std::vector<fs::path> dirs;
+    std::vector<fs::path> files;
+    for (auto it = fs::directory_iterator(src, ec); !ec && it != fs::directory_iterator(); ++it) {
+        if (it->is_directory()) dirs.push_back(it->path());
+        else files.push_back(it->path());
+    }
+    if (files.empty() && dirs.size() == 1) content = dirs[0];
+
+    fs::create_directories(dest, ec);
+    if (ec) return false;
+
+    for (auto it = fs::directory_iterator(content, ec); !ec && it != fs::directory_iterator(); ++it) {
+        fs::path to = fs::path(dest) / it->path().filename();
+        fs::remove_all(to, ec);
+        fs::copy(it->path(), to,
+                 fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+        if (ec) return false;
+    }
     return true;
 }
 
-// git
-
-std::string git_dir_flag() {
-    return " -C \"" + theme_path() + "\"";
+bool apply_theme() {
+    if (!ensure_spicetify()) return false;
+    if (run_cmd("spicetify config current_theme " + std::string(THEME_NAME)) != 0)
+        return false;
+    if (run_cmd("spicetify apply -q") != 0) return false;
+    return true;
 }
 
-std::string git_cmd(const std::string& args) {
-    return "git" + git_dir_flag() + " " + args;
+std::vector<Release> fetch_releases() {
+    std::string json = http_get(RELEASES_API);
+    if (json.empty()) return {};
+    return parse_releases(json);
 }
 
-std::string get_default_branch() {
-    std::string ref = trim(run_capture(git_cmd("symbolic-ref refs/remotes/origin/HEAD")));
-    if (!ref.empty()) {
-        auto parts = split(ref, '/');
-        if (!parts.empty()) return parts.back();
+std::string install_release(const Release& rel) {
+    std::error_code ec;
+    fs::path tmp_zip = fs::temp_directory_path() / "spotui-download.zip";
+    fs::path tmp_dir = fs::temp_directory_path() / "spotui-extract";
+    fs::remove_all(tmp_zip, ec);
+    fs::remove_all(tmp_dir, ec);
+    fs::create_directories(tmp_dir, ec);
+
+    if (!download_file(rel.zip_url, tmp_zip.string()))
+        return "Failed to download " + rel.name + ".";
+    if (!extract_zip(tmp_zip.string(), tmp_dir.string())) {
+        fs::remove_all(tmp_zip, ec);
+        fs::remove_all(tmp_dir, ec);
+        return "Failed to extract " + rel.name + ".";
     }
-    return "main";
+
+    fs::create_directories(themes_dir(), ec);
+    if (path_exists(theme_path())) fs::remove_all(theme_path(), ec);
+    fs::create_directories(theme_path(), ec);
+
+    if (!copy_extracted(tmp_dir.string(), theme_path())) {
+        fs::remove_all(tmp_zip, ec);
+        fs::remove_all(tmp_dir, ec);
+        return "Failed to copy theme files.";
+    }
+
+    write_installed_version(rel.name);
+    fs::remove_all(tmp_zip, ec);
+    fs::remove_all(tmp_dir, ec);
+
+    if (!apply_theme())
+        return rel.name + " installed, but Spicetify apply failed.";
+    return rel.name + " installed and applied.";
 }
 
-bool is_detached() {
-    std::string out = run_capture(git_cmd("symbolic-ref -q HEAD"));
-    return trim(out).empty();
-}
-
-struct ThemeStatus {
-    std::string text;
-    std::string color;
-};
-
-ThemeStatus theme_status_detailed() {
-    ThemeStatus s;
-    if (!path_exists(theme_path())) {
-        s.text = "Not Installed";
-        s.color = RED;
-        return s;
-    }
-    if (!command_exists("git")) {
-        s.text = "Installed";
-        s.color = GREEN;
-        return s;
-    }
-
-    run_cmd(git_cmd("fetch origin"));
-    std::string local_hash = trim(run_capture(git_cmd("rev-parse HEAD")));
-
-    if (is_detached()) {
-        std::string short_hash = local_hash.empty() ? "unknown" : local_hash.substr(0, 7);
-        s.text = "Installed (custom commit " + short_hash + ")";
-        s.color = CYAN;
-        return s;
-    }
-
-    std::string branch = get_default_branch();
-    std::string remote_hash = trim(run_capture(git_cmd("rev-parse origin/" + branch)));
-
-    if (local_hash.empty() || remote_hash.empty()) {
-        s.text = "Installed";
-        s.color = GREEN;
-        return s;
-    }
-
-    if (local_hash == remote_hash) {
-        s.text = "Installed (up to date)";
-        s.color = GREEN;
-    } else {
-        s.text = "Installed (outdated)";
-        s.color = RED;
-    }
-    return s;
-}
-
-struct Commit {
-    std::string full;
-    std::string short_hash;
-    std::string date;
-    std::string subject;
-};
-
-std::vector<Commit> get_commit_list_for_ref(const std::string& ref) {
-    std::vector<Commit> commits;
-    run_cmd(git_cmd("fetch origin"));
-    std::string raw = run_capture(
-        git_cmd("log " + ref + " \"--pretty=format:%H|%h|%ad|%s\" --date=short"));
-    for (const auto& line : split(raw, '\n')) {
-        if (trim(line).empty()) continue;
-        auto p = split_n(line, '|', 4);
-        if (p.size() < 4) continue;
-        commits.push_back({p[0], p[1], p[2], p[3]});
-    }
-    return commits;
-}
-
-std::vector<std::string> get_branch_list() {
-    std::vector<std::string> branches;
-    run_cmd(git_cmd("fetch origin"));
-    std::string raw = run_capture(git_cmd("branch -r --format=\"%(refname:short)\""));
-    for (const auto& line : split(raw, '\n')) {
-        std::string b = trim(line);
-        if (b.empty()) continue;
-        if (b.find("origin/HEAD") != std::string::npos) continue;
-        auto slash = b.find('/');
-        if (slash == std::string::npos) continue;
-        branches.push_back(b.substr(slash + 1));
-    }
-    return branches;
-}
-
-// menu/UI
-
-void pause_return() {
-    std::cout << "\n";
-    std::cout << GRAY << "  Press any key to return to the menu..." << RESET << "\n";
-    std::cout.flush();
-    wait_key();
-}
-
-// list returns selected index or -1 on ESC
-int arrow_selection(const std::vector<std::string>& items, int current_index,
-                    const std::vector<std::string>& title_lines) {
-    int selected = current_index >= 0 ? current_index : 0;
-
-    auto header = header_lines();
-    int overhead = static_cast<int>(header.size()) + static_cast<int>(title_lines.size()) + 4;
-    int page_size = console_height() - overhead;
-    if (page_size > static_cast<int>(items.size())) page_size = static_cast<int>(items.size());
-    if (page_size < 1) page_size = 1;
-
-    clear_screen();
-#ifdef _WIN32
-    if (g_vt_enabled) {
-        HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-        CONSOLE_CURSOR_INFO ci;
-        GetConsoleCursorInfo(h, &ci);
-        ci.bVisible = FALSE;
-        SetConsoleCursorInfo(h, &ci);
-    }
-#else
-    std::cout << "\x1b[?25l";
-#endif
-
-    while (true) {
-        int total_pages = (static_cast<int>(items.size()) + page_size - 1) / page_size;
-        if (total_pages < 1) total_pages = 1;
-        int current_page = selected / page_size;
-        int page_start = current_page * page_size;
-        int page_end = std::min(page_start + page_size - 1,
-                                static_cast<int>(items.size()) - 1);
-
-        std::vector<std::string> frame = header;
-        frame.insert(frame.end(), title_lines.begin(), title_lines.end());
-
-        for (int i = page_start; i <= page_end; i++) {
-            std::string prefix = (i == current_index) ? "> " : "  ";
-            std::string text = prefix + items[i];
-            if (i == selected) {
-                frame.push_back(SELECT_BG + text + RESET);
-            } else if (i == current_index) {
-                frame.push_back(GREEN_ANSI + text + RESET);
-            } else {
-                frame.push_back(text);
-            }
-        }
-
-        int lines_used = page_end - page_start + 1;
-        for (int p = lines_used; p < page_size; p++) frame.emplace_back("");
-
-        frame.emplace_back("");
-        frame.push_back(ORANGE_DARK +
-                        "  =============================================================" + RESET);
-        frame.push_back("  Up/Down to move, Enter to select, Esc to go back   Page " +
-                        std::to_string(current_page + 1) + " of " +
-                        std::to_string(total_pages));
-
-        write_frame(frame);
-
-        std::string key = read_key();
-        if (key == "UP") {
-            selected = (selected > 0) ? selected - 1 : static_cast<int>(items.size()) - 1;
-        } else if (key == "DOWN") {
-            selected = (selected < static_cast<int>(items.size()) - 1) ? selected + 1 : 0;
-        } else if (key == "ENTER") {
-#ifdef _WIN32
-            if (g_vt_enabled) {
-                HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-                CONSOLE_CURSOR_INFO ci;
-                GetConsoleCursorInfo(h, &ci);
-                ci.bVisible = TRUE;
-                SetConsoleCursorInfo(h, &ci);
-            }
-#else
-            std::cout << "\x1b[?25h";
-#endif
-            return selected;
-        } else if (key == "ESC") {
-#ifdef _WIN32
-            if (g_vt_enabled) {
-                HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-                CONSOLE_CURSOR_INFO ci;
-                GetConsoleCursorInfo(h, &ci);
-                ci.bVisible = TRUE;
-                SetConsoleCursorInfo(h, &ci);
-            }
-#else
-            std::cout << "\x1b[?25h";
-#endif
-            return -1;
-        }
-    }
-}
-
-// theme actions
-
-void install_theme() {
-    show_header();
-    std::cout << ORANGE_LIGHT << "  Installing " << THEME_NAME << "..." << RESET << "\n\n";
-
-    if (!test_dependencies()) {
-        pause_return();
-        return;
-    }
-
-#ifdef _WIN32
-    std::string mkdir_cmd = "if not exist \"" + themes_dir() + "\" mkdir \"" + themes_dir() + "\"";
-#else
-    std::string mkdir_cmd = "mkdir -p \"" + themes_dir() + "\"";
-#endif
-    run_cmd(mkdir_cmd);
-
-    if (path_exists(theme_path())) {
-        std::cout << ORANGE_MID << "  Theme already exists locally. Pulling latest changes..." << RESET << "\n";
-        run_cmd(git_cmd("pull origin " + std::string(MASTER_BRANCH)));
-    } else {
-        std::string cmd = "git clone -b " + std::string(MASTER_BRANCH) + " \"" +
-                          std::string(REPO_URL) + "\" \"" + theme_path() + "\"";
-        run_cmd(cmd);
-    }
-
-    if (path_exists(theme_path())) {
-        std::cout << "\n";
-        std::cout << ORANGE_MID << "  Setting current theme to " << THEME_NAME << "..." << RESET << "\n";
-        run_cmd("spicetify config current_theme " + std::string(THEME_NAME));
-
-        std::cout << ORANGE_MID << "  Applying Spicetify..." << RESET << "\n";
-        run_cmd("spicetify apply -q");
-
-        std::cout << "\n";
-        std::cout << GREEN << "  " << THEME_NAME
-                  << " installed and applied successfully." << RESET << "\n";
-    } else {
-        std::cout << "\n";
-        std::cout << RED << "  Installation failed. Check the errors above." << RESET << "\n";
-    }
-
-    pause_return();
-}
-
-void update_theme() {
-    show_header();
-    std::cout << ORANGE_LIGHT << "  Updating " << THEME_NAME << "..." << RESET << "\n\n";
-
-    if (!path_exists(theme_path())) {
-        std::cout << RED << "  " << THEME_NAME << " is not installed. Use Install instead." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    if (!test_dependencies()) {
-        pause_return();
-        return;
-    }
-
-    run_cmd(git_cmd("fetch origin"));
-
-    std::cout << ORANGE_MID << "  Switching to " << MASTER_BRANCH << " branch..." << RESET << "\n";
-    run_cmd(git_cmd(std::string("-c advice.detachedHead=false checkout -q ") + MASTER_BRANCH));
-    run_cmd(git_cmd(std::string("pull origin ") + MASTER_BRANCH));
-
-    std::cout << "\n";
-    std::cout << ORANGE_MID << "  Re-applying Spicetify..." << RESET << "\n";
-    run_cmd("spicetify apply -q");
-
-    std::cout << "\n";
-    std::cout << GREEN << "  " << THEME_NAME << " updated successfully." << RESET << "\n";
-    pause_return();
-}
-
-void uninstall_theme() {
-    show_header();
-    std::cout << ORANGE_LIGHT << "  Uninstalling " << THEME_NAME << "..." << RESET << "\n\n";
-
-    if (!path_exists(theme_path())) {
-        std::cout << RED << "  " << THEME_NAME << " is not installed." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    std::cout << GRAY << "  This will remove the theme folder and switch to Marketplace." << RESET << "\n";
-    if (!read_confirm("Type Y to confirm", "Y")) {
-        std::cout << GRAY << "  Cancelled." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
+std::string uninstall_theme() {
+    if (!path_exists(theme_path())) return std::string(THEME_NAME) + " is not installed.";
     if (command_exists("spicetify")) {
-        std::cout << ORANGE_MID << "  Switching Spicetify theme..." << RESET << "\n";
-        run_cmd("spicetify config current_theme \"SpoTUI-\"");
         run_cmd("spicetify config current_theme marketplace");
         run_cmd("spicetify apply -q");
     }
+    std::error_code ec;
+    fs::remove_all(theme_path(), ec);
+    if (ec) return "Failed to remove the theme folder.";
+    return std::string(THEME_NAME) + " has been uninstalled.";
+}
 
+void launch_self_update() {
 #ifdef _WIN32
-    std::string rm = "rmdir /s /q \"" + theme_path() + "\"";
+    char cmd[] =
+        "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
+        "\"iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/windows/install.ps1 | iex\"";
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+    si.cb = sizeof(si);
+    CreateProcessA(nullptr, cmd, nullptr, nullptr, FALSE, CREATE_NEW_CONSOLE, nullptr,
+                   nullptr, &si, &pi);
+    if (pi.hThread) CloseHandle(pi.hThread);
+    if (pi.hProcess) CloseHandle(pi.hProcess);
+    ExitProcess(0);
 #else
-    std::string rm = "rm -rf \"" + theme_path() + "\"";
+    execl("/bin/sh", "sh", "-c",
+          "curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh",
+          static_cast<char*>(nullptr));
+    _exit(127);
 #endif
-    run_cmd(rm);
-
-    std::cout << "\n";
-    std::cout << GREEN << "  " << THEME_NAME << " has been uninstalled." << RESET << "\n";
-    pause_return();
 }
 
-void checkout_commit(const Commit& c) {
-    show_header();
-    std::cout << ORANGE_LIGHT << "  Checking out commit " << c.short_hash << "..." << RESET << "\n";
-    std::cout << GRAY << "  " << c.date << "  " << c.subject << RESET << "\n\n";
-    std::cout << GRAY << "  This will switch the theme to this specific version." << RESET << "\n";
-    if (!read_confirm("Type Y to confirm", "Y")) {
-        std::cout << GRAY << "  Cancelled." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    run_cmd(git_cmd("-c advice.detachedHead=false checkout -q " + c.full));
-
-    if (command_exists("spicetify")) {
-        std::cout << "\n";
-        std::cout << ORANGE_MID << "  Applying Spicetify..." << RESET << "\n";
-        run_cmd("spicetify apply -q");
-    }
-
-    std::cout << "\n";
-    std::cout << GREEN << "  " << THEME_NAME << " is now on commit "
-              << c.short_hash << "." << RESET << "\n";
-    pause_return();
+MenuOption styled_menu() {
+    auto option = MenuOption::Vertical();
+    option.entries_option.transform = [](EntryState state) {
+        std::string prefix = state.active ? "> " : "  ";
+        Element e = text(prefix + state.label);
+        if (state.focused) {
+            e = e | bgcolor(kOrangeLight) | color(kSelectFg) | bold;
+        } else if (state.active) {
+            e = e | color(kGreen) | bold;
+        } else {
+            e = e | color(Color::White);
+        }
+        return e;
+    };
+    return option;
 }
 
-void show_commit_history() {
-    if (!path_exists(theme_path())) {
-        show_header();
-        std::cout << RED << "  " << THEME_NAME << " is not installed." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    if (!test_dependencies()) {
-        pause_return();
-        return;
-    }
-
-    bool viewing = true;
-    while (viewing) {
-        auto commits = get_commit_list_for_ref("origin/" + std::string(MASTER_BRANCH));
-        if (commits.empty()) {
-            show_header();
-            std::cout << RED << "  No commits found." << RESET << "\n";
-            pause_return();
-            return;
-        }
-
-        std::string current_hash = trim(run_capture(git_cmd("rev-parse HEAD")));
-
-        int current_index = -1;
-        std::vector<std::string> items;
-        for (size_t i = 0; i < commits.size(); i++) {
-            items.push_back(commits[i].short_hash + "  " + commits[i].date + "  " +
-                            commits[i].subject);
-            if (commits[i].full == current_hash) current_index = static_cast<int>(i);
-        }
-        size_t return_latest_index = items.size();
-        items.push_back("Return to latest version");
-        size_t back_index = items.size();
-        items.push_back("Back");
-
-        std::vector<std::string> title_lines = {
-            ORANGE_LIGHT + "  Commit History (" + MASTER_BRANCH + ")" + RESET, ""};
-
-        int selection = arrow_selection(items, current_index, title_lines);
-
-        if (selection == -1 || static_cast<size_t>(selection) == back_index) {
-            viewing = false;
-        } else if (static_cast<size_t>(selection) == return_latest_index) {
-            update_theme();
-        } else if (selection >= 0 && static_cast<size_t>(selection) < commits.size()) {
-            checkout_commit(commits[selection]);
-        }
-    }
-}
-
-void show_branch_commits(const std::string& branch) {
-    bool viewing = true;
-    while (viewing) {
-        auto commits = get_commit_list_for_ref("origin/" + branch);
-        if (commits.empty()) {
-            show_header();
-            std::cout << RED << "  No commits found on " << branch << "." << RESET << "\n";
-            pause_return();
-            return;
-        }
-
-        std::string current_hash = trim(run_capture(git_cmd("rev-parse HEAD")));
-
-        int current_index = -1;
-        std::vector<std::string> items;
-        for (size_t i = 0; i < commits.size(); i++) {
-            items.push_back(commits[i].short_hash + "  " + commits[i].date + "  " +
-                            commits[i].subject);
-            if (commits[i].full == current_hash) current_index = static_cast<int>(i);
-        }
-        size_t back_index = items.size();
-        items.push_back("Back");
-
-        std::vector<std::string> title_lines = {ORANGE_LIGHT + "  " + branch + " Commits" + RESET, ""};
-
-        int selection = arrow_selection(items, current_index, title_lines);
-
-        if (selection == -1 || static_cast<size_t>(selection) == back_index) {
-            viewing = false;
-        } else if (selection >= 0 && static_cast<size_t>(selection) < commits.size()) {
-            checkout_commit(commits[selection]);
-        }
-    }
-}
-
-void show_branches() {
-    if (!path_exists(theme_path())) {
-        show_header();
-        std::cout << RED << "  " << THEME_NAME << " is not installed." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    if (!test_dependencies()) {
-        pause_return();
-        return;
-    }
-
-    bool viewing = true;
-    while (viewing) {
-        auto branches = get_branch_list();
-        if (branches.empty()) {
-            show_header();
-            std::cout << RED << "  No branches found." << RESET << "\n";
-            pause_return();
-            return;
-        }
-
-        std::vector<std::string> items = branches;
-        size_t back_index = items.size();
-        items.push_back("Back");
-
-        std::vector<std::string> title_lines = {ORANGE_LIGHT + "  Branches" + RESET, ""};
-
-        int selection = arrow_selection(items, -1, title_lines);
-
-        if (selection == -1 || static_cast<size_t>(selection) == back_index) {
-            viewing = false;
-        } else if (selection >= 0 && static_cast<size_t>(selection) < branches.size()) {
-            show_branch_commits(branches[selection]);
-        }
-    }
-}
-
-void check_for_updates() {
-    show_header();
-    std::cout << ORANGE_LIGHT << "  Checking for updates..." << RESET << "\n\n";
-
-    if (!path_exists(theme_path())) {
-        std::cout << RED << "  " << THEME_NAME << " is not installed." << RESET << "\n";
-        pause_return();
-        return;
-    }
-
-    if (!test_dependencies()) {
-        pause_return();
-        return;
-    }
-
-    ThemeStatus status = theme_status_detailed();
-    std::cout << WHITE << "  Status: " << status.color << status.text << RESET << "\n";
-
-    if (status.text == "Installed (outdated)") {
-        std::cout << "\n";
-        std::cout << GRAY << "  A newer version is available." << RESET << "\n";
-        if (read_confirm("Type Y to update now", "Y")) {
-            update_theme();
-            return;
-        }
-    }
-
-    pause_return();
-}
-
-// menu
-
-int show_menu() {
-    show_header();
-    ThemeStatus status = theme_status_detailed();
-
-    std::cout << WHITE << "  Status: " << status.color << status.text << RESET << "\n\n";
-    std::cout << WHITE << "  [1] Install " << THEME_NAME << RESET << "\n";
-    std::cout << WHITE << "  [2] Update " << THEME_NAME << RESET << "\n";
-    std::cout << WHITE << "  [3] Uninstall " << THEME_NAME << RESET << "\n";
-    std::cout << WHITE << "  [4] Commit History / Downgrade" << RESET << "\n";
-    std::cout << WHITE << "  [5] Branches (switch to a different branch)" << RESET << "\n";
-    std::cout << WHITE << "  [6] Check for Updates" << RESET << "\n";
-    std::cout << WHITE << "  [7] Exit" << RESET << "\n\n";
-    std::cout << ORANGE_DARK
-              << "  =============================================================" << RESET << "\n\n";
-
-    std::cout << "  Select an option: ";
-    std::cout.flush();
-    std::string choice;
-    std::getline(std::cin, choice);
-    choice = trim(choice);
-    if (choice.size() == 1 && choice[0] >= '1' && choice[0] <= '7')
-        return choice[0] - '0';
-    return 0;
+Element frame(const Elements& body, const std::string& hint) {
+    Elements rows;
+    rows.push_back(logo());
+    rows.push_back(separator() | color(kOrangeDark));
+    rows.insert(rows.end(), body.begin(), body.end());
+    rows.push_back(separator() | color(kOrangeDark));
+    rows.push_back(text(hint) | color(kGray) | hcenter);
+    return vbox(std::move(rows)) | border | color(kOrangeDark) | flex;
 }
 
 }  // namespace
 
 int main() {
-    enable_vt();
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
 
-    bool running = true;
-    while (running) {
-        int choice = show_menu();
-        switch (choice) {
-            case 1: install_theme(); break;
-            case 2: update_theme(); break;
-            case 3: uninstall_theme(); break;
-            case 4: show_commit_history(); break;
-            case 5: show_branches(); break;
-            case 6: check_for_updates(); break;
-            case 7: running = false; break;
-            default:
-                show_header();
-                std::cout << RED << "  Invalid option." << RESET << "\n";
-                pause_return();
-                break;
+    auto screen = ScreenInteractive::Fullscreen();
+
+    int tab = 0;
+    std::vector<std::string> main_entries = {
+        std::string("Install ") + THEME_NAME,
+        std::string("Update ") + THEME_NAME,
+        std::string("Uninstall ") + THEME_NAME,
+        "Downgrade",
+        "Check for Updates",
+        "Self Update",
+        "Exit",
+    };
+    int main_selected = 0;
+    bool do_self_update = false;
+
+    std::vector<Release> releases;
+    std::vector<std::string> down_entries;
+    int down_selected = 0;
+
+    std::string info_text;
+    Color info_color = Color::White;
+
+    auto show_info = [&](const std::string& msg, Color c) {
+        info_text = msg;
+        info_color = c;
+        tab = 2;
+    };
+
+    auto main_opt = styled_menu();
+    main_opt.on_enter = [&] {
+        if (main_selected == 5) {
+            do_self_update = true;
+            screen.ExitLoopClosure()();
+            return;
         }
-    }
 
-    clear_screen();
+        if (main_selected == 6) {
+            screen.ExitLoopClosure()();
+            return;
+        }
+
+        if (main_selected == 0) {
+            auto rels = fetch_releases();
+            if (rels.empty()) {
+                show_info("No spotui@ releases found.", kRed);
+                return;
+            }
+            std::string msg = install_release(rels.front());
+            show_info(msg, msg.find("Failed") == 0 ? kRed : kGreen);
+            return;
+        }
+
+        if (main_selected == 1) {
+            if (!path_exists(theme_path())) {
+                show_info(std::string(THEME_NAME) + " is not installed. Use Install instead.", kRed);
+                return;
+            }
+            auto rels = fetch_releases();
+            if (rels.empty()) {
+                show_info("No spotui@ releases found.", kRed);
+                return;
+            }
+            std::string current = read_installed_version();
+            if (current == rels.front().name) {
+                show_info("Already on the latest version (" + current + ").", kGreen);
+                return;
+            }
+            std::string msg = install_release(rels.front());
+            show_info(msg, msg.find("Failed") == 0 ? kRed : kGreen);
+            return;
+        }
+
+        if (main_selected == 2) {
+            std::string msg = uninstall_theme();
+            bool ok = msg.find("uninstalled") != std::string::npos;
+            show_info(msg, ok ? kGreen : kRed);
+            return;
+        }
+
+        if (main_selected == 3) {
+            releases = fetch_releases();
+            if (releases.empty()) {
+                show_info("No spotui@ releases found.", kRed);
+                return;
+            }
+            down_entries.clear();
+            std::string current = read_installed_version();
+            for (const auto& r : releases) {
+                std::string label = r.name;
+                if (r.name == current) label += "  (current)";
+                if (&r == &releases.front()) label += "  (newest)";
+                down_entries.push_back(label);
+            }
+            down_entries.push_back("Back");
+            down_selected = 0;
+            if (!current.empty() && current != "unknown") {
+                for (size_t i = 0; i < releases.size(); i++) {
+                    if (releases[i].name == current) {
+                        down_selected = static_cast<int>(i);
+                        break;
+                    }
+                }
+            }
+            tab = 1;
+            return;
+        }
+
+        if (main_selected == 4) {
+            if (!path_exists(theme_path())) {
+                show_info(std::string(THEME_NAME) + " is not installed.", kRed);
+                return;
+            }
+            auto rels = fetch_releases();
+            if (rels.empty()) {
+                show_info("No spotui@ releases found.", kRed);
+                return;
+            }
+            std::string current = read_installed_version();
+            if (current == rels.front().name) {
+                show_info("Status: up to date (" + current + ").", kGreen);
+            } else {
+                show_info("Status: outdated.\nInstalled: " + current +
+                              "\nNewest: " + rels.front().name,
+                          kOrangeLight);
+            }
+        }
+    };
+
+    auto main_menu = Menu(&main_entries, &main_selected, main_opt);
+
+    auto down_opt = styled_menu();
+    down_opt.on_enter = [&] {
+        if (down_entries.empty()) {
+            tab = 0;
+            return;
+        }
+        if (down_selected == static_cast<int>(down_entries.size()) - 1) {
+            tab = 0;
+            return;
+        }
+        if (down_selected < 0 || down_selected >= static_cast<int>(releases.size()))
+            return;
+        std::string msg = install_release(releases[down_selected]);
+        show_info(msg, msg.find("Failed") == 0 ? kRed : kGreen);
+    };
+    auto down_menu = Menu(&down_entries, &down_selected, down_opt);
+
+    auto main_view = Renderer(main_menu, [&] {
+        std::string current = read_installed_version();
+        Element status;
+        if (current.empty()) {
+            status = text("Status: Not Installed") | color(kRed);
+        } else {
+            status = text("Status: Installed (" + current + ")") | color(kGreen);
+        }
+        return frame(
+            {
+                status | hcenter,
+                text("") ,
+                main_menu->Render() | flex,
+            },
+            "Up/Down to move, Enter to select, Esc to exit");
+    });
+
+    auto down_view = Renderer(down_menu, [&] {
+        return frame(
+            {
+                text("Select a version") | color(kOrangeMid) | hcenter,
+                text(""),
+                down_menu->Render() | flex,
+            },
+            "Enter to install, Esc to go back");
+    });
+
+    auto info_view = Renderer([&] {
+        Elements lines;
+        for (const auto& line : split(info_text, '\n')) {
+            lines.push_back(text(line) | color(info_color) | hcenter);
+        }
+        return frame(
+            {
+                text(""),
+                vbox(std::move(lines)) | flex,
+            },
+            "Press Enter or Esc to return");
+    });
+
+    auto tabs = Container::Tab({main_view, down_view, info_view}, &tab);
+
+    auto component = CatchEvent(tabs, [&](Event event) {
+        if (event == Event::Escape) {
+            if (tab == 0) {
+                screen.ExitLoopClosure()();
+            } else {
+                tab = 0;
+            }
+            return true;
+        }
+        if (tab == 2 && event == Event::Return) {
+            tab = 0;
+            return true;
+        }
+        return false;
+    });
+
+    screen.Loop(component);
+    if (do_self_update) launch_self_update();
     return 0;
 }
