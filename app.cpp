@@ -27,6 +27,7 @@
 #else
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 using namespace ftxui;
@@ -543,6 +544,29 @@ std::string uninstall_theme() {
     return std::string(THEME_NAME) + " has been uninstalled.";
 }
 
+void launch_self_update() {
+#ifdef _WIN32
+    char cmd[] =
+        "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
+        "\"iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/windows/install.ps1 | iex\"";
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+    si.cb = sizeof(si);
+    CreateProcessA(nullptr, cmd, nullptr, nullptr, FALSE, CREATE_NEW_CONSOLE, nullptr,
+                   nullptr, &si, &pi);
+    if (pi.hThread) CloseHandle(pi.hThread);
+    if (pi.hProcess) CloseHandle(pi.hProcess);
+    ExitProcess(0);
+#else
+    execl("/bin/sh", "sh", "-c",
+          "curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh",
+          static_cast<char*>(nullptr));
+    _exit(127);
+#endif
+}
+
 MenuOption styled_menu() {
     auto option = MenuOption::Vertical();
     option.entries_option.transform = [](EntryState state) {
@@ -587,9 +611,11 @@ int main() {
         std::string("Uninstall ") + THEME_NAME,
         "Downgrade",
         "Check for Updates",
+        "Self Update",
         "Exit",
     };
     int main_selected = 0;
+    bool do_self_update = false;
 
     std::vector<Release> releases;
     std::vector<std::string> down_entries;
@@ -607,6 +633,12 @@ int main() {
     auto main_opt = styled_menu();
     main_opt.on_enter = [&] {
         if (main_selected == 5) {
+            do_self_update = true;
+            screen.ExitLoopClosure()();
+            return;
+        }
+
+        if (main_selected == 6) {
             screen.ExitLoopClosure()();
             return;
         }
@@ -776,5 +808,6 @@ int main() {
     });
 
     screen.Loop(component);
+    if (do_self_update) launch_self_update();
     return 0;
 }
