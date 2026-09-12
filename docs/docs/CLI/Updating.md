@@ -9,6 +9,6 @@ iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/in
 
 ### Linux
 ```bash
-curl -fsSL -o install.sh https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/linux/install.sh && chmod +x install.sh && ./install.sh
+curl -fsSL https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/linux/install.sh | sh
 ```
 
