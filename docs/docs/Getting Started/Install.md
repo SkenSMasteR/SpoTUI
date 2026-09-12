@@ -31,8 +31,8 @@ Once installation is complete:
 spotui
 ```
 
-After the CLI opens, press `1` to install the SpoTUI theme.
+After the CLI opens, select "Install SpoTUI" to install the SpoTUI theme theme.
 
 ## SpoTUI CLI Preview
 
-![SpoTUI CLI](https://img.ge/i/Ir0T476.png)
+![SpoTUI CLI](https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/docs/docs/docs/Getting%20Started/assets/SpoTUI%20CLI.png)

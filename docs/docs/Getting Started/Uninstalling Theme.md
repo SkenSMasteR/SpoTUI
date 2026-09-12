@@ -9,8 +9,8 @@ To uninstall the SpoTUI theme, simply press 3 in the CLI.
 spotui
 ```
 # Update
-Select option `3` to uninstall.
+After the CLI opens, select "Uninstall SpoTUI" to uninstall the theme.
 
 ## SpoTUI CLI Preview
 
-![SpoTUI CLI](https://img.ge/i/Ir0T476.png)
+![SpoTUI CLI](https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/docs/docs/docs/Getting%20Started/assets/SpoTUI%20CLI.png)

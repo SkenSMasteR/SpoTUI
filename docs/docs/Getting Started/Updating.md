@@ -9,8 +9,8 @@ To update SpoTUI to the latest version, simply press 2 in the CLI.
 spotui
 ```
 # Update
-Select option `2` to update.
+After the CLI opens, select "Update SpoTUI" to update.
 
 ## SpoTUI CLI Preview
 
-![SpoTUI CLI](https://img.ge/i/Ir0T476.png)
+![SpoTUI CLI](https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/docs/docs/docs/Getting%20Started/assets/SpoTUI%20CLI.png)
