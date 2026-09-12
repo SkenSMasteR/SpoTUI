@@ -1062,7 +1062,7 @@
         <legend>Songs</legend>
     </fieldset>
 </div>
-<div id="spotui-help-panel" hidden></div>
+<div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
@@ -1648,9 +1648,12 @@
         setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", true);
         const panel = document.getElementById("spotui-help-panel");
         if (panel) {
-            panel.innerHTML = COMMAND_LIST.map(
-                item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
-            ).join('');
+            const content = panel.querySelector('.spotui-help-content');
+            if (content) {
+                content.innerHTML = COMMAND_LIST.map(
+                    item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
+                ).join('');
+            }
         }
     }
 
@@ -4137,10 +4140,33 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     background: var(--panel-bg-color, transparent);
 }
 
+#spotui-help-panel {
+    border: none;
+    padding: 0;
+    margin: 33vh 5vw 8px;
+}
+
+.spotui-help-fieldset {
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 6px;
+    padding: 30px;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: var(--panel-bg-color, transparent);
+}
+
 body.spotui-help-panel #spotui-help-panel,
 body.spotui-about-panel #spotui-about-panel,
 body.spotui-theme-panel #spotui-theme-panel {
     display: flex;
+}
+
+.spotui-help-legend {
+    float: right;
+    color: var(--panel-text-color, #ff8c42);
+    padding: 0 5px;
 }
 
 .spotui-theme-loading {
