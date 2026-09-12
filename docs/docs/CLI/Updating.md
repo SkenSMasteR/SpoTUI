@@ -1,14 +1,16 @@
 # Updating SpoTUI CLI
 
-To update the SpoTUI CLI to the latest version, simply run the CLI install script.
+To update the SpoTUI CLI to the latest version, follow the instructions bellow
 
-### Windows
+# Run the CLI
+### Windows & Linux
 ```powershell
-iwr -useb https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/windows/install.ps1 | iex
+spotui
 ```
+# Update
+After the CLI opens, select "Self Update" to update.
 
-### Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/master/scripts/install/linux/install.sh | sh
-```
+## SpoTUI CLI Preview
+
+![SpoTUI CLI](https://raw.githubusercontent.com/SkenSMasteR/SpoTUI/refs/heads/docs/docs/docs/Getting%20Started/assets/SpoTUI%20CLI.png)
 
