@@ -68,9 +68,12 @@ export function openHelpPanel() {
     setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", true);
     const panel = document.getElementById("spotui-help-panel");
     if (panel) {
-        panel.innerHTML = COMMAND_LIST.map(
-            item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
-        ).join('');
+        const content = panel.querySelector('.spotui-help-content');
+        if (content) {
+            content.innerHTML = COMMAND_LIST.map(
+                item => `<div class="help-item"><span class="command">${item.cmd}</span><span class="description">${item.desc}</span></div>`
+            ).join('');
+        }
     }
 }
 

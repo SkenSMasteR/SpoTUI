@@ -526,10 +526,33 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     background: var(--panel-bg-color, transparent);
 }
 
+#spotui-help-panel {
+    border: none;
+    padding: 0;
+    margin: 33vh 5vw 8px;
+}
+
+.spotui-help-fieldset {
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 6px;
+    padding: 30px;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: var(--panel-bg-color, transparent);
+}
+
 body.spotui-help-panel #spotui-help-panel,
 body.spotui-about-panel #spotui-about-panel,
 body.spotui-theme-panel #spotui-theme-panel {
     display: flex;
+}
+
+.spotui-help-legend {
+    float: right;
+    color: var(--panel-text-color, #ff8c42);
+    padding: 0 5px;
 }
 
 .spotui-theme-loading {
