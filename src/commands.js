@@ -255,7 +255,7 @@ export async function execute(cmd, opts = {}) {
 
             const match = app.playlists.filter(p => p.name.toLowerCase().includes(argText.toLowerCase()));
             if (match.length === 1) {
-                Spicetify.Player.playUri(match.uri);
+                Spicetify.Player.playUri(match[0].uri);
                 return;
             } else if (match.length > 1) {
                 jamSay("Multiple matches: " + match.map(p => p.name).join(", "));
