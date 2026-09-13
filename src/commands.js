@@ -258,7 +258,7 @@ export async function execute(cmd, opts = {}) {
                 Spicetify.Player.playUri(match.uri);
                 return;
             } else if (match.length > 1) {
-                jamSay("Multiple matches: " + matches.map(p => p.name).join(", "));
+                jamSay("Multiple matches: " + match.map(p => p.name).join(", "));
                 return;
             }
         }
