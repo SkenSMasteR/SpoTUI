@@ -8,6 +8,7 @@ import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix
 import { handleLyricsCommand, syncLyricsHighlight, syncLyricsState } from "./lyrics.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
 import { openAboutPanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
+import { getPlaylists } from "./playlists.js";
 import { app } from "./state.js";
 import { storageClear, storageGet, storageRemove, storageSet } from "./storage.js";
 import { applyThemeByName } from "./themes.js";
@@ -243,7 +244,27 @@ export async function execute(cmd, opts = {}) {
 
     if (command === "help") { openHelpPanel(); return; }
     if (command === "about") { openAboutPanel(); return; }
-    if (command === "playlist" || command === "list") { openPlaylistPanel(); return; }
+    if (command === "playlist" || command === "list") { 
+        if (argText) {
+            try {
+                app.playlists = await getPlaylists();
+            } catch (err) {
+                jamSay("Playlist error: " + err.message);
+                return;
+            }
+
+            const match = app.playlists.filter(p => p.name.toLowerCase().includes(argText.toLowerCase()));
+            if (match.length === 1) {
+                Spicetify.Player.playUri(match.uri);
+                return;
+            } else if (match.length > 1) {
+                jamSay("Multiple matches: " + matches.map(p => p.name).join(", "));
+                return;
+            }
+        }
+
+        openPlaylistPanel(); return; 
+    }
     if (command === "theme") { openThemePanel(); return; }
     if (command === "discord") {
         storageRemove(UPDATE_BANNER_KEY);
