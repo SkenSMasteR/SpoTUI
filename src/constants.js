@@ -143,7 +143,7 @@ export const COMMAND_LIST = [
     { cmd: "like", desc: "Like/unlike current song" },
     { cmd: "lyrics", desc: "Toggle lyrics panel" },
     { cmd: "dj", desc: "Play the DJ playlist" },
-    { cmd: "search", desc: "Open Spotify search" },
+    { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
     { cmd: "about", desc: "Show about panel" },
     { cmd: "theme", desc: "Browse and apply themes" },
     { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
