@@ -246,6 +246,7 @@ export function handleSearchPanelKeydown(e) {
     if (!app.searchPanelOpen) return;
     if (e.key === "Escape") {
         e.preventDefault();
+        e.stopImmediatePropagation();
         closeSearchPanel();
         return;
     }

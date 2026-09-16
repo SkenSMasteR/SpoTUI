@@ -580,7 +580,7 @@ export function bindLyricsEvents() {
 // Handle lyrics command
 export function handleLyricsCommand(arg) {
     const mode = String(arg || "").trim().toLowerCase();
-    if (mode === "on" || mode === "open") { openLyricsPanel(); return; }
+    if (mode === "on" || mode === "open") { if (!app.lyricsPanelOpen) openLyricsPanel(); return; }
     if (mode === "off" || mode === "close") { closeLyricsPanel(); return; }
     if (mode && mode !== "toggle") return;
     if (app.lyricsPanelOpen) { closeLyricsPanel(); }
