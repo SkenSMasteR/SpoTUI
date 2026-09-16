@@ -29,20 +29,32 @@ function toResult(entry) {
     };
 }
 
+function isAutocompleteEntry(entry, data) {
+    const types = [entry?.item?.__typename, data?.__typename, entry?.__typename];
+    return types.some((type) => typeof type === "string" && /autocomplete/i.test(type));
+}
+
 function extractResults(searchV2) {
     const results = [];
     const seen = new Set();
+    let autocomplete = "";
     Object.values(searchV2 || {}).forEach((section) => {
         const list = section?.itemsV2 || section?.items;
         if (!Array.isArray(list)) return;
         list.forEach((entry) => {
+            const data = entry?.item?.data ?? entry?.data ?? entry;
+            const name = resolveName(data);
+            if (isAutocompleteEntry(entry, data)) {
+                if (!autocomplete && name) autocomplete = name;
+                return;
+            }
             const item = toResult(entry);
             if (!item || seen.has(item.uri)) return;
             seen.add(item.uri);
             results.push(item);
         });
     });
-    return results;
+    return { results, autocomplete };
 }
 
 async function searchSpotify(query, limit = 20) {
@@ -80,11 +92,11 @@ async function searchSpotify(query, limit = 20) {
     for (const [definition, variables] of attempts) {
         try {
             const res = await Spicetify.GraphQL.Request(definition, variables);
-            const results = extractResults(res?.data?.searchV2);
-            if (results.length) return results;
+            const parsed = extractResults(res?.data?.searchV2);
+            if (parsed.results.length || parsed.autocomplete) return parsed;
         } catch (err) {}
     }
-    return [];
+    return { results: [], autocomplete: "" };
 }
 
 function updateSearchBarFocus() {
@@ -124,6 +136,33 @@ export function renderSearchResults() {
     });
 }
 
+function renderSearchAutocomplete() {
+    const input = document.getElementById("spotui-search-input");
+    const ghost = document.getElementById("spotui-search-ghost");
+    if (!input || !ghost) return;
+    const value = input.value;
+    const completion = app.searchAutocomplete || "";
+    const matches = completion.length > value.length && completion.toLowerCase().startsWith(value.toLowerCase());
+    if (!matches) {
+        ghost.hidden = true;
+        ghost.textContent = "";
+        return;
+    }
+    ghost.hidden = false;
+    ghost.style.left = `${input.offsetLeft}px`;
+    ghost.style.top = `${input.offsetTop}px`;
+    ghost.style.width = `${input.offsetWidth}px`;
+    ghost.style.height = `${input.offsetHeight}px`;
+    ghost.innerHTML = "";
+    const typed = document.createElement("span");
+    typed.style.visibility = "hidden";
+    typed.textContent = value;
+    const rest = document.createElement("span");
+    rest.textContent = completion.slice(value.length);
+    ghost.appendChild(typed);
+    ghost.appendChild(rest);
+}
+
 async function runSearch(query) {
     const token = ++app.searchFetchToken;
     const term = query.trim();
@@ -131,21 +170,26 @@ async function runSearch(query) {
     if (!term) {
         app.searchResults = [];
         app.searchSelected = 0;
+        app.searchAutocomplete = "";
         renderSearchResults();
+        renderSearchAutocomplete();
         return;
     }
     try {
-        const results = await searchSpotify(term);
+        const { results, autocomplete } = await searchSpotify(term);
         if (token !== app.searchFetchToken) return;
         app.searchResults = results;
+        app.searchAutocomplete = autocomplete;
     } catch (err) {
         if (token !== app.searchFetchToken) return;
         app.searchResults = [];
+        app.searchAutocomplete = "";
     }
     if (app.searchSelected >= app.searchResults.length) {
         app.searchSelected = Math.max(0, app.searchResults.length - 1);
     }
     renderSearchResults();
+    renderSearchAutocomplete();
     scrollSearchSelectedIntoView();
 }
 
@@ -178,12 +222,23 @@ export function initSearchPanel() {
     const bar = document.getElementById("spotui-search-bar");
     if (!input || !bar) return;
     app.searchBound = true;
+    if (!document.getElementById("spotui-search-ghost")) {
+        const ghost = document.createElement("div");
+        ghost.id = "spotui-search-ghost";
+        ghost.hidden = true;
+        bar.appendChild(ghost);
+    }
     bar.addEventListener("click", () => {
         if (app.searchPanelOpen) setSearchFocus("input");
     });
     input.addEventListener("input", (e) => {
         app.searchSelected = 0;
+        app.searchAutocomplete = "";
+        renderSearchAutocomplete();
         scheduleSearch(e.target.value);
+    });
+    input.addEventListener("scroll", () => {
+        if (app.searchAutocomplete) renderSearchAutocomplete();
     });
 }
 
@@ -192,6 +247,20 @@ export function handleSearchPanelKeydown(e) {
     if (e.key === "Escape") {
         e.preventDefault();
         closeSearchPanel();
+        return;
+    }
+    if (e.key === "Tab") {
+        const input = document.getElementById("spotui-search-input");
+        const completion = app.searchAutocomplete || "";
+        const value = input ? input.value : "";
+        const canComplete = input && completion.length > value.length && completion.toLowerCase().startsWith(value.toLowerCase());
+        if (!canComplete) return;
+        e.preventDefault();
+        input.value = completion;
+        input.setSelectionRange(completion.length, completion.length);
+        app.searchAutocomplete = "";
+        renderSearchAutocomplete();
+        runSearch(completion);
         return;
     }
     if (e.key === "ArrowDown") {
@@ -228,6 +297,12 @@ export function handleSearchPanelKeydown(e) {
 export function closeSearchPanel() {
     const wasOpen = app.searchPanelOpen;
     app.searchPanelOpen = false;
+    app.searchAutocomplete = "";
+    const ghost = document.getElementById("spotui-search-ghost");
+    if (ghost) {
+        ghost.hidden = true;
+        ghost.textContent = "";
+    }
     document.body.classList.remove("spotui-search-panel");
     const panel = document.getElementById("spotui-search-panel");
     if (panel) panel.hidden = true;
@@ -245,6 +320,7 @@ export function openSearchPanel(query = "") {
     app.searchPanelOpen = true;
     app.searchResults = [];
     app.searchSelected = 0;
+    app.searchAutocomplete = "";
     app.searchFetchToken += 1;
     document.body.classList.add("spotui-search-panel");
     const panel = document.getElementById("spotui-search-panel");

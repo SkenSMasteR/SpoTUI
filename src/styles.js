@@ -997,6 +997,7 @@ body.spotui-search-panel #spotui-search-panel {
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;
+    position: relative;
     padding: 8px 12px;
     border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 4px;
@@ -1024,6 +1025,18 @@ body.spotui-search-panel #spotui-search-panel {
 }
 
 #spotui-search-input::placeholder {
+    color: #777;
+}
+
+#spotui-search-ghost {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 15px;
     color: #777;
 }
 

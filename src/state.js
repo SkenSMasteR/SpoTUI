@@ -36,6 +36,7 @@ export const app = {
     searchSelected: 0,
     searchFocus: "input",
     searchQuery: "",
+    searchAutocomplete: "",
     searchFetchToken: 0,
     searchDebounce: null,
     searchBound: false,
