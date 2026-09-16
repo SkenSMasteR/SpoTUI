@@ -6,6 +6,7 @@ import { isRestrictedThemeCommand } from "./keybinds.js";
 import { closeLyricsPanel } from "./lyrics.js";
 import { closeOnboardingPanel } from "./onboarding.js";
 import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistPanel } from "./playlists.js";
+import { closeSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
 import { createAddThemeCard, createThemeCard, loadThemeFeed } from "./themes.js";
@@ -34,6 +35,7 @@ export function closeActivePanel() {
     if (app.lyricsPanelOpen) closeLyricsPanel();
     if (app.playlistPanelOpen) closePlaylistPanel();
     if (app.themePanelOpen) closeThemePanel();
+    if (app.searchPanelOpen) closeSearchPanel();
     if (app.onboardingPanelOpen) closeOnboardingPanel();
     if (app.djPanelOpen) {
         const root = document.getElementById("spotui-dj");

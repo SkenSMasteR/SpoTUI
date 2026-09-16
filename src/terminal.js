@@ -1,5 +1,6 @@
 import { initAsciiAnimation } from "./ascii.js";
 import { execute } from "./commands.js";
+import { initSearchPanel } from "./search.js";
 import { app } from "./state.js";
 
 export function setTuiMode(mode) {
@@ -34,6 +35,13 @@ export function createTerminal() {
 </div>
 <div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
+<div id="spotui-search-panel" hidden>
+    <div id="spotui-search-bar">
+        <span class="spotui-search-prompt">></span>
+        <input id="spotui-search-input" autocomplete="off" spellcheck="false" placeholder="type to search...">
+    </div>
+    <div id="spotui-search-results"></div>
+</div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
 <div id="spotui-footer">
@@ -43,10 +51,11 @@ export function createTerminal() {
 `;
     document.body.appendChild(box);
     initAsciiAnimation();
+    initSearchPanel();
 
     const input = document.getElementById("spotui-input");
     input.addEventListener("keydown", async (e) => {
-        if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen) {
+        if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen) {
             e.stopImmediatePropagation();
             return;
         }

@@ -5,10 +5,11 @@ import { initUpdateBanner, showRestartPopup } from "./banner.js";
 import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { getAllowedJamGuestCommands, jamCreate, jamJoin, jamLeave, jamSay } from "./jam.js";
 import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix } from "./keybinds.js";
-import { handleLyricsCommand, syncLyricsHighlight, syncLyricsState } from "./lyrics.js";
+import { handleLyricsCommand, syncLyricsHighlight } from "./lyrics.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
-import { openAboutPanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
+import { openAboutPanel, closeActivePanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
 import { getPlaylists } from "./playlists.js";
+import { openSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { storageClear, storageGet, storageRemove, storageSet } from "./storage.js";
 import { applyThemeByName } from "./themes.js";
@@ -291,8 +292,8 @@ export async function execute(cmd, opts = {}) {
     }
 
     if (command === "search") {
-        document.body.classList.add("spotui-search-mode", "spotui-tui-hidden");
-        syncLyricsState();
+        closeActivePanel();
+        openSearchPanel(argText);
         return;
     }
 

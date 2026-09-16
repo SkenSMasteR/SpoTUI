@@ -42,6 +42,7 @@ body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
+body.spotui-search-panel #spotui-logo,
 body.spotui-about-panel #spotui-logo,
 body.spotui-onboarding-panel #spotui-logo {
     top: 12px;
@@ -971,6 +972,113 @@ body.spotui-tui-hidden #spotui-tui {
     font-size: 12px;
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+#spotui-search-panel {
+    display: none;
+    flex: 1 1 auto;
+    flex-direction: column;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    padding: 20px;
+    box-sizing: border-box;
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 6px;
+    background: var(--panel-bg-color, transparent);
+    overflow: hidden;
+}
+
+body.spotui-search-panel #spotui-search-panel {
+    display: flex;
+}
+
+#spotui-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 4px;
+    background: rgba(0,0,0,0.5);
+}
+
+#spotui-search-bar.focused {
+    border-color: var(--spotui-accent, #ff8c42);
+}
+
+.spotui-search-prompt {
+    color: var(--panel-text-color, #ff8c42);
+}
+
+#spotui-search-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--panel-text-color, #ff8c42);
+    font-family: inherit;
+    font-size: 15px;
+    caret-color: var(--spotui-accent, #ff8c42);
+}
+
+#spotui-search-input::placeholder {
+    color: #777;
+}
+
+#spotui-search-results {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 12px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#spotui-search-results::-webkit-scrollbar {
+    display: none;
+}
+
+.spotui-search-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    color: #ddd;
+    cursor: pointer;
+}
+
+.spotui-search-item.selected {
+    background: var(--spotui-accent, #ff8c42);
+    color: #000;
+}
+
+.spotui-search-type {
+    flex: 0 0 auto;
+    min-width: 70px;
+    font-size: 11px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-search-item.selected .spotui-search-type {
+    color: #000;
+    opacity: 1;
+}
+
+.spotui-search-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spotui-search-empty {
+    padding: 10px;
+    color: #777;
 }
 `;
 // Inject theme CSS into document head
