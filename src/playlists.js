@@ -104,14 +104,18 @@ export function renderPlaylistListVirtual() {
     const startIdx = Math.max(0, Math.floor(scrollTop / PLAYLIST_ROW_HEIGHT) - buffer);
     const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / PLAYLIST_ROW_HEIGHT) + buffer);
 
+    const needed = Math.max(0, endIdx - startIdx);
+    while (viewport.childNodes.length > needed) viewport.removeChild(viewport.lastChild);
+    while (viewport.childNodes.length < needed) viewport.appendChild(document.createElement("div"));
     viewport.style.transform = `translateY(${startIdx * PLAYLIST_ROW_HEIGHT}px)`;
-    viewport.innerHTML = "";
-    for (let idx = startIdx; idx < endIdx; idx++) {
+    for (let i = 0; i < needed; i++) {
+        const idx = startIdx + i;
         const p = app.playlists[idx];
-        const item = document.createElement("div");
-        item.className = "playlist-item" + (idx === app.selectedPlaylist && app.activePane === "playlist" ? " selected" : "");
-        item.textContent = p.name;
-        viewport.appendChild(item);
+        const item = viewport.childNodes[i];
+        const className = "playlist-item" + (idx === app.selectedPlaylist && app.activePane === "playlist" ? " selected" : "");
+        const text = p.name;
+        if (item.className !== className) item.className = className;
+        if (item.textContent !== text) item.textContent = text;
     }
 }
 
@@ -159,14 +163,18 @@ export function renderSongListVirtual() {
     const startIdx = Math.max(0, Math.floor(scrollTop / SONG_ROW_HEIGHT) - buffer);
     const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / SONG_ROW_HEIGHT) + buffer);
 
+    const needed = Math.max(0, endIdx - startIdx);
+    while (viewport.childNodes.length > needed) viewport.removeChild(viewport.lastChild);
+    while (viewport.childNodes.length < needed) viewport.appendChild(document.createElement("div"));
     viewport.style.transform = `translateY(${startIdx * SONG_ROW_HEIGHT}px)`;
-    viewport.innerHTML = "";
-    for (let idx = startIdx; idx < endIdx; idx++) {
+    for (let i = 0; i < needed; i++) {
+        const idx = startIdx + i;
         const s = app.playlistSongs[idx];
-        const item = document.createElement("div");
-        item.className = "song-item" + (idx === app.selectedSong && app.activePane === "song" ? " selected" : "");
-        item.textContent = `${s.name} - ${s.artist}`;
-        viewport.appendChild(item);
+        const item = viewport.childNodes[i];
+        const className = "song-item" + (idx === app.selectedSong && app.activePane === "song" ? " selected" : "");
+        const text = `${s.name} - ${s.artist}`;
+        if (item.className !== className) item.className = className;
+        if (item.textContent !== text) item.textContent = text;
     }
 }
 
@@ -198,13 +206,18 @@ export function animateSongScrollToIndex(targetIdx) {
     const total = app.playlistSongs.length;
     if (!total) return;
     const destination = Math.max(0, Math.min(targetIdx, total - 1));
+    const viewHeight = container.clientHeight || 400;
+    const targetTop = Math.max(0, destination * SONG_ROW_HEIGHT - viewHeight / 2);
+    if (Math.abs(targetTop - container.scrollTop) > viewHeight * 3) {
+        container.scrollTop = targetTop;
+        renderSongListVirtual();
+        return;
+    }
 
     const step = () => {
         app.songScrollAnimRaf = null;
         if (!app.playlistPanelOpen || app.activePane !== "song" || token !== app.playlistSongsFetchToken) return;
 
-        const viewHeight = container.clientHeight || 400;
-        const targetTop = Math.max(0, destination * SONG_ROW_HEIGHT - viewHeight / 2);
         const current = container.scrollTop;
         const distance = targetTop - current;
         if (Math.abs(distance) < 1) return;
@@ -251,13 +264,16 @@ export async function handlePlaylistPanelKeydown(e) {
             if (!app.playlists.length) return;
             cancelSongScrollAnim();
             app.selectedPlaylist = (app.selectedPlaylist + dir + app.playlists.length) % app.playlists.length;
+            const now = performance.now();
+            app.playlistNavFast = e.repeat || now - app.playlistNavLastAt < 160;
+            app.playlistNavLastAt = now;
 
             if (app.navRafPending) return;
             app.navRafPending = true;
             requestAnimationFrame(() => {
                 app.navRafPending = false;
                 renderPlaylistListVirtual();
-                scrollPlaylistIntoView(app.selectedPlaylist, !e.repeat);
+                scrollPlaylistIntoView(app.selectedPlaylist, !app.playlistNavFast);
             });
 
             scheduleSongsFetchForSelectedPlaylist();
@@ -265,23 +281,25 @@ export async function handlePlaylistPanelKeydown(e) {
         }
 
         if (!app.playlistSongs.length) return;
-        if (e.repeat && app.songScrollAnimRaf) return;
 
         const navTotal = app.playlistSongsTotal || app.playlistSongs.length;
         const prevSelected = app.selectedSong;
         app.selectedSong = (prevSelected + dir + navTotal) % navTotal;
-        const wrappedUpToBottom = dir === -1 && prevSelected === 0;
+        const wrapped = (dir === -1 && prevSelected === 0) || (dir === 1 && prevSelected === navTotal - 1);
+        const now = performance.now();
+        app.playlistNavFast = e.repeat || now - app.playlistNavLastAt < 160;
+        app.playlistNavLastAt = now;
 
         if (app.navRafPending) return;
         app.navRafPending = true;
         requestAnimationFrame(() => {
             app.navRafPending = false;
             cancelSongScrollAnim();
-            if (wrappedUpToBottom) {
+            if (wrapped && !app.playlistNavFast) {
                 renderSongListVirtual();
                 animateSongScrollToIndex(app.selectedSong);
             } else {
-                commitSongNav(!e.repeat);
+                commitSongNav(!app.playlistNavFast);
             }
         });
         return;

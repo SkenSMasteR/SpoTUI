@@ -55,5 +55,7 @@ export const app = {
     playlistListScrollRaf: null,
     songListScrollRaf: null,
     songScrollAnimRaf: null,
-    navRafPending: false
+    navRafPending: false,
+    playlistNavLastAt: 0,
+    playlistNavFast: false
 };

@@ -666,7 +666,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 #spotui-playlist-list, #spotui-song-list {
     width: 50%;
     overflow-y: auto;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding: 10px;
