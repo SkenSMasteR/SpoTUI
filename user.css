@@ -128,7 +128,10 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrap
 .main-devicePicker-button,
 .main-devicePicker-controlButton,
 .main-devicePicker-moreButton,
-.main-devicePicker-tooltip {
+.main-devicePicker-tooltip,
+.MZd_PqzVQOdrbpd6ircZ,
+.ABsPxBFldURR4hbFY38Y,
+.encore-bright-accent-set:has(> button span[aria-live="polite"]) {
     display: none !important;
 }
 
@@ -398,6 +401,33 @@ body.logo-on.spotui-lyrics-open .Root__right-sidebar {
     color: #ddd !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
     border-radius: 0 !important;
+}
+
+#main,
+.Root.global-nav.centered-layout {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#main {
+    overflow: hidden !important;
+}
+
+.Root.global-nav.centered-layout {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
 }
 
 body {
