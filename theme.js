@@ -144,7 +144,7 @@
         { cmd: "like", desc: "Like/unlike current song" },
         { cmd: "lyrics", desc: "Toggle lyrics panel" },
         { cmd: "dj", desc: "Play the DJ playlist" },
-        { cmd: "search", desc: "Open Spotify search" },
+        { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
         { cmd: "about", desc: "Show about panel" },
         { cmd: "theme", desc: "Browse and apply themes" },
         { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
@@ -187,6 +187,15 @@
         lyricsLoadToken: 0,
         lyricsActiveIndex: -1,
         lyricsActiveLoaderIndex: -1,
+        searchPanelOpen: false,
+        searchResults: [],
+        searchSelected: 0,
+        searchFocus: "input",
+        searchQuery: "",
+        searchAutocomplete: "",
+        searchFetchToken: 0,
+        searchDebounce: null,
+        searchBound: false,
         lyricsCache: { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" },
         lyricsBound: false,
         lyricsSyncInterval: null,
@@ -1042,6 +1051,342 @@
         execute(cmd);
     }
 
+    const SEARCH_DEBOUNCE_MS = 250;
+
+    function resolveName(data) {
+        const candidates = [
+            data.profile?.name,
+            data.name,
+            data.title,
+            data.text,
+            data.displayName,
+            data.identity?.name,
+            data.owner?.name,
+        ];
+        return candidates.find((value) => typeof value === "string" && value.trim()) || "";
+    }
+
+    function toResult(entry) {
+        const data = entry?.item?.data ?? entry?.data ?? entry;
+        if (!data || !data.uri) return null;
+        const name = resolveName(data);
+        if (!name) return null;
+        return {
+            type: data.__typename ?? entry?.item?.__typename ?? "",
+            name,
+            uri: data.uri,
+            raw: data,
+        };
+    }
+
+    function isAutocompleteEntry(entry, data) {
+        const types = [entry?.item?.__typename, data?.__typename, entry?.__typename];
+        return types.some((type) => typeof type === "string" && /autocomplete/i.test(type));
+    }
+
+    function extractResults(searchV2) {
+        const results = [];
+        const seen = new Set();
+        let autocomplete = "";
+        Object.values(searchV2 || {}).forEach((section) => {
+            const list = section?.itemsV2 || section?.items;
+            if (!Array.isArray(list)) return;
+            list.forEach((entry) => {
+                const data = entry?.item?.data ?? entry?.data ?? entry;
+                const name = resolveName(data);
+                if (isAutocompleteEntry(entry, data)) {
+                    if (!autocomplete && name) autocomplete = name;
+                    return;
+                }
+                const item = toResult(entry);
+                if (!item || seen.has(item.uri)) return;
+                seen.add(item.uri);
+                results.push(item);
+            });
+        });
+        return { results, autocomplete };
+    }
+
+    async function searchSpotify(query, limit = 20) {
+        const definitions = Spicetify.GraphQL?.Definitions ?? {};
+        const attempts = [];
+        if (definitions.searchSuggestions) {
+            attempts.push([
+                definitions.searchSuggestions,
+                {
+                    query: query,
+                    offset: 0,
+                    limit: limit,
+                    numberOfTopResults: limit,
+                    includeAuthors: true,
+                    includeAlbumPreReleases: true,
+                    includeEpisodeContentRatingsV2: true,
+                },
+            ]);
+        }
+        if (definitions.searchModalResults) {
+            attempts.push([
+                definitions.searchModalResults,
+                {
+                    searchTerm: query,
+                    offset: 0,
+                    limit: limit,
+                    numberOfTopResults: limit,
+                    includeAudiobooks: true,
+                    includeAuthors: true,
+                    includePreRelease: true,
+                    includeArtistHasConcertsField: false,
+                },
+            ]);
+        }
+        for (const [definition, variables] of attempts) {
+            try {
+                const res = await Spicetify.GraphQL.Request(definition, variables);
+                const parsed = extractResults(res?.data?.searchV2);
+                if (parsed.results.length || parsed.autocomplete) return parsed;
+            } catch (err) {}
+        }
+        return { results: [], autocomplete: "" };
+    }
+
+    function updateSearchBarFocus() {
+        const bar = document.getElementById("spotui-search-bar");
+        if (bar) bar.classList.toggle("focused", app.searchFocus === "input");
+    }
+
+    function scrollSearchSelectedIntoView() {
+        const selected = document.querySelector("#spotui-search-results .spotui-search-item.selected");
+        if (selected) selected.scrollIntoView({ block: "nearest" });
+    }
+
+    function renderSearchResults() {
+        const container = document.getElementById("spotui-search-results");
+        if (!container) return;
+        container.innerHTML = "";
+        if (!app.searchResults.length) {
+            const empty = document.createElement("div");
+            empty.className = "spotui-search-empty";
+            empty.textContent = app.searchQuery ? "No results" : "";
+            container.appendChild(empty);
+            return;
+        }
+        app.searchResults.forEach((item, idx) => {
+            const row = document.createElement("div");
+            row.className = "spotui-search-item" + (app.searchFocus === "results" && idx === app.searchSelected ? " selected" : "");
+            const type = document.createElement("span");
+            type.className = "spotui-search-type";
+            type.textContent = item.type || "";
+            const name = document.createElement("span");
+            name.className = "spotui-search-name";
+            name.textContent = item.name || "";
+            row.appendChild(type);
+            row.appendChild(name);
+            row.addEventListener("click", () => playSearchResult(idx));
+            container.appendChild(row);
+        });
+    }
+
+    function renderSearchAutocomplete() {
+        const input = document.getElementById("spotui-search-input");
+        const ghost = document.getElementById("spotui-search-ghost");
+        if (!input || !ghost) return;
+        const value = input.value;
+        const completion = app.searchAutocomplete || "";
+        const matches = completion.length > value.length && completion.toLowerCase().startsWith(value.toLowerCase());
+        if (!matches) {
+            ghost.hidden = true;
+            ghost.textContent = "";
+            return;
+        }
+        ghost.hidden = false;
+        ghost.style.left = `${input.offsetLeft}px`;
+        ghost.style.top = `${input.offsetTop}px`;
+        ghost.style.width = `${input.offsetWidth}px`;
+        ghost.style.height = `${input.offsetHeight}px`;
+        ghost.innerHTML = "";
+        const typed = document.createElement("span");
+        typed.style.visibility = "hidden";
+        typed.textContent = value;
+        const rest = document.createElement("span");
+        rest.textContent = completion.slice(value.length);
+        ghost.appendChild(typed);
+        ghost.appendChild(rest);
+    }
+
+    async function runSearch(query) {
+        const token = ++app.searchFetchToken;
+        const term = query.trim();
+        app.searchQuery = term;
+        if (!term) {
+            app.searchResults = [];
+            app.searchSelected = 0;
+            app.searchAutocomplete = "";
+            renderSearchResults();
+            renderSearchAutocomplete();
+            return;
+        }
+        try {
+            const { results, autocomplete } = await searchSpotify(term);
+            if (token !== app.searchFetchToken) return;
+            app.searchResults = results;
+            app.searchAutocomplete = autocomplete;
+        } catch (err) {
+            if (token !== app.searchFetchToken) return;
+            app.searchResults = [];
+            app.searchAutocomplete = "";
+        }
+        if (app.searchSelected >= app.searchResults.length) {
+            app.searchSelected = Math.max(0, app.searchResults.length - 1);
+        }
+        renderSearchResults();
+        renderSearchAutocomplete();
+        scrollSearchSelectedIntoView();
+    }
+
+    function scheduleSearch(query) {
+        if (app.searchDebounce) clearTimeout(app.searchDebounce);
+        app.searchDebounce = setTimeout(() => {
+            app.searchDebounce = null;
+            runSearch(query);
+        }, SEARCH_DEBOUNCE_MS);
+    }
+
+    function setSearchFocus(mode) {
+        app.searchFocus = mode;
+        const input = document.getElementById("spotui-search-input");
+        if (mode === "input" && input) input.focus();
+        if (mode === "results" && input) input.blur();
+        updateSearchBarFocus();
+    }
+
+    function playSearchResult(idx) {
+        const item = app.searchResults[idx];
+        if (!item || !item.uri) return;
+        Spicetify.Player.playUri(item.uri);
+        closeSearchPanel();
+    }
+
+    function initSearchPanel() {
+        if (app.searchBound) return;
+        const input = document.getElementById("spotui-search-input");
+        const bar = document.getElementById("spotui-search-bar");
+        if (!input || !bar) return;
+        app.searchBound = true;
+        if (!document.getElementById("spotui-search-ghost")) {
+            const ghost = document.createElement("div");
+            ghost.id = "spotui-search-ghost";
+            ghost.hidden = true;
+            bar.appendChild(ghost);
+        }
+        bar.addEventListener("click", () => {
+            if (app.searchPanelOpen) setSearchFocus("input");
+        });
+        input.addEventListener("input", (e) => {
+            app.searchSelected = 0;
+            app.searchAutocomplete = "";
+            renderSearchAutocomplete();
+            scheduleSearch(e.target.value);
+        });
+        input.addEventListener("scroll", () => {
+            if (app.searchAutocomplete) renderSearchAutocomplete();
+        });
+    }
+
+    function handleSearchPanelKeydown(e) {
+        if (!app.searchPanelOpen) return;
+        if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            closeSearchPanel();
+            return;
+        }
+        if (e.key === "Tab") {
+            const input = document.getElementById("spotui-search-input");
+            const completion = app.searchAutocomplete || "";
+            const value = input ? input.value : "";
+            const canComplete = input && completion.length > value.length && completion.toLowerCase().startsWith(value.toLowerCase());
+            if (!canComplete) return;
+            e.preventDefault();
+            input.value = completion;
+            input.setSelectionRange(completion.length, completion.length);
+            app.searchAutocomplete = "";
+            renderSearchAutocomplete();
+            runSearch(completion);
+            return;
+        }
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            if (!app.searchResults.length) return;
+            if (app.searchFocus === "input") {
+                setSearchFocus("results");
+                app.searchSelected = 0;
+            } else {
+                app.searchSelected = Math.min(app.searchSelected + 1, app.searchResults.length - 1);
+            }
+            renderSearchResults();
+            scrollSearchSelectedIntoView();
+            return;
+        }
+        if (e.key === "ArrowUp") {
+            if (app.searchFocus !== "results") return;
+            e.preventDefault();
+            if (app.searchSelected <= 0) {
+                setSearchFocus("input");
+            } else {
+                app.searchSelected -= 1;
+            }
+            renderSearchResults();
+            scrollSearchSelectedIntoView();
+            return;
+        }
+        if (e.key === "Enter" && app.searchFocus === "results") {
+            e.preventDefault();
+            playSearchResult(app.searchSelected);
+        }
+    }
+
+    function closeSearchPanel() {
+        const wasOpen = app.searchPanelOpen;
+        app.searchPanelOpen = false;
+        app.searchAutocomplete = "";
+        const ghost = document.getElementById("spotui-search-ghost");
+        if (ghost) {
+            ghost.hidden = true;
+            ghost.textContent = "";
+        }
+        document.body.classList.remove("spotui-search-panel");
+        const panel = document.getElementById("spotui-search-panel");
+        if (panel) panel.hidden = true;
+        document.removeEventListener("keydown", handleSearchPanelKeydown, true);
+        if (app.searchDebounce) {
+            clearTimeout(app.searchDebounce);
+            app.searchDebounce = null;
+        }
+        const input = document.getElementById("spotui-input");
+        if (input) input.focus();
+        if (wasOpen) emitPaneClose("search");
+    }
+
+    function openSearchPanel(query = "") {
+        app.searchPanelOpen = true;
+        app.searchResults = [];
+        app.searchSelected = 0;
+        app.searchAutocomplete = "";
+        app.searchFetchToken += 1;
+        document.body.classList.add("spotui-search-panel");
+        const panel = document.getElementById("spotui-search-panel");
+        if (panel) panel.hidden = false;
+        const input = document.getElementById("spotui-search-input");
+        if (input) {
+            input.value = query;
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+        setSearchFocus("input");
+        document.addEventListener("keydown", handleSearchPanelKeydown, true);
+        runSearch(query);
+    }
+
     function setTuiMode(mode) {
         app.tuiMode = "command";
         document.body.classList.toggle("spotui-cli-mode", app.tuiMode === "cli");
@@ -1074,6 +1419,13 @@
 </div>
 <div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
+<div id="spotui-search-panel" hidden>
+    <div id="spotui-search-bar">
+        <span class="spotui-search-prompt">></span>
+        <input id="spotui-search-input" autocomplete="off" spellcheck="false" placeholder="type to search...">
+    </div>
+    <div id="spotui-search-results"></div>
+</div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
 <div id="spotui-footer">
@@ -1083,10 +1435,11 @@
 `;
         document.body.appendChild(box);
         initAsciiAnimation();
+        initSearchPanel();
 
         const input = document.getElementById("spotui-input");
         input.addEventListener("keydown", async (e) => {
-            if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen) {
+            if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen) {
                 e.stopImmediatePropagation();
                 return;
             }
@@ -1649,6 +2002,7 @@
         if (app.lyricsPanelOpen) closeLyricsPanel();
         if (app.playlistPanelOpen) closePlaylistPanel();
         if (app.themePanelOpen) closeThemePanel();
+        if (app.searchPanelOpen) closeSearchPanel();
         if (app.onboardingPanelOpen) closeOnboardingPanel();
         if (app.djPanelOpen) {
             const root = document.getElementById("spotui-dj");
@@ -2425,8 +2779,8 @@
         }
 
         if (command === "search") {
-            document.body.classList.add("spotui-search-mode", "spotui-tui-hidden");
-            syncLyricsState();
+            closeActivePanel();
+            openSearchPanel(argText);
             return;
         }
 
@@ -3284,7 +3638,7 @@
     // Handle lyrics command
     function handleLyricsCommand(arg) {
         const mode = String(arg || "").trim().toLowerCase();
-        if (mode === "on" || mode === "open") { openLyricsPanel(); return; }
+        if (mode === "on" || mode === "open") { if (!app.lyricsPanelOpen) openLyricsPanel(); return; }
         if (mode === "off" || mode === "close") { closeLyricsPanel(); return; }
         if (mode && mode !== "toggle") return;
         if (app.lyricsPanelOpen) { closeLyricsPanel(); }
@@ -3846,6 +4200,7 @@ body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
+body.spotui-search-panel #spotui-logo,
 body.spotui-about-panel #spotui-logo,
 body.spotui-onboarding-panel #spotui-logo {
     top: 12px;
@@ -4775,6 +5130,126 @@ body.spotui-tui-hidden #spotui-tui {
     font-size: 12px;
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+#spotui-search-panel {
+    display: none;
+    flex: 1 1 auto;
+    flex-direction: column;
+    margin: 33vh 5vw 8px;
+    height: 60vh;
+    padding: 20px;
+    box-sizing: border-box;
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 6px;
+    background: var(--panel-bg-color, transparent);
+    overflow: hidden;
+}
+
+body.spotui-search-panel #spotui-search-panel {
+    display: flex;
+}
+
+#spotui-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    position: relative;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
+    border-radius: 4px;
+    background: rgba(0,0,0,0.5);
+}
+
+#spotui-search-bar.focused {
+    border-color: var(--spotui-accent, #ff8c42);
+}
+
+.spotui-search-prompt {
+    color: var(--panel-text-color, #ff8c42);
+}
+
+#spotui-search-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--panel-text-color, #ff8c42);
+    font-family: inherit;
+    font-size: 15px;
+    caret-color: var(--spotui-accent, #ff8c42);
+}
+
+#spotui-search-input::placeholder {
+    color: #777;
+}
+
+#spotui-search-ghost {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 15px;
+    color: #777;
+}
+
+#spotui-search-results {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 12px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#spotui-search-results::-webkit-scrollbar {
+    display: none;
+}
+
+.spotui-search-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    color: #ddd;
+    cursor: pointer;
+}
+
+.spotui-search-item.selected {
+    background: var(--spotui-accent, #ff8c42);
+    color: #000;
+}
+
+.spotui-search-type {
+    flex: 0 0 auto;
+    min-width: 70px;
+    font-size: 11px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-search-item.selected .spotui-search-type {
+    color: #000;
+    opacity: 1;
+}
+
+.spotui-search-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spotui-search-empty {
+    padding: 10px;
+    color: #777;
 }
 `;
     // Inject theme CSS into document head
