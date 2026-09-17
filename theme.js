@@ -3948,40 +3948,36 @@
             console.error("SpoTUI: Failed to apply input buttons visibility", e);
         }
     }
-    // Create control buttons - Hide TUI, Enable Spotify, Back
+    // Create control buttons - Lyrics, Enable Spotify, Back
     function createControlButtons() {
         const controls = document.createElement("div");
         controls.id = "spotui-controls";
         const state = storageGet(INPUT_BUTTONS) || "on";
         controls.style.display = state === "off" ? "none" : "flex";
 
-        const hideBtn = createButton("hide-tui-btn", "spotui-control-btn", "Hide TUI", () => {
-            const hidden = document.body.classList.toggle("spotui-tui-hidden");
-            hideBtn.textContent = hidden ? "Show TUI" : "Hide TUI";
+        const lyricsBtn = createButton("lyrics-btn", "spotui-control-btn", "Lyrics", () => {
+            handleLyricsCommand();
         });
 
         const spotifyBtn = createButton("enable-spotify-btn", "spotui-control-btn", "Enable Spotify", () => {
             const enabled = document.body.classList.toggle("spotui-spotify-enabled");
             if (enabled) {
                 document.body.classList.add("spotui-tui-hidden");
-                hideBtn.textContent = "Show TUI";
                 spotifyBtn.textContent = "Disable Spotify";
             } else {
                 spotifyBtn.textContent = "Enable Spotify";
                 document.body.classList.remove("spotui-tui-hidden");
                 document.body.classList.remove("spotui-search-mode");
-                hideBtn.textContent = "Hide TUI";
             }
         });
 
-        controls.appendChild(hideBtn);
+        controls.appendChild(lyricsBtn);
         controls.appendChild(spotifyBtn);
         (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
         const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {
             document.body.classList.remove("spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
             spotifyBtn.textContent = "Enable Spotify";
-            hideBtn.textContent = "Hide TUI";
             syncLyricsState();
         });
         document.body.appendChild(backBtn);
