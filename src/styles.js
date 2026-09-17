@@ -209,51 +209,13 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 }
 
 
-.spotui-ascii-grid {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    font-size: clamp(9px, 1.4vw, 22px);
-    letter-spacing: 0;
-    font-weight: 400;
-    font-variant-ligatures: none;
-    font-kerning: none;
-    -webkit-font-smoothing: antialiased;
+.spotui-ascii-canvas {
+    display: block;
+    padding: 0;
+    margin: 0;
     user-select: none;
-    white-space: pre;
-    padding: 20px;
+    pointer-events: none;
     contain: layout style paint;
-}
-
-.spotui-ascii-row {
-    display: flex;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    contain: layout style paint;
-}
-
-.spotui-ascii-char {
-    display: inline-block;
-    font-size: clamp(9px, 1.4vw, 22px);
-    line-height: 1;
-    width: 1ch;
-    text-align: left;
-    position: relative;
-    text-shadow: 0 0 6px currentColor;
-}
-
-@media (max-width: 700px) {
-    .spotui-ascii-grid, .spotui-ascii-char {
-        font-size: clamp(5px, 1.1vw, 11px);
-    }
-}
-
-@media (max-width: 450px) {
-    .spotui-ascii-grid, .spotui-ascii-char {
-        font-size: clamp(3.5px, 1.4vw, 7px);
-    }
 }
 
 #spotui-output {

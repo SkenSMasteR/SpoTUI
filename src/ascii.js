@@ -26,6 +26,93 @@ export function getCharColor(row, col, totalRows, totalCols) {
     const b = Math.round(b1 + (b2 - b1) * frac);
     return `rgb(${r},${g},${b})`;
 }
+
+const asciiDraw = {
+    canvas: null,
+    ctx: null,
+    cols: 0,
+    rows: 0,
+    pad: 20,
+    fontSize: 0,
+    cellW: 0,
+    cellH: 0,
+    dpr: 1,
+    raf: 0,
+};
+
+function getAsciiFontSize() {
+    const vw = window.innerWidth;
+    if (vw <= 450) return Math.min(Math.max(3.5, vw * 0.014), 7);
+    if (vw <= 700) return Math.min(Math.max(5, vw * 0.011), 11);
+    return Math.min(Math.max(9, vw * 0.014), 22);
+}
+
+function asciiFont(size) {
+    return `400 ${size}px "JetBrains Mono", "Fira Code", monospace`;
+}
+
+function layoutAsciiCanvas() {
+    const { canvas, ctx, cols, rows, pad } = asciiDraw;
+    if (!canvas || !ctx) return;
+    const fontSize = getAsciiFontSize();
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = asciiFont(fontSize);
+    ctx.fontKerning = "none";
+    ctx.letterSpacing = "0px";
+    const cellW = ctx.measureText("0").width;
+    const cellH = fontSize;
+    const cssW = pad * 2 + cols * cellW;
+    const cssH = pad * 2 + rows * cellH;
+    canvas.style.width = `${cssW}px`;
+    canvas.style.height = `${cssH}px`;
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    asciiDraw.fontSize = fontSize;
+    asciiDraw.cellW = cellW;
+    asciiDraw.cellH = cellH;
+    asciiDraw.dpr = dpr;
+}
+
+function paintAsciiCanvas() {
+    const { canvas, ctx, cols, rows, pad, fontSize, cellW, cellH } = asciiDraw;
+    if (!canvas || !ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (dpr !== asciiDraw.dpr || fontSize !== getAsciiFontSize()) layoutAsciiCanvas();
+    const cssW = pad * 2 + cols * cellW;
+    const cssH = pad * 2 + rows * cellH;
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.font = asciiFont(asciiDraw.fontSize);
+    ctx.fontKerning = "none";
+    ctx.letterSpacing = "0px";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fontVariantCaps = "normal";
+    const chars = app.asciiCharData;
+    for (let i = 0; i < chars.length; i += 1) {
+        const { el, row, col } = chars[i];
+        const ch = el.textContent;
+        if (!ch || ch === " ") continue;
+        const color = el.style.color;
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.fillText(ch, pad + col * asciiDraw.cellW, pad + row * asciiDraw.cellH);
+    }
+}
+
+function startAsciiPaintLoop() {
+    if (asciiDraw.raf) return;
+    const tick = () => {
+        paintAsciiCanvas();
+        asciiDraw.raf = requestAnimationFrame(tick);
+    };
+    asciiDraw.raf = requestAnimationFrame(tick);
+}
+
 // Reset ASCII logo animation to original state
 export function resetGrid() {
     app.asciiCharData.forEach(({ el, original, color }) => {
@@ -43,48 +130,53 @@ export function initAsciiAnimation() {
 
     logo.innerHTML = "";
 
-    const grid = document.createElement("div");
-    grid.className = "spotui-ascii-grid";
-    logo.appendChild(grid);
+    const canvas = document.createElement("canvas");
+    canvas.className = "spotui-ascii-canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    logo.appendChild(canvas);
+    asciiDraw.canvas = canvas;
+    asciiDraw.ctx = canvas.getContext("2d");
 
     const rows = SPOTUI_ASCII_ART.length;
     const cols = Math.max(...SPOTUI_ASCII_ART.map((row) => row.length));
+    asciiDraw.rows = rows;
+    asciiDraw.cols = cols;
     const charData = [];
     const rowSpansCache = [];
 
-    // Build grid with each character as a positioned span
     SPOTUI_ASCII_ART.forEach((line, rowIdx) => {
-        const rowDiv = document.createElement("div");
-        rowDiv.className = "spotui-ascii-row";
-        rowDiv.dataset.row = rowIdx;
         const padded = line.padEnd(cols, " ");
         const chars = [...padded];
         const rowSpans = [];
         chars.forEach((ch, colIdx) => {
-            const span = document.createElement("span");
-            span.className = "spotui-ascii-char";
-            span.textContent = ch;
-            span.dataset.row = rowIdx;
-            span.dataset.col = colIdx;
-            span.dataset.original = ch;
             const color = getCharColor(rowIdx, colIdx, rows, cols);
-            span.style.color = color;
-            span.dataset.origColor = color;
+            const el = {
+                textContent: ch,
+                style: { color },
+                dataset: {
+                    row: String(rowIdx),
+                    col: String(colIdx),
+                    original: ch,
+                    origColor: color,
+                },
+            };
             charData.push({
                 row: rowIdx,
                 col: colIdx,
-                el: span,
+                el,
                 original: ch,
                 color,
             });
-            rowSpans.push(span);
-            rowDiv.appendChild(span);
+            rowSpans.push(el);
         });
         rowSpansCache.push(rowSpans);
-        grid.appendChild(rowDiv);
     });
 
     app.asciiCharData = charData;
+    layoutAsciiCanvas();
+    startAsciiPaintLoop();
+    window.addEventListener("resize", layoutAsciiCanvas);
+    if (document.fonts?.ready) document.fonts.ready.then(layoutAsciiCanvas);
 
     function getRowSpans(rowIdx) {
         return rowSpansCache[rowIdx] || [];
