@@ -8,6 +8,7 @@ import { initLyricsBridge, openLyricsPanel, waitForPlayerReadyThen } from "./lyr
 import { isFirstBoot, launchFirstBootIfNeeded } from "./onboarding.js";
 import { storageGet } from "./storage.js";
 import { injectStyle } from "./styles.js";
+import { initSync } from "./sync.js";
 import { createTerminal } from "./terminal.js";
 import { setWallpaper } from "./wallpaper.js";
 
@@ -17,6 +18,7 @@ document.addEventListener("keydown", handleKeybindKeydown, true);
 setTimeout(createControlButtons, 500);
 setTimeout(initLyricsBridge, 1000);
 setTimeout(initDjBridge, 1000);
+setTimeout(initSync, 1000);
 
 // Apply stored logo visibility preference
 if (storageGet("spotui:logo-visible") === "off") {

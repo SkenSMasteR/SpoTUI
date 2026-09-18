@@ -57,7 +57,7 @@ function extractResults(searchV2) {
     return { results, autocomplete };
 }
 
-async function searchSpotify(query, limit = 20) {
+export async function searchSpotify(query, limit = 20) {
     const definitions = Spicetify.GraphQL?.Definitions ?? {};
     const attempts = [];
     if (definitions.searchSuggestions) {
