@@ -3,6 +3,7 @@ export const app = {
     asciiCharData: [],
     asciiEnabled: true,
     tuiMode: "command",
+    standbyOpen: false,
     results: [],
     selected: 0,
     lyricsObserver: null,

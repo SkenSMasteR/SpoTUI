@@ -13,6 +13,7 @@ import { openSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { storageClear, storageGet, storageRemove, storageSet } from "./storage.js";
 import { applyThemeByName } from "./themes.js";
+import { enterStandby } from "./standby.js";
 import { setWallpaper } from "./wallpaper.js";
 
 export async function execute(cmd, opts = {}) {
@@ -243,6 +244,7 @@ export async function execute(cmd, opts = {}) {
         return;
     }
 
+    if (command === "standby") { closeActivePanel(); await enterStandby(); return; }
     if (command === "help") { openHelpPanel(); return; }
     if (command === "about") { openAboutPanel(); return; }
     if (command === "playlist" || command === "list") { 

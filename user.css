@@ -728,6 +728,53 @@ body.spotui-bar-off .Root__now-playing-bar {
     display: none !important;
 }
 
+#spotui-standby-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 2147483647 !important;
+    background: #000 !important;
+    overflow: hidden !important;
+}
+
+#spotui-standby-overlay iframe {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0 !important;
+    pointer-events: none !important;
+}
+
+#spotui-standby-catcher {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    outline: none !important;
+    color: transparent !important;
+    caret-color: transparent !important;
+    opacity: 0 !important;
+}
+
+body.spotui-standby #spotui-tui,
+body.spotui-standby #spotui-controls,
+body.spotui-standby #spotui-custom-bar,
+body.spotui-standby #spotui-back-btn,
+body.spotui-standby #spotui-update-banner,
+body.spotui-standby #spotui-jam-tags,
+body.spotui-standby #spotui-dj-tags,
+body.spotui-standby #spotui-popup,
+body.spotui-standby .Root__now-playing-bar {
+    display: none !important;
+}
+
 body.spotui-custom-bar-on #spotui-tui {
     bottom: 3.5rem !important;
 }

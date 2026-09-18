@@ -1,5 +1,6 @@
 import { execute } from "./commands.js";
 import { BIND_CMD_REGEX, F_KEY_REGEX, KEYBIND_STORAGE_KEY, THEME_SKIP_CMD_REGEX } from "./constants.js";
+import { app } from "./state.js";
 import { storageGet, storageSet } from "./storage.js";
 
 // Retrieve stored keyboard shortcuts
@@ -93,6 +94,7 @@ export function eventToKeyCombo(e) {
 
 // Global keydown handler for custom keybinds
 export function handleKeybindKeydown(e) {
+    if (app.standbyOpen) return;
     const binds = getKeybinds();
     if (!Object.keys(binds).length) return;
 

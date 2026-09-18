@@ -146,6 +146,7 @@ export const COMMAND_LIST = [
     { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
     { cmd: "about", desc: "Show about panel" },
     { cmd: "theme", desc: "Browse and apply themes" },
+    { cmd: "standby", desc: "Enter standby mode (any key to exit)" },
     { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
     { cmd: "jam create", desc: "Start a listening jam and get a PIN" },
     { cmd: "jam join <pin>", desc: "Join a jam by PIN (volume/lyrics only)" },

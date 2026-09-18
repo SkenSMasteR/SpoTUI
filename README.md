@@ -79,6 +79,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `search <query>` | Search Spotify |
 | `theme` | Browse and apply themes |
 | `discord` | Show the Discord update banner and re-enable it on boot |
+| `standby` | Enter standby mode (any key to exit) |
 | `help` | Show the help panel |
 
 ## Action Targets

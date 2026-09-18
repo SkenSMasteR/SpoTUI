@@ -1,5 +1,6 @@
 import { ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, HEX_COLOR_REGEX, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { handleLyricsCommand, syncLyricsState } from "./lyrics.js";
+import { enterStandby } from "./standby.js";
 import { app } from "./state.js";
 import { storageGet, storageRemove, storageSet } from "./storage.js";
 import { createButton } from "./utils.js";
@@ -330,8 +331,16 @@ export function createControlButtons() {
         }
     });
 
+    const standbyBtn = createButton("standby-btn", "spotui-control-btn spotui-standby-btn", "", () => {
+        enterStandby();
+    });
+    standbyBtn.setAttribute("aria-label", "Standby");
+    standbyBtn.title = "Standby";
+    standbyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1 3.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5M8 6a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 .708-.708L7.5 12.293V6.5A.5.5 0 0 1 8 6"/></svg>`;
+
     controls.appendChild(lyricsBtn);
     controls.appendChild(spotifyBtn);
+    controls.appendChild(standbyBtn);
     (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
     const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {

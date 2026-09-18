@@ -818,6 +818,17 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--input-bg-hover-color, #e07b39);
 }
 
+.spotui-standby-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+}
+
+.spotui-standby-btn svg {
+    display: block;
+}
+
 body.spotui-tui-hidden #spotui-tui {
 			    display: none !important;
 			}
@@ -1054,6 +1065,53 @@ body.spotui-search-panel #spotui-search-panel {
 .spotui-search-empty {
     padding: 10px;
     color: #777;
+}
+
+#spotui-standby-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2147483647 !important;
+    background: #000;
+    overflow: hidden;
+}
+
+#spotui-standby-overlay iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+}
+
+#spotui-standby-catcher {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: transparent;
+    caret-color: transparent;
+    opacity: 0;
+}
+
+body.spotui-standby #spotui-tui,
+body.spotui-standby #spotui-controls,
+body.spotui-standby #spotui-custom-bar,
+body.spotui-standby #spotui-back-btn,
+body.spotui-standby #spotui-update-banner,
+body.spotui-standby #spotui-jam-tags,
+body.spotui-standby #spotui-dj-tags,
+body.spotui-standby #spotui-popup,
+body.spotui-standby .Root__now-playing-bar {
+    display: none !important;
 }
 `;
 // Inject theme CSS into document head
