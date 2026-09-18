@@ -66,6 +66,9 @@ class State:
         self.search_q = ""
         self.search_results = []
         self.search_i = 0
+        self.search_focus = "input"
+        self.progress_style = "classic-block"
+        self.progress_chars = {"fg": "█", "bg": "░"}
 
     def pos(self):
         if not self.is_playing:
@@ -206,8 +209,10 @@ class SearchList(Static):
         start, view = slice_rows(S.search_results, S.search_i, inner_h)
         body = Text()
         q = S.search_q or ""
+        caret = "█" if S.search_focus == "input" else ""
         body.append("> ", style=text)
-        body.append((q or "type to search...")[: max(1, inner_w - 2)] + "\n\n", style=text if q else inactive)
+        shown = (q + caret) if q or caret else "type to search..."
+        body.append(shown[: max(1, inner_w - 2)] + "\n\n", style=text if q or caret else inactive)
         if not view:
             body.append("No results" if q else "", style=inactive)
         else:
@@ -226,6 +231,19 @@ class SearchList(Static):
         return Panel(body, border_style=border, padding=(1, 1))
 
 
+def render_progress(progress, width, chars):
+    filled = min(width, max(0, round(width * progress)))
+    empty = width - filled
+    fg = chars.get("fg") or "█"
+    bg = chars.get("bg") or "░"
+    if len(fg) == 1:
+        return fg * filled + (bg * empty if bg else "")
+    out = ""
+    for i in range(filled):
+        out += fg[min(len(fg) - 1, int(i / max(1, filled) * len(fg)))]
+    return out + (bg * empty if bg else "")
+
+
 class Bar(Static):
     def render(self):
         c = S.colors
@@ -233,10 +251,11 @@ class Bar(Static):
         bg = hx(c["inactive"], DEFAULT["inactive"])
         w = max(10, (self.size.width or 40) - 4)
         dur = S.duration_ms or 1
+        bar = render_progress(S.pos() / dur, w, S.progress_chars or {"fg": "█", "bg": "░"})
         filled = min(w, max(0, round(w * (S.pos() / dur))))
         t = Text(justify="center")
-        t.append("█" * filled, style=fg)
-        t.append("░" * (w - filled), style=bg)
+        t.append(bar[:filled], style=fg)
+        t.append(bar[filled:], style=bg)
         return t
 
 
@@ -259,6 +278,7 @@ class SpotuiApp(App):
         super().__init__()
         self.host = host
         self.port = port
+        self.search_timer = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="wrap"):
@@ -324,6 +344,17 @@ class SpotuiApp(App):
         payload = json.dumps(obj)
         await asyncio.gather(*[ws.send(payload) for ws in list(S.clients)], return_exceptions=True)
 
+    def schedule_search(self):
+        if self.search_timer is not None:
+            self.search_timer.stop()
+        self.search_timer = self.set_timer(0.35, self.flush_search)
+
+    async def flush_search(self):
+        self.search_timer = None
+        if S.mode != "search":
+            return
+        await self.ws_send({"type": "command", "cmd": "search " + S.search_q})
+
     async def on_input_submitted(self, event: Input.Submitted):
         cmd = event.value.strip()
         event.input.value = ""
@@ -349,8 +380,10 @@ class SpotuiApp(App):
             S.search_q = arg
             S.search_results = []
             S.search_i = 0
+            S.search_focus = "input"
             self.set_mode("search")
-            await self.ws_send({"type": "command", "cmd": cmd})
+            if arg:
+                await self.ws_send({"type": "command", "cmd": cmd})
             return
         await self.ws_send({"type": "command", "cmd": cmd})
 
@@ -401,16 +434,43 @@ class SpotuiApp(App):
                     self.set_mode("lyrics")
                 return
         if S.mode == "search":
-            if key in {"up", "down"} and S.search_results:
+            if key in {"up", "down"}:
                 event.prevent_default()
                 event.stop()
-                S.search_i = (S.search_i + (-1 if key == "up" else 1)) % len(S.search_results)
+                if S.search_focus == "input" and key == "down" and S.search_results:
+                    S.search_focus = "results"
+                    S.search_i = 0
+                elif S.search_focus == "results" and S.search_results:
+                    if key == "up" and S.search_i <= 0:
+                        S.search_focus = "input"
+                    else:
+                        S.search_i = (S.search_i + (-1 if key == "up" else 1)) % len(S.search_results)
                 return
-            if key == "enter" and S.search_results:
+            if key == "enter":
                 event.prevent_default()
                 event.stop()
-                await self.ws_send({"type": "play", "uri": S.search_results[S.search_i].get("uri")})
-                self.set_mode("lyrics")
+                if S.search_focus == "input":
+                    if self.search_timer is not None:
+                        self.search_timer.stop()
+                        self.search_timer = None
+                    await self.ws_send({"type": "command", "cmd": "search " + S.search_q})
+                elif S.search_results:
+                    await self.ws_send({"type": "play", "uri": S.search_results[S.search_i].get("uri")})
+                    self.set_mode("lyrics")
+                return
+            if S.search_focus == "input":
+                if key == "backspace":
+                    event.prevent_default()
+                    event.stop()
+                    S.search_q = S.search_q[:-1]
+                    self.schedule_search()
+                    return
+                if len(key) == 1:
+                    event.prevent_default()
+                    event.stop()
+                    S.search_q += key
+                    self.schedule_search()
+                    return
 
     async def handler(self, ws):
         S.clients.add(ws)
@@ -446,6 +506,10 @@ class SpotuiApp(App):
                 S.is_playing = bool(data.get("is_playing", S.is_playing))
                 S.last_update = time.time()
                 S.connected = True
+                chars = data.get("progress_chars")
+                if isinstance(chars, dict) and chars.get("fg"):
+                    S.progress_chars = chars
+                    S.progress_style = data.get("progress_style") or S.progress_style
                 colors = data.get("colors") or {}
                 for k in DEFAULT:
                     if colors.get(k):

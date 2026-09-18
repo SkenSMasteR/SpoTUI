@@ -1,7 +1,9 @@
 import { execute } from "./commands.js";
+import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES } from "./constants.js";
 import { getCurrentTrackLyricsInfo, resolveTrackLyrics } from "./lyrics.js";
 import { getPlaylists, normalizeTrackItem } from "./playlists.js";
 import { searchSpotify } from "./search.js";
+import { storageGet } from "./storage.js";
 
 const WS_URL = "ws://localhost:8765";
 const HEARTBEAT_MS = 1000;
@@ -73,6 +75,8 @@ function getTrackPayload() {
         timestamp: Date.now(),
         colors: getColors(),
         lyrics: lyricsCache,
+        progress_style: storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block",
+        progress_chars: PROGRESS_STYLES[storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block"] || PROGRESS_STYLES["classic-block"],
     };
 }
 
