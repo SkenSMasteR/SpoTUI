@@ -147,6 +147,7 @@
         { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
         { cmd: "about", desc: "Show about panel" },
         { cmd: "theme", desc: "Browse and apply themes" },
+        { cmd: "standby", desc: "Enter standby mode (any key to exit)" },
         { cmd: "discord", desc: "Show the Discord update banner and re-enable it on boot" },
         { cmd: "jam create", desc: "Start a listening jam and get a PIN" },
         { cmd: "jam join <pin>", desc: "Join a jam by PIN (volume/lyrics only)" },
@@ -159,6 +160,7 @@
         asciiCharData: [],
         asciiEnabled: true,
         tuiMode: "command",
+        standbyOpen: false,
         results: [],
         selected: 0,
         lyricsObserver: null,
@@ -211,7 +213,9 @@
         playlistListScrollRaf: null,
         songListScrollRaf: null,
         songScrollAnimRaf: null,
-        navRafPending: false
+        navRafPending: false,
+        playlistNavLastAt: 0,
+        playlistNavFast: false
     };
 
     function storageGet(key) {
@@ -284,6 +288,93 @@
         const b = Math.round(b1 + (b2 - b1) * frac);
         return `rgb(${r},${g},${b})`;
     }
+
+    const asciiDraw = {
+        canvas: null,
+        ctx: null,
+        cols: 0,
+        rows: 0,
+        pad: 20,
+        fontSize: 0,
+        cellW: 0,
+        cellH: 0,
+        dpr: 1,
+        raf: 0,
+    };
+
+    function getAsciiFontSize() {
+        const vw = window.innerWidth;
+        if (vw <= 450) return Math.min(Math.max(3.5, vw * 0.014), 7);
+        if (vw <= 700) return Math.min(Math.max(5, vw * 0.011), 11);
+        return Math.min(Math.max(9, vw * 0.014), 22);
+    }
+
+    function asciiFont(size) {
+        return `400 ${size}px "JetBrains Mono", "Fira Code", monospace`;
+    }
+
+    function layoutAsciiCanvas() {
+        const { canvas, ctx, cols, rows, pad } = asciiDraw;
+        if (!canvas || !ctx) return;
+        const fontSize = getAsciiFontSize();
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.font = asciiFont(fontSize);
+        ctx.fontKerning = "none";
+        ctx.letterSpacing = "0px";
+        const cellW = ctx.measureText("0").width;
+        const cellH = fontSize;
+        const cssW = pad * 2 + cols * cellW;
+        const cssH = pad * 2 + rows * cellH;
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
+        canvas.width = Math.max(1, Math.round(cssW * dpr));
+        canvas.height = Math.max(1, Math.round(cssH * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        asciiDraw.fontSize = fontSize;
+        asciiDraw.cellW = cellW;
+        asciiDraw.cellH = cellH;
+        asciiDraw.dpr = dpr;
+    }
+
+    function paintAsciiCanvas() {
+        const { canvas, ctx, cols, rows, pad, fontSize, cellW, cellH } = asciiDraw;
+        if (!canvas || !ctx) return;
+        const dpr = window.devicePixelRatio || 1;
+        if (dpr !== asciiDraw.dpr || fontSize !== getAsciiFontSize()) layoutAsciiCanvas();
+        const cssW = pad * 2 + cols * cellW;
+        const cssH = pad * 2 + rows * cellH;
+        ctx.clearRect(0, 0, cssW, cssH);
+        ctx.font = asciiFont(asciiDraw.fontSize);
+        ctx.fontKerning = "none";
+        ctx.letterSpacing = "0px";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fontVariantCaps = "normal";
+        const chars = app.asciiCharData;
+        for (let i = 0; i < chars.length; i += 1) {
+            const { el, row, col } = chars[i];
+            const ch = el.textContent;
+            if (!ch || ch === " ") continue;
+            const color = el.style.color;
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(ch, pad + col * asciiDraw.cellW, pad + row * asciiDraw.cellH);
+        }
+    }
+
+    function startAsciiPaintLoop() {
+        if (asciiDraw.raf) return;
+        const tick = () => {
+            paintAsciiCanvas();
+            asciiDraw.raf = requestAnimationFrame(tick);
+        };
+        asciiDraw.raf = requestAnimationFrame(tick);
+    }
+
     // Reset ASCII logo animation to original state
     function resetGrid() {
         app.asciiCharData.forEach(({ el, original, color }) => {
@@ -301,48 +392,53 @@
 
         logo.innerHTML = "";
 
-        const grid = document.createElement("div");
-        grid.className = "spotui-ascii-grid";
-        logo.appendChild(grid);
+        const canvas = document.createElement("canvas");
+        canvas.className = "spotui-ascii-canvas";
+        canvas.setAttribute("aria-hidden", "true");
+        logo.appendChild(canvas);
+        asciiDraw.canvas = canvas;
+        asciiDraw.ctx = canvas.getContext("2d");
 
         const rows = SPOTUI_ASCII_ART.length;
         const cols = Math.max(...SPOTUI_ASCII_ART.map((row) => row.length));
+        asciiDraw.rows = rows;
+        asciiDraw.cols = cols;
         const charData = [];
         const rowSpansCache = [];
 
-        // Build grid with each character as a positioned span
         SPOTUI_ASCII_ART.forEach((line, rowIdx) => {
-            const rowDiv = document.createElement("div");
-            rowDiv.className = "spotui-ascii-row";
-            rowDiv.dataset.row = rowIdx;
             const padded = line.padEnd(cols, " ");
             const chars = [...padded];
             const rowSpans = [];
             chars.forEach((ch, colIdx) => {
-                const span = document.createElement("span");
-                span.className = "spotui-ascii-char";
-                span.textContent = ch;
-                span.dataset.row = rowIdx;
-                span.dataset.col = colIdx;
-                span.dataset.original = ch;
                 const color = getCharColor(rowIdx, colIdx, rows, cols);
-                span.style.color = color;
-                span.dataset.origColor = color;
+                const el = {
+                    textContent: ch,
+                    style: { color },
+                    dataset: {
+                        row: String(rowIdx),
+                        col: String(colIdx),
+                        original: ch,
+                        origColor: color,
+                    },
+                };
                 charData.push({
                     row: rowIdx,
                     col: colIdx,
-                    el: span,
+                    el,
                     original: ch,
                     color,
                 });
-                rowSpans.push(span);
-                rowDiv.appendChild(span);
+                rowSpans.push(el);
             });
             rowSpansCache.push(rowSpans);
-            grid.appendChild(rowDiv);
         });
 
         app.asciiCharData = charData;
+        layoutAsciiCanvas();
+        startAsciiPaintLoop();
+        window.addEventListener("resize", layoutAsciiCanvas);
+        if (document.fonts?.ready) document.fonts.ready.then(layoutAsciiCanvas);
 
         function getRowSpans(rowIdx) {
             return rowSpansCache[rowIdx] || [];
@@ -1025,6 +1121,7 @@
 
     // Global keydown handler for custom keybinds
     function handleKeybindKeydown(e) {
+        if (app.standbyOpen) return;
         const binds = getKeybinds();
         if (!Object.keys(binds).length) return;
 
@@ -1591,14 +1688,18 @@
         const startIdx = Math.max(0, Math.floor(scrollTop / PLAYLIST_ROW_HEIGHT) - buffer);
         const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / PLAYLIST_ROW_HEIGHT) + buffer);
 
+        const needed = Math.max(0, endIdx - startIdx);
+        while (viewport.childNodes.length > needed) viewport.removeChild(viewport.lastChild);
+        while (viewport.childNodes.length < needed) viewport.appendChild(document.createElement("div"));
         viewport.style.transform = `translateY(${startIdx * PLAYLIST_ROW_HEIGHT}px)`;
-        viewport.innerHTML = "";
-        for (let idx = startIdx; idx < endIdx; idx++) {
+        for (let i = 0; i < needed; i++) {
+            const idx = startIdx + i;
             const p = app.playlists[idx];
-            const item = document.createElement("div");
-            item.className = "playlist-item" + (idx === app.selectedPlaylist && app.activePane === "playlist" ? " selected" : "");
-            item.textContent = p.name;
-            viewport.appendChild(item);
+            const item = viewport.childNodes[i];
+            const className = "playlist-item" + (idx === app.selectedPlaylist && app.activePane === "playlist" ? " selected" : "");
+            const text = p.name;
+            if (item.className !== className) item.className = className;
+            if (item.textContent !== text) item.textContent = text;
         }
     }
 
@@ -1646,14 +1747,18 @@
         const startIdx = Math.max(0, Math.floor(scrollTop / SONG_ROW_HEIGHT) - buffer);
         const endIdx = Math.min(total, Math.ceil((scrollTop + viewHeight) / SONG_ROW_HEIGHT) + buffer);
 
+        const needed = Math.max(0, endIdx - startIdx);
+        while (viewport.childNodes.length > needed) viewport.removeChild(viewport.lastChild);
+        while (viewport.childNodes.length < needed) viewport.appendChild(document.createElement("div"));
         viewport.style.transform = `translateY(${startIdx * SONG_ROW_HEIGHT}px)`;
-        viewport.innerHTML = "";
-        for (let idx = startIdx; idx < endIdx; idx++) {
+        for (let i = 0; i < needed; i++) {
+            const idx = startIdx + i;
             const s = app.playlistSongs[idx];
-            const item = document.createElement("div");
-            item.className = "song-item" + (idx === app.selectedSong && app.activePane === "song" ? " selected" : "");
-            item.textContent = `${s.name} - ${s.artist}`;
-            viewport.appendChild(item);
+            const item = viewport.childNodes[i];
+            const className = "song-item" + (idx === app.selectedSong && app.activePane === "song" ? " selected" : "");
+            const text = `${s.name} - ${s.artist}`;
+            if (item.className !== className) item.className = className;
+            if (item.textContent !== text) item.textContent = text;
         }
     }
 
@@ -1685,13 +1790,18 @@
         const total = app.playlistSongs.length;
         if (!total) return;
         const destination = Math.max(0, Math.min(targetIdx, total - 1));
+        const viewHeight = container.clientHeight || 400;
+        const targetTop = Math.max(0, destination * SONG_ROW_HEIGHT - viewHeight / 2);
+        if (Math.abs(targetTop - container.scrollTop) > viewHeight * 3) {
+            container.scrollTop = targetTop;
+            renderSongListVirtual();
+            return;
+        }
 
         const step = () => {
             app.songScrollAnimRaf = null;
             if (!app.playlistPanelOpen || app.activePane !== "song" || token !== app.playlistSongsFetchToken) return;
 
-            const viewHeight = container.clientHeight || 400;
-            const targetTop = Math.max(0, destination * SONG_ROW_HEIGHT - viewHeight / 2);
             const current = container.scrollTop;
             const distance = targetTop - current;
             if (Math.abs(distance) < 1) return;
@@ -1738,13 +1848,16 @@
                 if (!app.playlists.length) return;
                 cancelSongScrollAnim();
                 app.selectedPlaylist = (app.selectedPlaylist + dir + app.playlists.length) % app.playlists.length;
+                const now = performance.now();
+                app.playlistNavFast = e.repeat || now - app.playlistNavLastAt < 160;
+                app.playlistNavLastAt = now;
 
                 if (app.navRafPending) return;
                 app.navRafPending = true;
                 requestAnimationFrame(() => {
                     app.navRafPending = false;
                     renderPlaylistListVirtual();
-                    scrollPlaylistIntoView(app.selectedPlaylist, !e.repeat);
+                    scrollPlaylistIntoView(app.selectedPlaylist, !app.playlistNavFast);
                 });
 
                 scheduleSongsFetchForSelectedPlaylist();
@@ -1752,23 +1865,25 @@
             }
 
             if (!app.playlistSongs.length) return;
-            if (e.repeat && app.songScrollAnimRaf) return;
 
             const navTotal = app.playlistSongsTotal || app.playlistSongs.length;
             const prevSelected = app.selectedSong;
             app.selectedSong = (prevSelected + dir + navTotal) % navTotal;
-            const wrappedUpToBottom = dir === -1 && prevSelected === 0;
+            const wrapped = (dir === -1 && prevSelected === 0) || (dir === 1 && prevSelected === navTotal - 1);
+            const now = performance.now();
+            app.playlistNavFast = e.repeat || now - app.playlistNavLastAt < 160;
+            app.playlistNavLastAt = now;
 
             if (app.navRafPending) return;
             app.navRafPending = true;
             requestAnimationFrame(() => {
                 app.navRafPending = false;
                 cancelSongScrollAnim();
-                if (wrappedUpToBottom) {
+                if (wrapped && !app.playlistNavFast) {
                     renderSongListVirtual();
                     animateSongScrollToIndex(app.selectedSong);
                 } else {
-                    commitSongNav(!e.repeat);
+                    commitSongNav(!app.playlistNavFast);
                 }
             });
             return;
@@ -2416,6 +2531,146 @@
         return new Set(["p", "v", "loop"]);
     }
 
+    const STANDBY_HTML_URL = "https://raw.githubusercontent.com/SkenSMasteR/spotui-standby/refs/heads/main/index.html";
+    const OVERLAY_ID = "spotui-standby-overlay";
+    const CATCHER_ID = "spotui-standby-catcher";
+
+    let standbyToken = 0;
+    let swallowKeys = false;
+
+    function swallowEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    }
+
+    function attachKeyListeners() {
+        window.addEventListener("keydown", onStandbyKey, true);
+        window.addEventListener("keyup", onStandbyKey, true);
+        window.addEventListener("keypress", onStandbyKey, true);
+        document.addEventListener("keydown", onStandbyKey, true);
+        document.addEventListener("keyup", onStandbyKey, true);
+        document.addEventListener("keypress", onStandbyKey, true);
+    }
+
+    function detachKeyListeners() {
+        window.removeEventListener("keydown", onStandbyKey, true);
+        window.removeEventListener("keyup", onStandbyKey, true);
+        window.removeEventListener("keypress", onStandbyKey, true);
+        document.removeEventListener("keydown", onStandbyKey, true);
+        document.removeEventListener("keyup", onStandbyKey, true);
+        document.removeEventListener("keypress", onStandbyKey, true);
+    }
+
+    function onStandbyKey(e) {
+        if (!app.standbyOpen && !swallowKeys) return;
+        swallowEvent(e);
+        if (app.standbyOpen && e.type === "keydown") {
+            swallowKeys = true;
+            exitStandby();
+            return;
+        }
+        if (e.type === "keyup") {
+            swallowKeys = false;
+            if (!app.standbyOpen) {
+                detachKeyListeners();
+                const input = document.getElementById("spotui-input");
+                if (input) input.focus();
+            }
+        }
+    }
+
+    function onStandbyClick(e) {
+        if (!app.standbyOpen) return;
+        e.preventDefault();
+        e.stopPropagation();
+        exitStandby();
+    }
+
+    function onStandbyBlur() {
+        if (!app.standbyOpen) return;
+        requestAnimationFrame(focusCatcher);
+    }
+
+    function focusCatcher() {
+        const catcher = document.getElementById(CATCHER_ID);
+        if (catcher) catcher.focus();
+    }
+
+    function removeOverlay() {
+        const overlay = document.getElementById(OVERLAY_ID);
+        if (overlay) overlay.remove();
+    }
+
+    function restoreSpotui() {
+        document.body.classList.remove("spotui-standby", "spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
+        const spotifyBtn = document.getElementById("enable-spotify-btn");
+        if (spotifyBtn) spotifyBtn.textContent = "Enable Spotify";
+        if (swallowKeys) return;
+        const input = document.getElementById("spotui-input");
+        if (input) input.focus();
+    }
+
+    function exitStandby() {
+        if (!app.standbyOpen) return;
+        standbyToken += 1;
+        app.standbyOpen = false;
+        if (!swallowKeys) detachKeyListeners();
+        window.removeEventListener("blur", onStandbyBlur, true);
+        document.removeEventListener("focusin", onStandbyBlur, true);
+        removeOverlay();
+        restoreSpotui();
+    }
+
+    async function enterStandby() {
+        if (app.standbyOpen) return;
+        app.standbyOpen = true;
+        const token = ++standbyToken;
+
+        document.body.classList.add("spotui-standby");
+        const input = document.getElementById("spotui-input");
+        if (input) input.blur();
+
+        const overlay = document.createElement("div");
+        overlay.id = OVERLAY_ID;
+
+        const frame = document.createElement("iframe");
+        frame.setAttribute("sandbox", "allow-scripts");
+        frame.setAttribute("tabindex", "-1");
+
+        const catcher = document.createElement("input");
+        catcher.id = CATCHER_ID;
+        catcher.type = "text";
+        catcher.autocomplete = "off";
+        catcher.spellcheck = false;
+        catcher.setAttribute("aria-label", "Standby");
+
+        overlay.appendChild(frame);
+        overlay.appendChild(catcher);
+        document.body.appendChild(overlay);
+
+        attachKeyListeners();
+        window.addEventListener("blur", onStandbyBlur, true);
+        document.addEventListener("focusin", onStandbyBlur, true);
+        catcher.addEventListener("blur", onStandbyBlur);
+        catcher.addEventListener("click", onStandbyClick);
+        overlay.addEventListener("click", onStandbyClick);
+        focusCatcher();
+
+        try {
+            const res = await fetch(STANDBY_HTML_URL, { cache: "no-store" });
+            if (!res.ok) throw new Error("standby fetch failed");
+            const html = await res.text();
+            if (token !== standbyToken || !app.standbyOpen) return;
+            frame.srcdoc = html;
+            focusCatcher();
+        } catch (e) {
+            if (token !== standbyToken) return;
+            console.error("SpoTUI: failed to load standby overlay", e);
+            exitStandby();
+        }
+    }
+
     // Check if URL points to video file
     function isVideoWallpaperUrl(url) {
         try {
@@ -2730,6 +2985,7 @@
             return;
         }
 
+        if (command === "standby") { closeActivePanel(); await enterStandby(); return; }
         if (command === "help") { openHelpPanel(); return; }
         if (command === "about") { openAboutPanel(); return; }
         if (command === "playlist" || command === "list") { 
@@ -3971,8 +4227,16 @@
             }
         });
 
+        const standbyBtn = createButton("standby-btn", "spotui-control-btn spotui-standby-btn", "", () => {
+            enterStandby();
+        });
+        standbyBtn.setAttribute("aria-label", "Standby");
+        standbyBtn.title = "Standby";
+        standbyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1 3.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5M8 6a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 .708-.708L7.5 12.293V6.5A.5.5 0 0 1 8 6"/></svg>`;
+
         controls.appendChild(lyricsBtn);
         controls.appendChild(spotifyBtn);
+        controls.appendChild(standbyBtn);
         (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
         const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {
@@ -4363,51 +4627,13 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 }
 
 
-.spotui-ascii-grid {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    font-size: clamp(9px, 1.4vw, 22px);
-    letter-spacing: 0;
-    font-weight: 400;
-    font-variant-ligatures: none;
-    font-kerning: none;
-    -webkit-font-smoothing: antialiased;
+.spotui-ascii-canvas {
+    display: block;
+    padding: 0;
+    margin: 0;
     user-select: none;
-    white-space: pre;
-    padding: 20px;
+    pointer-events: none;
     contain: layout style paint;
-}
-
-.spotui-ascii-row {
-    display: flex;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    contain: layout style paint;
-}
-
-.spotui-ascii-char {
-    display: inline-block;
-    font-size: clamp(9px, 1.4vw, 22px);
-    line-height: 1;
-    width: 1ch;
-    text-align: left;
-    position: relative;
-    text-shadow: 0 0 6px currentColor;
-}
-
-@media (max-width: 700px) {
-    .spotui-ascii-grid, .spotui-ascii-char {
-        font-size: clamp(5px, 1.1vw, 11px);
-    }
-}
-
-@media (max-width: 450px) {
-    .spotui-ascii-grid, .spotui-ascii-char {
-        font-size: clamp(3.5px, 1.4vw, 7px);
-    }
 }
 
 #spotui-output {
@@ -4858,7 +5084,7 @@ body.spotui-theme-panel #spotui-theme-panel {
 #spotui-playlist-list, #spotui-song-list {
     width: 50%;
     overflow-y: auto;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding: 10px;
@@ -5008,6 +5234,17 @@ body.spotui-theme-panel #spotui-theme-panel {
 
 .spotui-control-btn:hover {
     background: var(--input-bg-hover-color, #e07b39);
+}
+
+.spotui-standby-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+}
+
+.spotui-standby-btn svg {
+    display: block;
 }
 
 body.spotui-tui-hidden #spotui-tui {
@@ -5246,6 +5483,53 @@ body.spotui-search-panel #spotui-search-panel {
 .spotui-search-empty {
     padding: 10px;
     color: #777;
+}
+
+#spotui-standby-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2147483647 !important;
+    background: #000;
+    overflow: hidden;
+}
+
+#spotui-standby-overlay iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+}
+
+#spotui-standby-catcher {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+    color: transparent;
+    caret-color: transparent;
+    opacity: 0;
+}
+
+body.spotui-standby #spotui-tui,
+body.spotui-standby #spotui-controls,
+body.spotui-standby #spotui-custom-bar,
+body.spotui-standby #spotui-back-btn,
+body.spotui-standby #spotui-update-banner,
+body.spotui-standby #spotui-jam-tags,
+body.spotui-standby #spotui-dj-tags,
+body.spotui-standby #spotui-popup,
+body.spotui-standby .Root__now-playing-bar {
+    display: none !important;
 }
 `;
     // Inject theme CSS into document head
