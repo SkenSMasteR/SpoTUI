@@ -192,6 +192,12 @@ export async function updateCustomBar() {
         const volEl = document.createElement("div");
         volEl.className = "spotui-custom-bar-vol";
         volEl.textContent = `Vol: ${Math.round(volume * 100)}%`;
+        volEl.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const cur = Spicetify.Player.getVolume();
+            const delta = e.deltaY < 0 ? 0.05 : -0.05;
+            Spicetify.Player.setVolume(Math.max(0, Math.min(1, cur + delta)));
+        }, { passive: false });
         const right = document.createElement("div");
         right.className = "spotui-custom-bar-right";
         right.appendChild(volEl);
