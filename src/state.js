@@ -60,3 +60,8 @@ export const app = {
     playlistNavLastAt: 0,
     playlistNavFast: false
 };
+
+// Returns true if any panel except lyrics or standby is open
+export function isAnyPanelOpen() {
+    return app.standbyOpen || Object.keys(app).some(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen" && app[k]);
+}

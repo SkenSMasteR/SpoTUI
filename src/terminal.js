@@ -1,7 +1,7 @@
 import { initAsciiAnimation } from "./ascii.js";
 import { execute } from "./commands.js";
 import { initSearchPanel } from "./search.js";
-import { app } from "./state.js";
+import { app, isAnyPanelOpen } from "./state.js";
 
 export function setTuiMode(mode) {
     app.tuiMode = mode === "cli" ? "cli" : "command";
@@ -58,14 +58,14 @@ export function createTerminal() {
     // Focus the command input when user starts typing
     document.addEventListener("keydown", (e) => {
         if (document.activeElement === input) return;
-        if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen || app.standbyOpen || app.onboardingPanelOpen) return;
+        if (isAnyPanelOpen()) return;
         if (e.ctrlKey || e.altKey || e.metaKey) return;
         if (e.key.length !== 1) return;
         input.focus();
     });
 
     input.addEventListener("keydown", async (e) => {
-        if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen) {
+        if (isAnyPanelOpen()) {
             e.stopImmediatePropagation();
             return;
         }
