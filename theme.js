@@ -218,6 +218,11 @@
         playlistNavFast: false
     };
 
+    // Returns true if any panel except lyrics or standby is open
+    function isAnyPanelOpen() {
+        return app.standbyOpen || Object.keys(app).some(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen" && app[k]);
+    }
+
     function storageGet(key) {
         try {
             return localStorage.getItem(key);
@@ -1535,8 +1540,18 @@
         initSearchPanel();
 
         const input = document.getElementById("spotui-input");
+
+        // Focus the command input when user starts typing
+        document.addEventListener("keydown", (e) => {
+            if (document.activeElement === input) return;
+            if (isAnyPanelOpen()) return;
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            if (e.key.length !== 1) return;
+            input.focus();
+        });
+
         input.addEventListener("keydown", async (e) => {
-            if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen) {
+            if (isAnyPanelOpen()) {
                 e.stopImmediatePropagation();
                 return;
             }
