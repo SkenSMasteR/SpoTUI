@@ -54,6 +54,16 @@ export function createTerminal() {
     initSearchPanel();
 
     const input = document.getElementById("spotui-input");
+
+    // Focus the command input when user starts typing
+    document.addEventListener("keydown", (e) => {
+        if (document.activeElement === input) return;
+        if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen || app.standbyOpen || app.onboardingPanelOpen) return;
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+        if (e.key.length !== 1) return;
+        input.focus();
+    });
+
     input.addEventListener("keydown", async (e) => {
         if (app.playlistPanelOpen || app.themePanelOpen || app.helpPanelOpen || app.aboutPanelOpen || app.searchPanelOpen) {
             e.stopImmediatePropagation();
