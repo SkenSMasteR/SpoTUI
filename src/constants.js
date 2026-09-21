@@ -42,8 +42,8 @@ export const LAUNCHED_KEY = "spotui:launched";
 // Theme IDs shown in first-boot onboarding
 export const FIRST_BOOT_THEME_IDS = new Set([
     "U3BvVFVJIC0gRGVmYXVsdA==",
-    "UmFuZG9tIGFuaW1lIHRoZW1l",
-    "SURL",
+    "SGlyb2tpIEthd2FuYWJlIC0gU3RvcmU=",
+    "UmVkIEF1dHVtbiBSb25pbiAtIExpdmUgV2FsbHBhcGVy",
 ]);
 // Progress bar styles for custom player bar
 export const PROGRESS_STYLES = {
