@@ -152,6 +152,15 @@ You can add your own theme to the theme browser by visiting [spotui.root.sx](htt
 
 ---
 
+<details>
+  <summary>Stonks</summary>
+  
+[![Star History Chart](https://api.star-history.com/chart?repos=skensmaster/spotui&type=date&legend=bottom-right)](https://www.star-history.com/?repos=skensmaster%2Fspotui&type=date&legend=top-right)
+
+</details>
+
+---
+
 <div align="center">
 
 ## Author
