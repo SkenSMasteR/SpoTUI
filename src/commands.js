@@ -337,6 +337,11 @@ export async function execute(cmd, opts = {}) {
         return;
     }
 
+    if (command === "echo") {
+        if (argText) jamSay(argText);
+        return;
+    }
+
     if (command === "jam") {
         const sub = (args[0] || "").toLowerCase();
         if (sub === "create") { await jamCreate(); return; }
