@@ -144,6 +144,7 @@
         { cmd: "like", desc: "Like/unlike current song" },
         { cmd: "lyrics", desc: "Toggle lyrics panel" },
         { cmd: "dj", desc: "Play the DJ playlist" },
+        { cmd: "echo &lt;text&gt;", desc: "Display a message" },
         { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
         { cmd: "about", desc: "Show about panel" },
         { cmd: "theme", desc: "Browse and apply themes" },
@@ -3090,6 +3091,11 @@
             } catch (err) {
                 jamSay("Spotify DJ isn’t available for your account yet.");
             }
+            return;
+        }
+
+        if (command === "echo") {
+            if (argText) jamSay(argText);
             return;
         }
 
