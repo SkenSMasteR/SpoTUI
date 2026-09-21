@@ -22,4 +22,4 @@ jobs:
           gh api \
             repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}/reviews \
             -f event=APPROVE \
-            -f body="Approved via !fa command by @${{ github.event.comment.user.login }}"
+            -f body="Force approved by @${{ github.event.comment.user.login }}"
