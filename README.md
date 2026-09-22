@@ -105,6 +105,34 @@ tui actions "autolyrics" "actions:spotui@pane_close>!lyrics" "lyrics on"
 | `actions:spotui@pane_close><pane> \| spotui@pane_close><pane>` | Fires when any listed pane closes |
 | `actions:spotui@pane_close>!<pane> \| spotui@pane_close>!<pane>` | Fires when the closed pane is none of the listed panes |
 
+### Playback State Targets
+
+| Target | Description |
+|--------|-------------|
+| `actions:spotui@playback_state>playing` | Fires when playback switches to playing |
+| `actions:spotui@playback_state>paused` | Fires when playback switches to paused |
+
+### Shuffle State Targets
+
+| Target | Description |
+|--------|-------------|
+| `actions:spotui@shuffle_state>on` | Fires when shuffle turns on |
+| `actions:spotui@shuffle_state>off` | Fires when shuffle turns off |
+
+### Loop State Targets
+
+| Target | Description |
+|--------|-------------|
+| `actions:spotui@loop_state>loop` | Fires when loop is set to loop |
+| `actions:spotui@loop_state>loop1` | Fires when loop is set to loop1 |
+| `actions:spotui@loop_state>off` | Fires when loop is turned off |
+
+### Listener Modifiers
+
+All listener types support the `!` exclude modifier and `|` pipe separator, e.g.:
+- `actions:spotui@shuffle_state>!on` - Fires when shuffle is NOT on (i.e., off)
+- `actions:spotui@loop_state>loop\|loop1` - Fires when loop is loop or loop1
+
 ## Custom Play Bar Progress Styles
 
 When the native Spotify play bar is hidden (`tui -bar -v off`), you can enable a custom, text-based TUI play bar (`tui -bar -c on`). This bar has a progress indicator with 14 different style presets.

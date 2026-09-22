@@ -1,4 +1,4 @@
-import { handleActionsCommand } from "./actions.js";
+import { handleActionsCommand, emitPlaybackState, emitShuffleState, emitLoopState } from "./actions.js";
 import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
 import { resetGrid } from "./ascii.js";
 import { initUpdateBanner, showRestartPopup } from "./banner.js";
@@ -278,12 +278,12 @@ export async function execute(cmd, opts = {}) {
     }
 
     const playerMap = {
-        play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play" },
-        pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause" },
-        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle" },
+        play: { fn: () => { if (!Spicetify.Player.isPlaying()) { Spicetify.Player.togglePlay(); emitPlaybackState(true); } }, name: "Play" },
+        pause: { fn: () => { if (Spicetify.Player.isPlaying()) { Spicetify.Player.togglePlay(); emitPlaybackState(false); } }, name: "Pause" },
+        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); emitPlaybackState(!p); return p; }, name: "Play/PauseToggle" },
         skip: { fn: () => Spicetify.Player.next(), name: "Skip" },
         back: { fn: () => Spicetify.Player.back(), name: "Back" },
-        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle" },
+        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); emitShuffleState(!s); return s; }, name: "Shuffle" },
         like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like" }
     };
 
@@ -364,5 +364,6 @@ export function handleRepeatCommand(kind, arg) {
         else return;
 
         Spicetify.Player.setRepeat(nextMode);
+        emitLoopState(nextMode);
     } catch (err) {}
 }

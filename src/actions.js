@@ -4,10 +4,24 @@ import { jamSay } from "./jam.js";
 import { storageGet, storageSet } from "./storage.js";
 
 const PANE_CLOSE_EVENT = "pane_close";
+const PLAYBACK_STATE_EVENT = "playback_state";
+const SHUFFLE_STATE_EVENT = "shuffle_state";
+const LOOP_STATE_EVENT = "loop_state";
 const RESERVED_NAMES = new Set(["create", "list", "enable", "disable", "delete"]);
 const CLAUSE_RE = /^(?:actions:)?spotui@([a-z_]+)(?:>(!?)([a-z0-9_-]+))?$/i;
 
+const VALID_TARGETS = {
+    [PANE_CLOSE_EVENT]: null,
+    [PLAYBACK_STATE_EVENT]: new Set(["playing", "paused"]),
+    [SHUFFLE_STATE_EVENT]: new Set(["on", "off"]),
+    [LOOP_STATE_EVENT]: new Set(["loop", "loop1", "off"]),
+};
+
 let runningActions = false;
+let prevPlaybackState = null;
+let prevShuffleState = null;
+let prevLoopState = null;
+let stateTrackerInterval = null;
 
 function parseQuotedTokens(text) {
     const tokens = [];
@@ -49,6 +63,13 @@ function validName(name) {
     return typeof name === "string" && /^[A-Za-z0-9_-]+$/.test(name) && !RESERVED_NAMES.has(name.toLowerCase());
 }
 
+function isValidTarget(event, target) {
+    const valid = VALID_TARGETS[event];
+    if (!valid) return false;
+    if (valid === null) return true;
+    return valid.has(target);
+}
+
 function parseListener(listener) {
     const raw = String(listener || "").trim();
     if (!raw.toLowerCase().startsWith("actions:")) return null;
@@ -61,8 +82,10 @@ function parseListener(listener) {
         const event = m[1].toLowerCase();
         const exclude = m[2] === "!";
         const target = (m[3] || "").toLowerCase();
-        if (event !== PANE_CLOSE_EVENT) return null;
+        if (event === "onboarding") return null;
         if (target === "onboarding") return null;
+        if (event !== PANE_CLOSE_EVENT && !VALID_TARGETS[event]) return null;
+        if (event !== PANE_CLOSE_EVENT && target && !isValidTarget(event, target)) return null;
         clauses.push({ event, exclude, target });
     }
     return clauses;
@@ -116,6 +139,69 @@ async function runPaneClose(target) {
         }
     } finally {
         runningActions = false;
+    }
+}
+
+function runActionEvent(event, target) {
+    if (runningActions) return;
+    runningActions = true;
+    try {
+        const actions = getActions();
+        const names = Object.keys(actions);
+        for (let i = 0; i < names.length; i++) {
+            const action = actions[names[i]];
+            if (!action.enabled || !action.listener || !action.command) continue;
+            if (!listenerMatches(action.listener, event, target)) continue;
+            execute(action.command);
+        }
+    } finally {
+        runningActions = false;
+    }
+}
+
+export function emitPlaybackState(state) {
+    const target = state ? "playing" : "paused";
+    if (target === prevPlaybackState) return;
+    prevPlaybackState = target;
+    queueMicrotask(() => runActionEvent(PLAYBACK_STATE_EVENT, target));
+}
+
+export function emitShuffleState(state) {
+    const target = state ? "on" : "off";
+    if (target === prevShuffleState) return;
+    prevShuffleState = target;
+    queueMicrotask(() => runActionEvent(SHUFFLE_STATE_EVENT, target));
+}
+
+export function emitLoopState(repeatMode) {
+    const target = repeatMode === 0 ? "off" : repeatMode === 1 ? "loop" : "loop1";
+    if (target === prevLoopState) return;
+    prevLoopState = target;
+    queueMicrotask(() => runActionEvent(LOOP_STATE_EVENT, target));
+}
+
+function checkPlayerState() {
+    try {
+        if (typeof Spicetify === "undefined" || !Spicetify.Player) return;
+        const isPlaying = Spicetify.Player.isPlaying();
+        const shuffle = Spicetify.Player.getShuffle();
+        const repeat = Spicetify.Player.getRepeat();
+        emitPlaybackState(isPlaying);
+        emitShuffleState(shuffle);
+        emitLoopState(repeat);
+    } catch {}
+}
+
+export function startStateTracker() {
+    if (stateTrackerInterval) return;
+    checkPlayerState();
+    stateTrackerInterval = setInterval(checkPlayerState, 1000);
+}
+
+export function stopStateTracker() {
+    if (stateTrackerInterval) {
+        clearInterval(stateTrackerInterval);
+        stateTrackerInterval = null;
     }
 }
 
