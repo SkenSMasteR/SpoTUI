@@ -208,6 +208,43 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
     z-index: 2;
 }
 
+#spotui-visualizer {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    z-index: 0;
+    margin: 0 0 8px;
+    overflow: hidden;
+    background: var(--visualizer-bg-color, transparent);
+    align-items: center;
+}
+
+body.spotui-visualizer-panel #spotui-visualizer {
+    display: flex;
+}
+
+#spotui-visualizer-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#spotui-visualizer-status {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--visualizer-bar-color, #ff8c42);
+    opacity: 0.8;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+body.spotui-visualizer-ready #spotui-visualizer-status {
+    display: none;
+}
+
 
 .spotui-ascii-canvas {
     display: block;

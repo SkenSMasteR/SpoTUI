@@ -11,6 +11,7 @@ import { injectStyle } from "./styles.js";
 import { initSync } from "./sync.js";
 import { createTerminal } from "./terminal.js";
 import { setWallpaper } from "./wallpaper.js";
+import { applyVisualizerColors } from "./visualizer.js";
 
 // Inject styles, set up event listeners, and restore saved state
 injectStyle();
@@ -72,5 +73,6 @@ try {
     applyInputColors();
     applyInputButtonsVisibility();
     applyPanelColors();
+    applyVisualizerColors();
     resumeJamFromStorage();
 } catch { }

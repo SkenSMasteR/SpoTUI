@@ -26,6 +26,8 @@ export const INPUT_BUTTONS = "spotui:inputs-buttons";
 export const PANEL_BG = "spotui:panel-bg";
 export const PANEL_BORDER = "spotui:panel-border";
 export const PANEL_TEXT = "spotui:panel-text";
+export const VISUALIZER_BAR = "spotui:visualizer-bar";
+export const VISUALIZER_BG = "spotui:visualizer-bg";
 export const UPDATE_BANNER_KEY = "spotui:update-banner";
 
 // Jam configs
@@ -132,6 +134,8 @@ export const COMMAND_LIST = [
     { cmd: "tui -inputs off", desc: "Reset input colors" },
     { cmd: "tui -panel -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set help/playlist/theme/about panel colors" },
     { cmd: "tui -panel off", desc: "Reset panel colors" },
+    { cmd: "tui -visualizer -bar &lt;#hex&gt; -bg &lt;#hex&gt;", desc: "Set visualizer bar and background colors" },
+    { cmd: "tui -visualizer off", desc: "Reset visualizer colors" },
     { cmd: "playlist / list &lt;playlist-name&gt;", desc: "Open playlist viewer or play a specific playlist" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
@@ -142,6 +146,7 @@ export const COMMAND_LIST = [
     { cmd: "loop / superloop", desc: "Toggle repeat mode" },
     { cmd: "like", desc: "Like/unlike current song" },
     { cmd: "lyrics", desc: "Toggle lyrics panel" },
+    { cmd: "visualizer", desc: "Open or close the Spotify audio visualizer" },
     { cmd: "dj", desc: "Play the DJ playlist" },
     { cmd: "echo &lt;text&gt;", desc: "Display a message" },
     { cmd: "search &lt;query&gt;", desc: "Search Spotify" },

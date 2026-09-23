@@ -15,6 +15,7 @@ import { storageClear, storageGet, storageRemove, storageSet } from "./storage.j
 import { applyThemeByName } from "./themes.js";
 import { enterStandby } from "./standby.js";
 import { setWallpaper } from "./wallpaper.js";
+import { handleVisualizerCommand, openVisualizerPanel } from "./visualizer.js";
 
 export async function execute(cmd, opts = {}) {
     const cleanedCmd = stripCommandPrefix(cmd);
@@ -136,6 +137,10 @@ export async function execute(cmd, opts = {}) {
             }
             return;
         }
+        if (argsLower.includes("-visualizer")) {
+            handleVisualizerCommand(args);
+            return;
+        }
         if (argsLower.includes("-bar")) {
             if (argsLower.includes("-v")) {
                 const idx = argsLower.indexOf("-v");
@@ -245,6 +250,7 @@ export async function execute(cmd, opts = {}) {
     }
 
     if (command === "standby") { closeActivePanel(); await enterStandby(); return; }
+    if (command === "visualizer") { await openVisualizerPanel(); return; }
     if (command === "help") { openHelpPanel(); return; }
     if (command === "about") { openAboutPanel(); return; }
     if (command === "playlist" || command === "list") { 

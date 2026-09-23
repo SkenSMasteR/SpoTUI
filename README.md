@@ -67,6 +67,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>` | Set input colors |
 | `tui -inputs -buttons <on/off>` | Toggle bottom right buttons visibility |
 | `tui -inputs off` | Reset input colors |
+| `tui -visualizer -bar <#hex> -bg <#hex>` | Set visualizer bar and background colors |
+| `tui -visualizer off` | Reset visualizer colors |
 | `playlist` / `list` `<playlist-name>` | Open playlist viewer or play a specific playlist |
 | `play` / `pause` / `p` | Toggle playback |
 | `skip` | Next track |
@@ -75,6 +77,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `shuffle` | Toggle shuffle |
 | `loop` / `superloop` | Toggle repeat mode |
 | `lyrics` | Toggle lyrics panel |
+| `visualizer` | Open or close the Spotify audio visualizer |
 | `dj` | Play the DJ playlist |
 | `echo <text>` | Display a message |
 | `search <query>` | Search Spotify |

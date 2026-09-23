@@ -16,6 +16,10 @@ export function createTerminal() {
     box.innerHTML = `
 <div id="spotui-logo"></div>
 <div id="spotui-top-fade"></div>
+<div id="spotui-visualizer" hidden>
+    <canvas id="spotui-visualizer-canvas"></canvas>
+    <div id="spotui-visualizer-status">Loading Spotify audio analysis</div>
+</div>
 <div id="spotui-lyrics" hidden>
 <div class="spotui-lyrics-viewport">
 <div class="spotui-lyrics-lines"></div>

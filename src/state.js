@@ -25,6 +25,7 @@ export const app = {
     helpPanelOpen: false,
     aboutPanelOpen: false,
     themePanelOpen: false,
+    visualizerPanelOpen: false,
     onboardingPanelOpen: false,
     onboardingStage: "commands",
     onboardingShowAllThemes: false,
@@ -63,5 +64,5 @@ export const app = {
 
 // Returns true if any panel except lyrics or standby is open
 export function isAnyPanelOpen() {
-    return app.standbyOpen || Object.keys(app).some(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen" && app[k]);
+    return app.standbyOpen || Object.keys(app).some(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen" && k !== "visualizerPanelOpen" && app[k]);
 }

@@ -10,11 +10,13 @@ import { closeSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
 import { createAddThemeCard, createThemeCard, loadThemeFeed } from "./themes.js";
+import { closeVisualizerPanel } from "./visualizer.js";
 
 const PANE_TARGETS = {
     helpPanelOpen: "help",
     aboutPanelOpen: "about",
     themePanelOpen: "theme",
+    visualizerPanelOpen: "visualizer",
 };
 
 // Global Escape key handler - closes active panels
@@ -35,6 +37,7 @@ export function closeActivePanel() {
     if (app.lyricsPanelOpen) closeLyricsPanel();
     if (app.playlistPanelOpen) closePlaylistPanel();
     if (app.themePanelOpen) closeThemePanel();
+    if (app.visualizerPanelOpen) closeVisualizerPanel();
     if (app.searchPanelOpen) closeSearchPanel();
     if (app.onboardingPanelOpen) closeOnboardingPanel();
     if (app.djPanelOpen) {
