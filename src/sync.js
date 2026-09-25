@@ -199,6 +199,7 @@ function paintSyncIcon() {
     const el = document.getElementById("spotui-sposync-status");
     if (!el) return;
     const on = socket?.readyState === WebSocket.OPEN;
+    app.sposyncConnected = on;
     const key = on ? "1" : "0";
     if (el.dataset.sync === key) return;
     el.dataset.sync = key;
@@ -237,11 +238,13 @@ function connect() {
         return;
     }
     socket.onopen = () => {
+        app.sposyncConnected = true;
         paintSyncIcon();
         send();
         refreshLyrics();
     };
     socket.onclose = () => {
+        app.sposyncConnected = false;
         paintSyncIcon();
         scheduleReconnect();
     };

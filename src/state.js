@@ -8,6 +8,7 @@ export const app = {
     selected: 0,
     lyricsObserver: null,
     syncIconTimer: null,
+    sposyncConnected: false,
     djObserver: null,
     djMode: false,
     djPanelOpen: false,
