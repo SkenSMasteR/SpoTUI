@@ -57,6 +57,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |
 | `tui -ly -animation <on/off>` | Toggle lyrics loader animation |
+| `tui -viz -color <#hex>` | Set visualizer bar color |
+| `tui -viz off` | Reset visualizer bar color |
 | `tui -bar -bg <#hex> -border <#hex> -text <#hex>` | Set player bar colors |
 | `tui -bar -v <on/off>` | Toggle native play bar visibility |
 | `tui -bar -c <on/off>` | Toggle custom TUI play bar |
@@ -75,6 +77,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `shuffle` | Toggle shuffle |
 | `loop` / `superloop` | Toggle repeat mode |
 | `lyrics` | Toggle lyrics panel |
+| `visualizer` | Toggle audio visualizer |
 | `dj` | Play the DJ playlist |
 | `echo <text>` | Display a message |
 | `search <query>` | Search Spotify |

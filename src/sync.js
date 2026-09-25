@@ -3,11 +3,15 @@ import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES } from "./constants.js";
 import { getCurrentTrackLyricsInfo, resolveTrackLyrics } from "./lyrics.js";
 import { getPlaylists, normalizeTrackItem } from "./playlists.js";
 import { searchSpotify } from "./search.js";
+import { app } from "./state.js";
 import { storageGet } from "./storage.js";
+import { setVisualizerBars } from "./visualizer.js";
 
 const WS_URL = "ws://localhost:8765";
 const HEARTBEAT_MS = 1000;
 const RECONNECT_MS = 3000;
+const SYNC_ICON_OFF = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><circle cx="18.5" cy="18.5" r="4.5" fill="#ef4444" stroke="none"></circle><path d="m16.8 16.8 3.4 3.4m0-3.4-3.4 3.4" stroke="#fff" stroke-width="1.5"></path></svg>`;
+const SYNC_ICON_ON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><circle cx="18.5" cy="18.5" r="4.5" fill="#22c55e" stroke="none"></circle><path d="m16.3 18.5 1.4 1.4 3-3" stroke="#fff" stroke-width="1.5"></path></svg>`;
 
 let socket = null;
 let reconnectTimer = null;
@@ -42,6 +46,7 @@ function getColors() {
         panel_text: cssVar("--panel-text-color", "#ff8c42"),
         bar_bg: cssVar("--player-bar-background", "#000000"),
         bar_text: cssVar("--player-bar-text-color", "#ff8c42"),
+        visualizer: cssVar("--visualizer-color", "#ff8c42"),
     };
 }
 
@@ -77,6 +82,7 @@ function getTrackPayload() {
         lyrics: lyricsCache,
         progress_style: storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block",
         progress_chars: PROGRESS_STYLES[storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block"] || PROGRESS_STYLES["classic-block"],
+        visualizer: app.visualizerOpen,
     };
 }
 
@@ -88,6 +94,7 @@ function sendJson(obj) {
 function send() {
     const payload = getTrackPayload();
     if (payload) sendJson(payload);
+    else sendJson({ type: "update", visualizer: app.visualizerOpen, colors: getColors(), lyrics: lyricsCache });
 }
 
 async function refreshLyrics() {
@@ -170,6 +177,54 @@ function playUri(uri, context) {
     else Spicetify.Player.playUri(uri);
 }
 
+function syncTip(show) {
+    let tip = document.getElementById("spotui-sposync-tip");
+    if (!show) { if (tip) tip.hidden = true; return; }
+    const el = document.getElementById("spotui-sposync-status");
+    if (!el) return;
+    if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "spotui-sposync-tip";
+        document.body.appendChild(tip);
+    }
+    const on = socket?.readyState === WebSocket.OPEN;
+    tip.textContent = on ? "SpoSync:\nConnected" : "SpoSync:\nDisconnected";
+    const r = el.getBoundingClientRect();
+    tip.style.left = r.left + r.width / 2 + "px";
+    tip.style.bottom = window.innerHeight - r.top + 8 + "px";
+    tip.hidden = false;
+}
+
+function paintSyncIcon() {
+    const el = document.getElementById("spotui-sposync-status");
+    if (!el) return;
+    const on = socket?.readyState === WebSocket.OPEN;
+    app.sposyncConnected = on;
+    const key = on ? "1" : "0";
+    if (el.dataset.sync === key) return;
+    el.dataset.sync = key;
+    el.innerHTML = on ? SYNC_ICON_ON : SYNC_ICON_OFF;
+    el.setAttribute("aria-label", on ? "SpoSync: Connected" : "SpoSync: Disconnected");
+    const tip = document.getElementById("spotui-sposync-tip");
+    if (tip && !tip.hidden) syncTip(true);
+}
+
+function mountSyncIcon() {
+    const host = document.querySelector(".main-nowPlayingBar-extraControls");
+    if (!host) return;
+    let el = document.getElementById("spotui-sposync-status");
+    if (el && host.firstChild === el) return;
+    if (!el) {
+        el = document.createElement("span");
+        el.id = "spotui-sposync-status";
+        el.setAttribute("role", "img");
+        el.addEventListener("mouseenter", () => syncTip(true));
+        el.addEventListener("mouseleave", () => syncTip(false));
+    }
+    host.prepend(el);
+    paintSyncIcon();
+}
+
 function scheduleReconnect() {
     clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connect, RECONNECT_MS);
@@ -183,16 +238,26 @@ function connect() {
         return;
     }
     socket.onopen = () => {
+        app.sposyncConnected = true;
+        paintSyncIcon();
         send();
         refreshLyrics();
     };
-    socket.onclose = scheduleReconnect;
+    socket.onclose = () => {
+        app.sposyncConnected = false;
+        paintSyncIcon();
+        scheduleReconnect();
+    };
     socket.onerror = () => {
         try { socket.close(); } catch {}
     };
     socket.onmessage = (event) => {
         let data;
         try { data = JSON.parse(event.data); } catch { return; }
+        if (data?.type === "spectrum") {
+            setVisualizerBars(data.bars);
+            return;
+        }
         if (data?.type === "play") {
             playUri(data.uri, data.context);
             return;
@@ -208,7 +273,7 @@ function connect() {
             const argText = rest.join(" ").trim();
             if (command === "search") { handleTuiSearch(argText); return; }
             if (command === "playlist" || command === "list") { handleTuiPlaylist(argText); return; }
-            execute(cleaned);
+            execute(cleaned).then(send);
         }
     };
 }
@@ -226,5 +291,7 @@ export function initSync() {
     Spicetify.Player.addEventListener("onplaypause", send);
     Spicetify.Player.addEventListener("onprogress", send);
     if (!heartbeatTimer) heartbeatTimer = setInterval(send, HEARTBEAT_MS);
+    mountSyncIcon();
+    if (!app.syncIconTimer) app.syncIconTimer = setInterval(mountSyncIcon, 2000);
     connect();
 }

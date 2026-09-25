@@ -44,6 +44,7 @@ export function createTerminal() {
 </div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
+<canvas id="spotui-visualizer"></canvas>
 <div id="spotui-footer">
 <span class="prompt">></span>
 <input id="spotui-input" autofocus placeholder="type help for a list of commands">

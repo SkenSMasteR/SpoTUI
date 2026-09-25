@@ -27,6 +27,7 @@ export function showRestartPopup(message = "Wait 5 seconds and relaunch Spotify"
     if (persistSession) {
         try { sessionStorage.setItem("spotui:restart-popup", message); } catch (e) {}
     }
+    return popup;
 }
 // Initialize Discord community update banner
 // Shows unless user has dismissed with "never show again"

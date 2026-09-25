@@ -215,7 +215,7 @@ export async function jamLeave() {
 // Return set of commands available to jam guests
 export function getAllowedJamGuestCommands() {
     if (app.jamRole !== "guest") return null;
-    return new Set(["v", "volume", "lyrics", "jam"]);
+    return new Set(["v", "volume", "lyrics", "visualizer", "jam"]);
 }
 
 // Resume jam session from localStorage after page reload
