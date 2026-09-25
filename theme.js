@@ -13,6 +13,8 @@
     const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
     const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
     const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
+    const VISUALIZER_STORAGE_KEY = "spotui:visualizer-open";
+    const VISUALIZER_COLOR = "spotui:visualizer-color";
     const PLAYER_BAR_BG = "spotui:player-bar-bg";
     const PLAYER_BAR_BORDER = "spotui:player-bar-border";
     const PLAYER_BAR_TEXT = "spotui:player-bar-text";
@@ -121,6 +123,8 @@
         { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
         { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
         { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
+        { cmd: "tui -viz -color &lt;#hex&gt;", desc: "Set visualizer bar color" },
+        { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
         { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
         { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },
         { cmd: "tui -bar -c &lt;on/off&gt;", desc: "Toggle custom TUI play bar" },
@@ -143,6 +147,7 @@
         { cmd: "loop / superloop", desc: "Toggle repeat mode" },
         { cmd: "like", desc: "Like/unlike current song" },
         { cmd: "lyrics", desc: "Toggle lyrics panel" },
+        { cmd: "visualizer", desc: "Toggle audio visualizer" },
         { cmd: "dj", desc: "Play the DJ playlist" },
         { cmd: "echo &lt;text&gt;", desc: "Display a message" },
         { cmd: "search &lt;query&gt;", desc: "Search Spotify" },
@@ -165,6 +170,8 @@
         results: [],
         selected: 0,
         lyricsObserver: null,
+        syncIconTimer: null,
+        sposyncConnected: false,
         djObserver: null,
         djMode: false,
         djPanelOpen: false,
@@ -187,6 +194,7 @@
         onboardingStage: "commands",
         onboardingShowAllThemes: false,
         lyricsPanelOpen: false,
+        visualizerOpen: false,
         lyricsLoadToken: 0,
         lyricsActiveIndex: -1,
         lyricsActiveLoaderIndex: -1,
@@ -799,6 +807,7 @@
         if (persistSession) {
             try { sessionStorage.setItem("spotui:restart-popup", message); } catch (e) {}
         }
+        return popup;
     }
     // Initialize Discord community update banner
     // Shows unless user has dismissed with "never show again"
@@ -1053,7 +1062,7 @@
     // Return set of commands available to jam guests
     function getAllowedJamGuestCommands() {
         if (app.jamRole !== "guest") return null;
-        return new Set(["v", "volume", "lyrics", "jam"]);
+        return new Set(["v", "volume", "lyrics", "visualizer", "jam"]);
     }
 
     // Resume jam session from localStorage after page reload
@@ -1152,6 +1161,74 @@
         e.preventDefault();
         e.stopPropagation();
         execute(cmd);
+    }
+
+    let bars = [];
+    let raf = 0;
+
+    function paint() {
+        raf = 0;
+        const c = document.getElementById("spotui-visualizer");
+        if (!c || !app.visualizerOpen) return;
+        const ctx = c.getContext("2d");
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+        if (c.width !== w) c.width = w;
+        if (c.height !== h) c.height = h;
+        ctx.clearRect(0, 0, w, h);
+        const n = bars.length;
+        if (!n || !w || !h) return;
+        const gap = 2;
+        const bw = Math.max(1, (w - gap * n) / n);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--visualizer-color").trim() || "#ff8c42";
+        for (let i = 0; i < n; i++) {
+            const bh = bars[i] * h;
+            if (bh > 0) ctx.fillRect(i * (bw + gap), h - bh, bw, bh);
+        }
+    }
+
+    function setVisualizerBars(next) {
+        bars = next || [];
+        if (app.visualizerOpen && !raf) raf = requestAnimationFrame(paint);
+    }
+
+    function handleVisualizerCommand(arg, silent) {
+        const mode = String(arg || "").trim().toLowerCase();
+        const on = () => {
+            if (!app.sposyncConnected) {
+                if (silent) return;
+                const popup = showRestartPopup("");
+                const accent = getSpotuiAccentColor();
+                popup.style.border = `1px solid ${accent}`;
+                popup.style.color = accent;
+                popup.style.maxWidth = "420px";
+                popup.style.lineHeight = "1.45";
+                popup.style.display = "flex";
+                popup.style.flexDirection = "column";
+                popup.style.gap = "12px";
+                popup.innerHTML = `<div>Unable to enable visualizer because you do not have SpoSync.<br><br>SpoSync lets SpoTUI fetch live audio data and gives you the full TUI experience.<br><br>Download it from:<br>GitHub: <a href="https://github.com/SkenSMasteR/SpoTUI" target="_blank" rel="noopener" style="color:inherit">https://github.com/SkenSMasteR/SpoTUI</a><br>Discord: <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener" style="color:inherit">${DISCORD_INVITE_URL}</a></div>`;
+                popup.appendChild(createButton("", "spotui-control-btn", "OK", () => popup.remove()));
+                return;
+            }
+            app.visualizerOpen = true;
+            storageSet(VISUALIZER_STORAGE_KEY, "1");
+            document.body.classList.add("spotui-visualizer-on");
+            setVisualizerBars(bars);
+        };
+        const off = () => {
+            app.visualizerOpen = false;
+            storageSet(VISUALIZER_STORAGE_KEY, "0");
+            document.body.classList.remove("spotui-visualizer-on");
+        };
+        if (mode === "on" || mode === "open") { if (!app.visualizerOpen) on(); return; }
+        if (mode === "off" || mode === "close") { off(); return; }
+        if (mode && mode !== "toggle") return;
+        if (app.visualizerOpen) off();
+        else on();
+    }
+
+    function restoreVisualizer() {
+        if (storageGet(VISUALIZER_STORAGE_KEY) === "1") handleVisualizerCommand("on", true);
     }
 
     const SEARCH_DEBOUNCE_MS = 250;
@@ -1531,6 +1608,7 @@
 </div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
+<canvas id="spotui-visualizer"></canvas>
 <div id="spotui-footer">
 <span class="prompt">></span>
 <input id="spotui-input" autofocus placeholder="type help for a list of commands">
@@ -2785,7 +2863,7 @@
 
         const allowedJamCommands = getAllowedJamGuestCommands();
         if (allowedJamCommands && !allowedJamCommands.has(command)) {
-            jamSay("Commands limited to: `volume`, `lyrics`, `jam leave`");
+            jamSay("Commands limited to: `volume`, `lyrics`, `visualizer`, `jam leave`");
             return;
         }
 
@@ -2876,6 +2954,11 @@
                     "-near": LYRICS_COLOR_LIGHT_INACTIVE,
                 });
                 applyLyricColors();
+                return;
+            }
+            if (argsLower.includes("-viz")) {
+                handleColorArgs(args, { "-color": VISUALIZER_COLOR });
+                applyVisualizerColor();
                 return;
             }
             if (argsLower.includes("-ly") && argsLower.includes("-animation")) {
@@ -3079,6 +3162,7 @@
         if (command === "loop") { handleRepeatCommand("loop", argText); return; }
         if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
         if (command === "lyrics") { handleLyricsCommand(argText); return; }
+        if (command === "visualizer") { handleVisualizerCommand(argText); return; }
         if (command === "dj") {
             try {
                 app.playlists = await getPlaylists();
@@ -3959,6 +4043,10 @@
         }
     }
 
+    function applyVisualizerColor() {
+        applyCssVar(VISUALIZER_COLOR, "--visualizer-color");
+    }
+
     // Apply stored player bar color preferences from localStorage
     function applyPlayerBarColors() {
         try {
@@ -4303,6 +4391,9 @@
         storageRemove(LYRICS_COLOR_INACTIVE);
         storageRemove(LYRICS_COLOR_LIGHT_INACTIVE);
         applyLyricColors();
+
+        storageRemove(VISUALIZER_COLOR);
+        applyVisualizerColor();
 
         storageRemove(PLAYER_BAR_BG);
         storageRemove(PLAYER_BAR_BORDER);
@@ -4701,6 +4792,23 @@ body.spotui-cli-mode #spotui-output {
 .spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
     height: 0;
+}
+
+#spotui-visualizer {
+    display: none;
+    width: 100%;
+    height: 56px;
+    flex: 0 0 56px;
+    margin-top: auto;
+    pointer-events: none;
+}
+
+body.spotui-visualizer-on #spotui-visualizer {
+    display: block;
+}
+
+body.spotui-visualizer-on #spotui-footer {
+    margin-top: 0;
 }
 
 #spotui-footer {
@@ -5241,6 +5349,41 @@ body.spotui-theme-panel #spotui-theme-panel {
     }
 }
 
+#spotui-sposync-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    margin-right: 4px;
+    color: currentColor;
+    pointer-events: auto;
+    cursor: default;
+}
+
+#spotui-sposync-status svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+#spotui-sposync-tip {
+    position: fixed;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.92);
+    border: 1px solid var(--spotui-accent, #ff8c42);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--spotui-accent, #ff8c42);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: pre-line;
+    pointer-events: none;
+}
+
 #spotui-controls {
     display: flex;
     gap: 8px;
@@ -5569,6 +5712,8 @@ body.spotui-standby .Root__now-playing-bar {
     const WS_URL = "ws://localhost:8765";
     const HEARTBEAT_MS = 1000;
     const RECONNECT_MS = 3000;
+    const SYNC_ICON_OFF = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><circle cx="18.5" cy="18.5" r="4.5" fill="#ef4444" stroke="none"></circle><path d="m16.8 16.8 3.4 3.4m0-3.4-3.4 3.4" stroke="#fff" stroke-width="1.5"></path></svg>`;
+    const SYNC_ICON_ON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><circle cx="18.5" cy="18.5" r="4.5" fill="#22c55e" stroke="none"></circle><path d="m16.3 18.5 1.4 1.4 3-3" stroke="#fff" stroke-width="1.5"></path></svg>`;
 
     let socket = null;
     let reconnectTimer = null;
@@ -5603,6 +5748,7 @@ body.spotui-standby .Root__now-playing-bar {
             panel_text: cssVar("--panel-text-color", "#ff8c42"),
             bar_bg: cssVar("--player-bar-background", "#000000"),
             bar_text: cssVar("--player-bar-text-color", "#ff8c42"),
+            visualizer: cssVar("--visualizer-color", "#ff8c42"),
         };
     }
 
@@ -5638,6 +5784,7 @@ body.spotui-standby .Root__now-playing-bar {
             lyrics: lyricsCache,
             progress_style: storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block",
             progress_chars: PROGRESS_STYLES[storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block"] || PROGRESS_STYLES["classic-block"],
+            visualizer: app.visualizerOpen,
         };
     }
 
@@ -5649,6 +5796,7 @@ body.spotui-standby .Root__now-playing-bar {
     function send() {
         const payload = getTrackPayload();
         if (payload) sendJson(payload);
+        else sendJson({ type: "update", visualizer: app.visualizerOpen, colors: getColors(), lyrics: lyricsCache });
     }
 
     async function refreshLyrics() {
@@ -5731,6 +5879,54 @@ body.spotui-standby .Root__now-playing-bar {
         else Spicetify.Player.playUri(uri);
     }
 
+    function syncTip(show) {
+        let tip = document.getElementById("spotui-sposync-tip");
+        if (!show) { if (tip) tip.hidden = true; return; }
+        const el = document.getElementById("spotui-sposync-status");
+        if (!el) return;
+        if (!tip) {
+            tip = document.createElement("div");
+            tip.id = "spotui-sposync-tip";
+            document.body.appendChild(tip);
+        }
+        const on = socket?.readyState === WebSocket.OPEN;
+        tip.textContent = on ? "SpoSync:\nConnected" : "SpoSync:\nDisconnected";
+        const r = el.getBoundingClientRect();
+        tip.style.left = r.left + r.width / 2 + "px";
+        tip.style.bottom = window.innerHeight - r.top + 8 + "px";
+        tip.hidden = false;
+    }
+
+    function paintSyncIcon() {
+        const el = document.getElementById("spotui-sposync-status");
+        if (!el) return;
+        const on = socket?.readyState === WebSocket.OPEN;
+        app.sposyncConnected = on;
+        const key = on ? "1" : "0";
+        if (el.dataset.sync === key) return;
+        el.dataset.sync = key;
+        el.innerHTML = on ? SYNC_ICON_ON : SYNC_ICON_OFF;
+        el.setAttribute("aria-label", on ? "SpoSync: Connected" : "SpoSync: Disconnected");
+        const tip = document.getElementById("spotui-sposync-tip");
+        if (tip && !tip.hidden) syncTip(true);
+    }
+
+    function mountSyncIcon() {
+        const host = document.querySelector(".main-nowPlayingBar-extraControls");
+        if (!host) return;
+        let el = document.getElementById("spotui-sposync-status");
+        if (el && host.firstChild === el) return;
+        if (!el) {
+            el = document.createElement("span");
+            el.id = "spotui-sposync-status";
+            el.setAttribute("role", "img");
+            el.addEventListener("mouseenter", () => syncTip(true));
+            el.addEventListener("mouseleave", () => syncTip(false));
+        }
+        host.prepend(el);
+        paintSyncIcon();
+    }
+
     function scheduleReconnect() {
         clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connect, RECONNECT_MS);
@@ -5744,16 +5940,26 @@ body.spotui-standby .Root__now-playing-bar {
             return;
         }
         socket.onopen = () => {
+            app.sposyncConnected = true;
+            paintSyncIcon();
             send();
             refreshLyrics();
         };
-        socket.onclose = scheduleReconnect;
+        socket.onclose = () => {
+            app.sposyncConnected = false;
+            paintSyncIcon();
+            scheduleReconnect();
+        };
         socket.onerror = () => {
             try { socket.close(); } catch {}
         };
         socket.onmessage = (event) => {
             let data;
             try { data = JSON.parse(event.data); } catch { return; }
+            if (data?.type === "spectrum") {
+                setVisualizerBars(data.bars);
+                return;
+            }
             if (data?.type === "play") {
                 playUri(data.uri, data.context);
                 return;
@@ -5769,7 +5975,7 @@ body.spotui-standby .Root__now-playing-bar {
                 const argText = rest.join(" ").trim();
                 if (command === "search") { handleTuiSearch(argText); return; }
                 if (command === "playlist" || command === "list") { handleTuiPlaylist(argText); return; }
-                execute(cleaned);
+                execute(cleaned).then(send);
             }
         };
     }
@@ -5787,6 +5993,8 @@ body.spotui-standby .Root__now-playing-bar {
         Spicetify.Player.addEventListener("onplaypause", send);
         Spicetify.Player.addEventListener("onprogress", send);
         if (!heartbeatTimer) heartbeatTimer = setInterval(send, HEARTBEAT_MS);
+        mountSyncIcon();
+        if (!app.syncIconTimer) app.syncIconTimer = setInterval(mountSyncIcon, 2000);
         connect();
     }
 
@@ -5843,6 +6051,8 @@ body.spotui-standby .Root__now-playing-bar {
             setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
         }
         applyLyricColors();
+        applyVisualizerColor();
+        restoreVisualizer();
         applyPlayerBarColors();
         applyPlayerBarVisibility();
         applyCustomBarState();
