@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import threading
 import time
 
 import websockets
@@ -25,7 +26,53 @@ DEFAULT = {
     "panel_text": "#ff8c42",
     "bar_bg": "#000000",
     "bar_text": "#ff8c42",
+    "visualizer": "#ff8c42",
 }
+
+BARS = 48
+RATE = 44100
+CHUNK = 2048
+
+def _spectrum(samples):
+    import numpy as np
+    x = np.asarray(samples, dtype=np.float32).reshape(-1)
+    if x.size < CHUNK:
+        return [0.0] * BARS
+    x = x[: x.size - x.size % CHUNK]
+    x = x[-CHUNK:]
+    mag = np.abs(np.fft.rfft(x * np.hanning(CHUNK)))
+    freqs = np.fft.rfftfreq(CHUNK, 1.0 / RATE)
+    out = np.interp(np.geomspace(40, 16000, BARS), freqs, mag)
+    peak = float(out.max()) or 1.0
+    if peak < 1e-4:
+        return [0.0] * BARS
+    return [min(1.0, (v / peak) ** 0.55) for v in out]
+
+
+def start_capture():
+    def run():
+        try:
+            import soundcard as sc
+        except ImportError:
+            return
+        try:
+            spk = sc.default_speaker()
+            mic = sc.get_microphone(spk.name, include_loopback=True)
+        except Exception:
+            try:
+                mic = next(m for m in sc.all_microphones(include_loopback=True) if getattr(m, "isloopback", False))
+            except Exception:
+                return
+        try:
+            with mic.recorder(samplerate=RATE, channels=1, blocksize=CHUNK) as rec:
+                while True:
+                    data = rec.record(numframes=CHUNK)
+                    nxt = _spectrum(data)
+                    prev = S.spectrum or [0.0] * BARS
+                    S.spectrum = [p * 0.45 + n * 0.55 for p, n in zip(prev, nxt)]
+        except Exception:
+            return
+    threading.Thread(target=run, daemon=True).start()
 
 
 def hx(value, fallback):
@@ -69,6 +116,8 @@ class State:
         self.search_focus = "input"
         self.progress_style = "classic-block"
         self.progress_chars = {"fg": "█", "bg": "░"}
+        self.spectrum = [0.0] * BARS
+        self.visualizer = False
 
     def pos(self):
         if not self.is_playing:
@@ -296,6 +345,7 @@ class SpotuiApp(App):
         self.query_one("#playlist").display = False
         self.query_one("#search").display = False
         self.run_worker(self.serve, exclusive=True)
+        self.run_worker(self.spectrum_pump)
         self.set_interval(0.1, self.tick)
 
     def set_mode(self, mode):
@@ -343,6 +393,13 @@ class SpotuiApp(App):
     async def ws_send(self, obj):
         payload = json.dumps(obj)
         await asyncio.gather(*[ws.send(payload) for ws in list(S.clients)], return_exceptions=True)
+
+    async def spectrum_pump(self):
+        start_capture()
+        while True:
+            await asyncio.sleep(0.033)
+            if S.clients and S.visualizer:
+                await self.ws_send({"type": "spectrum", "bars": S.spectrum})
 
     def schedule_search(self):
         if self.search_timer is not None:
@@ -506,6 +563,7 @@ class SpotuiApp(App):
                 S.is_playing = bool(data.get("is_playing", S.is_playing))
                 S.last_update = time.time()
                 S.connected = True
+                S.visualizer = bool(data.get("visualizer", S.visualizer))
                 chars = data.get("progress_chars")
                 if isinstance(chars, dict) and chars.get("fg"):
                     S.progress_chars = chars

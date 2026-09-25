@@ -1,4 +1,4 @@
-import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, createControlButtons } from "./appearance.js";
+import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, applyVisualizerColor, createControlButtons } from "./appearance.js";
 import { initUpdateBanner, showRestartPopup } from "./banner.js";
 import { LYRICS_ANIMATION_KEY, LYRICS_STORAGE_KEY, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { resumeJamFromStorage } from "./jam.js";
@@ -10,6 +10,7 @@ import { storageGet } from "./storage.js";
 import { injectStyle } from "./styles.js";
 import { initSync } from "./sync.js";
 import { createTerminal } from "./terminal.js";
+import { restoreVisualizer } from "./visualizer.js";
 import { setWallpaper } from "./wallpaper.js";
 
 // Inject styles, set up event listeners, and restore saved state
@@ -65,6 +66,8 @@ try {
         setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
     }
     applyLyricColors();
+    applyVisualizerColor();
+    restoreVisualizer();
     applyPlayerBarColors();
     applyPlayerBarVisibility();
     applyCustomBarState();

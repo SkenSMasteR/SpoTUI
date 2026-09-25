@@ -1,4 +1,4 @@
-import { ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, HEX_COLOR_REGEX, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
+import { ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, HEX_COLOR_REGEX, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, VISUALIZER_COLOR, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { handleLyricsCommand, syncLyricsState } from "./lyrics.js";
 import { enterStandby } from "./standby.js";
 import { app } from "./state.js";
@@ -40,6 +40,10 @@ export function applyLyricColors() {
     } catch (e) {
         console.error("SpoTUI: Failed to apply lyric colors", e);
     }
+}
+
+export function applyVisualizerColor() {
+    applyCssVar(VISUALIZER_COLOR, "--visualizer-color");
 }
 
 // Apply stored player bar color preferences from localStorage
@@ -386,6 +390,9 @@ export function resetAllSettings() {
     storageRemove(LYRICS_COLOR_INACTIVE);
     storageRemove(LYRICS_COLOR_LIGHT_INACTIVE);
     applyLyricColors();
+
+    storageRemove(VISUALIZER_COLOR);
+    applyVisualizerColor();
 
     storageRemove(PLAYER_BAR_BG);
     storageRemove(PLAYER_BAR_BORDER);

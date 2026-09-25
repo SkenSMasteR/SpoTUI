@@ -1,11 +1,12 @@
 import { handleActionsCommand } from "./actions.js";
-import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
+import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, applyVisualizerColor, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
 import { resetGrid } from "./ascii.js";
 import { initUpdateBanner, showRestartPopup } from "./banner.js";
-import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
+import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, VISUALIZER_COLOR, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { getAllowedJamGuestCommands, jamCreate, jamJoin, jamLeave, jamSay } from "./jam.js";
 import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix } from "./keybinds.js";
 import { handleLyricsCommand, syncLyricsHighlight } from "./lyrics.js";
+import { handleVisualizerCommand } from "./visualizer.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
 import { openAboutPanel, closeActivePanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
 import { getPlaylists } from "./playlists.js";
@@ -28,7 +29,7 @@ export async function execute(cmd, opts = {}) {
 
     const allowedJamCommands = getAllowedJamGuestCommands();
     if (allowedJamCommands && !allowedJamCommands.has(command)) {
-        jamSay("Commands limited to: `volume`, `lyrics`, `jam leave`");
+        jamSay("Commands limited to: `volume`, `lyrics`, `visualizer`, `jam leave`");
         return;
     }
 
@@ -119,6 +120,11 @@ export async function execute(cmd, opts = {}) {
                 "-near": LYRICS_COLOR_LIGHT_INACTIVE,
             });
             applyLyricColors();
+            return;
+        }
+        if (argsLower.includes("-viz")) {
+            handleColorArgs(args, { "-color": VISUALIZER_COLOR });
+            applyVisualizerColor();
             return;
         }
         if (argsLower.includes("-ly") && argsLower.includes("-animation")) {
@@ -322,6 +328,7 @@ export async function execute(cmd, opts = {}) {
     if (command === "loop") { handleRepeatCommand("loop", argText); return; }
     if (command === "superloop") { handleRepeatCommand("superloop", argText); return; }
     if (command === "lyrics") { handleLyricsCommand(argText); return; }
+    if (command === "visualizer") { handleVisualizerCommand(argText); return; }
     if (command === "dj") {
         try {
             app.playlists = await getPlaylists();

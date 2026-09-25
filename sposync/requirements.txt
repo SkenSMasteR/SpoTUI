@@ -1,2 +1,4 @@
 textual
 websockets
+numpy
+soundcard
