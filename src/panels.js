@@ -111,9 +111,13 @@ export function closePlaylistPanel() {
     const wasOpen = app.playlistPanelOpen;
     app.playlistPanelOpen = false;
     app.playlistSortOpen = false;
+    app.playlistFindOpen = false;
+    app.playlistFindQuery = "";
     document.body.classList.remove("spotui-playlist-panel");
     const sortMenu = document.getElementById("spotui-playlist-sort");
     if (sortMenu) sortMenu.hidden = true;
+    const findInput = document.getElementById("spotui-playlist-find");
+    if (findInput) { findInput.hidden = true; findInput.value = ""; }
     const infoPopup = document.getElementById("spotui-playlist-info-popup");
     if (infoPopup) infoPopup.hidden = true;
     const panel = document.getElementById("spotui-playlist-panel");

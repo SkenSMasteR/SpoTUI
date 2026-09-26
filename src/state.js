@@ -66,7 +66,10 @@ export const app = {
     playlistSortOpen: false,
     playlistSortIndex: 0,
     playlistsDefault: [],
-    playlistSongsDefault: []
+    playlistSongsDefault: [],
+    playlistFindOpen: false,
+    playlistFindQuery: "",
+    playlistFindSource: []
 };
 
 // Returns true if any panel except lyrics or standby is open

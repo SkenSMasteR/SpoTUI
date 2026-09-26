@@ -573,6 +573,27 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
+#spotui-playlist-find {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+    color: #ddd;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    outline: none;
+}
+
+#spotui-playlist-find.songs {
+    left: auto;
+    right: 12px;
+}
+
 #spotui-playlist-info {
     position: absolute;
     bottom: 10px;

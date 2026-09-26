@@ -84,6 +84,59 @@ export function renderPlaylistSortMenu() {
     el.innerHTML = PLAYLIST_SORT_OPTS.map((label, i) => `<div class="playlist-item${i === app.playlistSortIndex ? " selected" : ""}">${label}</div>`).join("");
 }
 
+export function closePlaylistFind() {
+    app.playlistFindOpen = false;
+    app.playlistFindQuery = "";
+    const el = document.getElementById("spotui-playlist-find");
+    if (el) { el.hidden = true; el.value = ""; el.blur(); }
+}
+
+export function applyPlaylistFind() {
+    const q = app.playlistFindQuery.trim().toLowerCase();
+    const source = app.playlistFindSource || [];
+    const filtered = q ? source.filter((item) => (item.name || "").toLowerCase().includes(q) || (item.artist || "").toLowerCase().includes(q)) : source.slice();
+    if (app.activePane === "song") {
+        app.playlistSongs = filtered;
+        app.playlistSongsTotal = filtered.length;
+        app.selectedSong = 0;
+        renderSongListVirtual();
+        scrollSongIntoView(0, false);
+    } else {
+        app.playlists = filtered;
+        app.selectedPlaylist = 0;
+        renderPlaylistListVirtual();
+        scrollPlaylistIntoView(0, false);
+        if (!app.add2listPanelOpen) scheduleSongsFetchForSelectedPlaylist();
+    }
+}
+
+export function openPlaylistFind() {
+    closePlaylistFind();
+    app.playlistFindOpen = true;
+    app.playlistFindQuery = "";
+    app.playlistFindSource = app.activePane === "song" ? (app.playlistSongs || []).slice() : (app.playlists || []).slice();
+    const el = document.getElementById("spotui-playlist-find");
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle("songs", app.activePane === "song");
+    el.value = "";
+    el.focus();
+    if (!el.dataset.bound) {
+        el.dataset.bound = "1";
+        el.addEventListener("input", () => {
+            app.playlistFindQuery = el.value;
+            applyPlaylistFind();
+        });
+        el.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                closePlaylistFind();
+            }
+        });
+    }
+}
+
 
 export function ensurePlaylistListScaffold() {
     const id = app.add2listPanelOpen ? "spotui-add2list-list" : "spotui-playlist-list";
@@ -302,11 +355,17 @@ export async function handlePlaylistPanelKeydown(e) {
         return;
     }
 
-    if (!app.add2listPanelOpen && (e.key === "o" || e.key === "O") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    if (!app.add2listPanelOpen && !app.playlistFindOpen && (e.key === "o" || e.key === "O") && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         app.playlistSortOpen = true;
         app.playlistSortIndex = 0;
         renderPlaylistSortMenu();
+        return;
+    }
+
+    if (!app.add2listPanelOpen && !app.playlistFindOpen && (e.key === "s" || e.key === "S") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        openPlaylistFind();
         return;
     }
 
