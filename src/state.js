@@ -62,7 +62,11 @@ export const app = {
     songScrollAnimRaf: null,
     navRafPending: false,
     playlistNavLastAt: 0,
-    playlistNavFast: false
+    playlistNavFast: false,
+    playlistSortOpen: false,
+    playlistSortIndex: 0,
+    playlistsDefault: [],
+    playlistSongsDefault: []
 };
 
 // Returns true if any panel except lyrics or standby is open

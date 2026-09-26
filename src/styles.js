@@ -556,6 +556,69 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition-delay: 0.6s;
 }
 
+#spotui-playlist-sort {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    min-width: 180px;
+    padding: 10px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+}
+
+#spotui-playlist-sort.songs {
+    left: auto;
+    right: 12px;
+}
+
+#spotui-playlist-info {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 7;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--panel-text-color, #ff8c42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.7;
+}
+
+#spotui-playlist-info:hover {
+    opacity: 1;
+}
+
+#spotui-playlist-info svg {
+    display: block;
+}
+
+#spotui-playlist-info-popup {
+    position: absolute;
+    bottom: 36px;
+    right: 10px;
+    z-index: 7;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+    color: #ddd;
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: auto;
+}
+
+#spotui-playlist-info-popup span {
+    color: var(--panel-text-color, #ff8c42);
+}
+
 #spotui-add2list-panel {
     display: none;
     flex: 1 1 auto;

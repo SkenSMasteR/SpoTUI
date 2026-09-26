@@ -110,7 +110,12 @@ export function openAboutPanel() {
 export function closePlaylistPanel() {
     const wasOpen = app.playlistPanelOpen;
     app.playlistPanelOpen = false;
+    app.playlistSortOpen = false;
     document.body.classList.remove("spotui-playlist-panel");
+    const sortMenu = document.getElementById("spotui-playlist-sort");
+    if (sortMenu) sortMenu.hidden = true;
+    const infoPopup = document.getElementById("spotui-playlist-info-popup");
+    if (infoPopup) infoPopup.hidden = true;
     const panel = document.getElementById("spotui-playlist-panel");
     if (panel) panel.hidden = true;
     const input = document.getElementById("spotui-input");
@@ -126,6 +131,7 @@ export async function openPlaylistPanel() {
 
     try {
         app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ");
+        app.playlistsDefault = app.playlists.slice();
     } catch (err) {
         print("Playlist error: " + err.message);
         return;

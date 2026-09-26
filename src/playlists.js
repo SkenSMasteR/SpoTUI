@@ -48,6 +48,7 @@ export async function fetchSongsForSelectedPlaylist() {
     if (token !== app.playlistSongsFetchToken) return;
 
     app.playlistSongs = songs;
+    app.playlistSongsDefault = songs.slice();
     app.playlistSongsTotal = songs.length;
     renderSongListVirtual();
     if (app.activePane === "song") scrollSongIntoView(app.selectedSong, false);
@@ -72,6 +73,16 @@ export async function renderPlaylistPanel() {
 // Virtual scrolling constants for performance with large playlists
 export const SONG_ROW_HEIGHT = 26; // px
 export const PLAYLIST_ROW_HEIGHT = 26; // px
+const PLAYLIST_SORT_OPTS = ["Default", "Alphabetical", "Recently played"];
+
+export function renderPlaylistSortMenu() {
+    const el = document.getElementById("spotui-playlist-sort");
+    if (!el) return;
+    el.hidden = !app.playlistSortOpen;
+    el.classList.toggle("songs", app.activePane === "song");
+    if (!app.playlistSortOpen) return;
+    el.innerHTML = PLAYLIST_SORT_OPTS.map((label, i) => `<div class="playlist-item${i === app.playlistSortIndex ? " selected" : ""}">${label}</div>`).join("");
+}
 
 
 export function ensurePlaylistListScaffold() {
@@ -251,6 +262,54 @@ export function commitSongNav(smooth) {
 
 // Handle keyboard navigation in playlist panel
 export async function handlePlaylistPanelKeydown(e) {
+    if (app.playlistSortOpen) {
+        if (e.key === "Escape" || e.key === "o" || e.key === "O") {
+            e.preventDefault();
+            app.playlistSortOpen = false;
+            renderPlaylistSortMenu();
+            return;
+        }
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const dir = e.key === "ArrowDown" ? 1 : -1;
+            app.playlistSortIndex = (app.playlistSortIndex + dir + PLAYLIST_SORT_OPTS.length) % PLAYLIST_SORT_OPTS.length;
+            renderPlaylistSortMenu();
+            return;
+        }
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const sortSongs = app.activePane === "song";
+            const list = (sortSongs ? app.playlistSongsDefault || app.playlistSongs : app.playlistsDefault || app.playlists).slice();
+            if (app.playlistSortIndex === 1) list.sort((a, b) => a.name.localeCompare(b.name));
+            else if (app.playlistSortIndex === 2) list.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+            app.playlistSortOpen = false;
+            renderPlaylistSortMenu();
+            if (sortSongs) {
+                app.playlistSongs = list;
+                app.playlistSongsTotal = list.length;
+                if (app.selectedSong >= list.length) app.selectedSong = Math.max(0, list.length - 1);
+                renderSongListVirtual();
+                scrollSongIntoView(app.selectedSong, false);
+            } else {
+                app.playlists = list;
+                if (app.selectedPlaylist >= list.length) app.selectedPlaylist = Math.max(0, list.length - 1);
+                renderPlaylistListVirtual();
+                scrollPlaylistIntoView(app.selectedPlaylist, false);
+                scheduleSongsFetchForSelectedPlaylist();
+            }
+            return;
+        }
+        return;
+    }
+
+    if (!app.add2listPanelOpen && (e.key === "o" || e.key === "O") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        app.playlistSortOpen = true;
+        app.playlistSortIndex = 0;
+        renderPlaylistSortMenu();
+        return;
+    }
+
     if (e.key === "Escape") {
         e.preventDefault();
         if (app.add2listPanelOpen) closeAdd2listPanel();
@@ -347,7 +406,7 @@ export async function handlePlaylistPanelKeydown(e) {
             }
         } else {
             const song = app.playlistSongs[app.selectedSong];
-            const context = app.playlists[app.selectedPlayliadd2st];
+            const context = app.playlists[app.selectedPlaylist];
             if (song && context) {
                 Spicetify.Player.playUri(context.uri, {}, { skipTo: { uri: song.uri } });
                 print(`Playing: ${song.name} from ${context.name}`);
@@ -380,6 +439,7 @@ export function normalizeTrackItem(track, index = 0) {
         uri,
         name: getTrackTitle(track, index),
         artist: getTrackArtist(track),
+        addedAt: typeof track?.addedAt === "number" ? track.addedAt : Date.parse(track?.addedAt || track?.added_at || "") || 0,
     };
 }
 
@@ -393,7 +453,7 @@ export async function getPlaylists() {
     function flatten(items) {
         for (const item of items) {
             if (item.type === "playlist") {
-                list.push({ name: item.name, uri: item.uri });
+                list.push({ name: item.name, uri: item.uri, addedAt: typeof item.addedAt === "number" ? item.addedAt : Date.parse(item.addedAt || item.added_at || "") || 0 });
             } else if (item.type === "folder" && item.items) {
                 flatten(item.items);
             }
