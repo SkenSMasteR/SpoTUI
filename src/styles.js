@@ -40,6 +40,7 @@ const style = `#spotui-tui {
 body.spotui-lyrics-panel #spotui-logo,
 body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
+body.spotui-add2list-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
 body.spotui-search-panel #spotui-logo,
@@ -192,6 +193,7 @@ body.spotui-onboarding-panel #spotui-onboarding-panel {
 body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-dj-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-playlist-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-add2list-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-help-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-theme-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
@@ -235,6 +237,7 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 
 body.spotui-command-mode #spotui-output,
 body.spotui-playlist-panel #spotui-output,
+body.spotui-add2list-panel #spotui-output,
 body.spotui-help-panel #spotui-output,
 body.spotui-about-panel #spotui-output,
 body.spotui-theme-panel #spotui-output,
@@ -252,6 +255,7 @@ body.spotui-cli-mode #spotui-output {
 #spotui-about-panel::-webkit-scrollbar,
 #spotui-theme-panel::-webkit-scrollbar,
 #spotui-playlist-list::-webkit-scrollbar,
+#spotui-add2list-list::-webkit-scrollbar,
 #spotui-song-list::-webkit-scrollbar,
 .spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
@@ -552,6 +556,34 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition-delay: 0.6s;
 }
 
+#spotui-add2list-panel {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: row;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    margin: 33vh auto 8px;
+    height: 60vh;
+    width: 40vw;
+    max-width: calc(100% - 4px);
+    border: none;
+    background: transparent;
+    overflow: visible;
+    box-sizing: border-box;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.spotui-add2list-panel #spotui-add2list-panel {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.6s;
+}
+
 #spotui-help-panel, #spotui-about-panel, #spotui-theme-panel {
     display: none;
     flex: 1 1 auto;
@@ -680,7 +712,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     color: #b3b3b3;
 }
 
-#spotui-playlist-list, #spotui-song-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
     width: 50%;
     overflow-y: auto;
     scroll-behavior: auto;
@@ -692,7 +724,13 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--panel-bg-color, transparent);
 }
 
-#spotui-playlist-list legend, #spotui-song-list legend {
+#spotui-add2list-list {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend {
     color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
@@ -710,7 +748,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     white-space: nowrap;
 }
 
-#spotui-playlist-list, #spotui-song-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
     position: relative;
 }
 

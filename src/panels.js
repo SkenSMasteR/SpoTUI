@@ -5,7 +5,7 @@ import { ADD_THEME_IMG_ERR, ADD_THEME_IMG_OK, COMMAND_LIST } from "./constants.j
 import { isRestrictedThemeCommand } from "./keybinds.js";
 import { closeLyricsPanel } from "./lyrics.js";
 import { closeOnboardingPanel } from "./onboarding.js";
-import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistPanel } from "./playlists.js";
+import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistListVirtual, renderPlaylistPanel } from "./playlists.js";
 import { closeSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
@@ -34,6 +34,7 @@ export function closeActivePanel() {
     if (app.aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false);
     if (app.lyricsPanelOpen) closeLyricsPanel();
     if (app.playlistPanelOpen) closePlaylistPanel();
+    if (app.add2listPanelOpen) closeAdd2listPanel();
     if (app.themePanelOpen) closeThemePanel();
     if (app.searchPanelOpen) closeSearchPanel();
     if (app.onboardingPanelOpen) closeOnboardingPanel();
@@ -143,6 +144,44 @@ export async function openPlaylistPanel() {
     app.activePane = 'playlist';
 
     await renderPlaylistPanel();
+    document.addEventListener("keydown", handlePlaylistPanelKeydown);
+}
+
+export function closeAdd2listPanel() {
+    const wasOpen = app.add2listPanelOpen;
+    app.add2listPanelOpen = false;
+    document.body.classList.remove("spotui-add2list-panel");
+    const panel = document.getElementById("spotui-add2list-panel");
+    if (panel) panel.hidden = true;
+    const input = document.getElementById("spotui-input");
+    if (input) input.focus();
+    document.removeEventListener("keydown", handlePlaylistPanelKeydown);
+    if (wasOpen) emitPaneClose("add2list");
+}
+
+export async function openAdd2listPanel() {
+    if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
+    closeActivePanel();
+
+    try {
+        app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ" && !p.isLikedSongs);
+    } catch (err) {
+        print("Playlist error: " + err.message);
+        return;
+    }
+
+    app.add2listPanelOpen = true;
+    document.body.classList.add("spotui-add2list-panel");
+    const panel = document.getElementById("spotui-add2list-panel");
+    if (panel) panel.hidden = false;
+
+    const input = document.getElementById("spotui-input");
+    if (input) input.blur();
+
+    app.selectedPlaylist = 0;
+    app.activePane = 'playlist';
+
+    renderPlaylistListVirtual();
     document.addEventListener("keydown", handlePlaylistPanelKeydown);
 }
 

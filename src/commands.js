@@ -8,7 +8,7 @@ import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix
 import { handleLyricsCommand, syncLyricsHighlight } from "./lyrics.js";
 import { handleVisualizerCommand } from "./visualizer.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
-import { openAboutPanel, closeActivePanel, openHelpPanel, openPlaylistPanel, openThemePanel } from "./panels.js";
+import { openAboutPanel, closeActivePanel, openHelpPanel, openPlaylistPanel, openAdd2listPanel, openThemePanel } from "./panels.js";
 import { getPlaylists } from "./playlists.js";
 import { openSearchPanel } from "./search.js";
 import { app } from "./state.js";
@@ -274,6 +274,7 @@ export async function execute(cmd, opts = {}) {
 
         openPlaylistPanel(); return; 
     }
+    if (command === "add2list") { openAdd2listPanel(); return; }
     if (command === "theme") { openThemePanel(); return; }
     if (command === "discord") {
         storageRemove(UPDATE_BANNER_KEY);
