@@ -329,11 +329,17 @@ export function createControlButtons() {
         handleLyricsCommand();
     });
 
+    const placeBackBtn = () => {
+        const nav = document.querySelector(".main-globalNav-historyButtonsWrapper");
+        if (nav && backBtn.parentElement !== nav) nav.appendChild(backBtn);
+    };
+
     const spotifyBtn = createButton("enable-spotify-btn", "spotui-control-btn", "Enable Spotify", () => {
         const enabled = document.body.classList.toggle("spotui-spotify-enabled");
         if (enabled) {
             document.body.classList.add("spotui-tui-hidden");
             spotifyBtn.textContent = "Disable Spotify";
+            placeBackBtn();
         } else {
             spotifyBtn.textContent = "Enable Spotify";
             document.body.classList.remove("spotui-tui-hidden");
@@ -353,29 +359,13 @@ export function createControlButtons() {
     controls.appendChild(standbyBtn);
     (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
-    const leaveSpotifyUi = (e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-        }
+    const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {
         document.body.classList.remove("spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
         spotifyBtn.textContent = "Enable Spotify";
         syncLyricsState();
-    };
-    const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", leaveSpotifyUi);
+    });
     backBtn.type = "button";
-    backBtn.addEventListener("mousedown", leaveSpotifyUi, true);
-    backBtn.addEventListener("pointerdown", leaveSpotifyUi, true);
     document.body.appendChild(backBtn);
-
-    const placeBackBtn = () => {
-        const nav = document.querySelector(".main-globalNav-historyButtonsWrapper");
-        if (nav && backBtn.parentElement !== nav) nav.appendChild(backBtn);
-    };
-    placeBackBtn();
-    const navObserver = new MutationObserver(placeBackBtn);
-    navObserver.observe(document.body, { childList: true, subtree: true });
 }
 // Toggle ASCII logo visibility
 export function toggleLogo(state) {
