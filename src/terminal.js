@@ -84,7 +84,7 @@ export function createTerminal() {
     });
 
     input.addEventListener("keydown", async (e) => {
-        if (isAnyPanelOpen()) {
+        if (isAnyPanelOpen() && !app.onboardingPanelOpen) {
             e.stopImmediatePropagation();
             return;
         }

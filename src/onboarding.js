@@ -36,7 +36,7 @@ export function openOnboardingPanel() {
     const panel = document.getElementById("spotui-onboarding-panel");
     if (panel) panel.hidden = false;
     const input = document.getElementById("spotui-input");
-    if (input) input.blur();
+    if (input) input.focus();
     document.addEventListener("keydown", handleGlobalEsc);
 }
 
