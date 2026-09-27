@@ -353,12 +353,29 @@ export function createControlButtons() {
     controls.appendChild(standbyBtn);
     (document.getElementById("spotui-footer") || document.body).appendChild(controls);
 
-    const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", () => {
+    const leaveSpotifyUi = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
         document.body.classList.remove("spotui-search-mode", "spotui-spotify-enabled", "spotui-tui-hidden");
         spotifyBtn.textContent = "Enable Spotify";
         syncLyricsState();
-    });
+    };
+    const backBtn = createButton("spotui-back-btn", "spotui-control-btn", "Back", leaveSpotifyUi);
+    backBtn.type = "button";
+    backBtn.addEventListener("mousedown", leaveSpotifyUi, true);
+    backBtn.addEventListener("pointerdown", leaveSpotifyUi, true);
     document.body.appendChild(backBtn);
+
+    const placeBackBtn = () => {
+        const nav = document.querySelector(".main-globalNav-historyButtonsWrapper");
+        if (nav && backBtn.parentElement !== nav) nav.appendChild(backBtn);
+    };
+    placeBackBtn();
+    const navObserver = new MutationObserver(placeBackBtn);
+    navObserver.observe(document.body, { childList: true, subtree: true });
 }
 // Toggle ASCII logo visibility
 export function toggleLogo(state) {

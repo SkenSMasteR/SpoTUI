@@ -84,6 +84,15 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-contentRight {
     min-height: 56px !important;
 }
 
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsContainer,
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsWrapper {
+    -webkit-app-region: no-drag !important;
+    app-region: no-drag !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 10010 !important;
+}
+
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-navLink,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtons button,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer button,
@@ -527,14 +536,30 @@ body.spotui-search-mode #spotui-controls {
 body.spotui-tui-hidden #spotui-back-btn,
 body.spotui-spotify-enabled #spotui-back-btn,
 body.spotui-search-mode #spotui-back-btn {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+    position: static !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: unset !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    padding: 6px 12px !important;
+    margin: 0 0 0 8px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    color: var(--input-text-color, #000) !important;
+    background: var(--input-bg-color, #ff8c42) !important;
+    border-radius: 0 !important;
+    pointer-events: auto !important;
     z-index: 10020 !important;
-    display: block !important;
-    min-width: 160px;
-    padding: 10px 16px;
+    cursor: pointer !important;
+    -webkit-app-region: no-drag !important;
+    app-region: no-drag !important;
 }
 
 body:not(.spotui-tui-hidden):not(.spotui-spotify-enabled):not(.spotui-search-mode) #spotui-back-btn {
@@ -711,12 +736,8 @@ body.spotui-search-mode .Root__globalNav .main-globalNav-searchContainer {
 }
 
 body.spotui-search-mode #spotui-back-btn {
-    position: fixed !important;
-    top: auto !important;
-    bottom: 110px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    z-index: 10020 !important;
+    position: static !important;
+    transform: none !important;
 }
 
 body.spotui-search-mode .Root__globalNav button[aria-label="Home"],
