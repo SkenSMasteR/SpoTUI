@@ -138,6 +138,7 @@
         { cmd: "tui -panel -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set help/playlist/theme/about panel colors" },
         { cmd: "tui -panel off", desc: "Reset panel colors" },
         { cmd: "playlist / list &lt;playlist-name&gt;", desc: "Open playlist viewer or play a specific playlist" },
+        { cmd: "add2list", desc: "Add the current song to a playlist" },
         { cmd: "play / pause / p", desc: "Toggle playback" },
         { cmd: "skip", desc: "Next track" },
         { cmd: "back", desc: "Previous track" },
@@ -179,6 +180,7 @@
         commandHistory: [],
         commandHistoryIndex: -1,
         playlistPanelOpen: false,
+        add2listPanelOpen: false,
         playlists: [],
         playlistSongs: [],
         playlistSongsTotal: 0,
@@ -224,7 +226,14 @@
         songScrollAnimRaf: null,
         navRafPending: false,
         playlistNavLastAt: 0,
-        playlistNavFast: false
+        playlistNavFast: false,
+        playlistSortOpen: false,
+        playlistSortIndex: 0,
+        playlistsDefault: [],
+        playlistSongsDefault: [],
+        playlistFindOpen: false,
+        playlistFindQuery: "",
+        playlistFindSource: []
     };
 
     // Returns true if any panel except lyrics or standby is open
@@ -1596,6 +1605,15 @@
     <fieldset id="spotui-song-list">
         <legend>Songs</legend>
     </fieldset>
+    <div id="spotui-playlist-sort" hidden></div>
+    <input id="spotui-playlist-find" hidden autocomplete="off" spellcheck="false" placeholder="search...">
+    <button id="spotui-playlist-info" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+    <div id="spotui-playlist-info-popup" hidden>Sort: press <span>o</span> · Search: press <span>s</span></div>
+</div>
+<div id="spotui-add2list-panel" hidden>
+    <fieldset id="spotui-add2list-list">
+        <legend>Playlists</legend>
+    </fieldset>
 </div>
 <div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
@@ -1617,6 +1635,15 @@
         document.body.appendChild(box);
         initAsciiAnimation();
         initSearchPanel();
+        const playlistInfo = document.getElementById("spotui-playlist-info");
+        const playlistInfoPopup = document.getElementById("spotui-playlist-info-popup");
+        if (playlistInfo && playlistInfoPopup) {
+            playlistInfo.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playlistInfoPopup.hidden = !playlistInfoPopup.hidden;
+            });
+        }
 
         const input = document.getElementById("spotui-input");
 
@@ -1630,7 +1657,7 @@
         });
 
         input.addEventListener("keydown", async (e) => {
-            if (isAnyPanelOpen()) {
+            if (isAnyPanelOpen() && !app.onboardingPanelOpen) {
                 e.stopImmediatePropagation();
                 return;
             }
@@ -1725,6 +1752,7 @@
         if (token !== app.playlistSongsFetchToken) return;
 
         app.playlistSongs = songs;
+        app.playlistSongsDefault = songs.slice();
         app.playlistSongsTotal = songs.length;
         renderSongListVirtual();
         if (app.activePane === "song") scrollSongIntoView(app.selectedSong, false);
@@ -1749,12 +1777,76 @@
     // Virtual scrolling constants for performance with large playlists
     const SONG_ROW_HEIGHT = 26; // px
     const PLAYLIST_ROW_HEIGHT = 26; // px
+    const PLAYLIST_SORT_OPTS = ["Default", "Alphabetical", "Z-A"];
+
+    function renderPlaylistSortMenu() {
+        const el = document.getElementById("spotui-playlist-sort");
+        if (!el) return;
+        el.hidden = !app.playlistSortOpen;
+        el.classList.toggle("songs", app.activePane === "song");
+        if (!app.playlistSortOpen) return;
+        el.innerHTML = PLAYLIST_SORT_OPTS.map((label, i) => `<div class="playlist-item${i === app.playlistSortIndex ? " selected" : ""}">${label}</div>`).join("");
+    }
+
+    function closePlaylistFind() {
+        app.playlistFindOpen = false;
+        app.playlistFindQuery = "";
+        const el = document.getElementById("spotui-playlist-find");
+        if (el) { el.hidden = true; el.value = ""; el.blur(); }
+    }
+
+    function applyPlaylistFind() {
+        const q = app.playlistFindQuery.trim().toLowerCase();
+        const source = app.playlistFindSource || [];
+        const filtered = q ? source.filter((item) => (item.name || "").toLowerCase().includes(q) || (item.artist || "").toLowerCase().includes(q)) : source.slice();
+        if (app.activePane === "song") {
+            app.playlistSongs = filtered;
+            app.playlistSongsTotal = filtered.length;
+            app.selectedSong = 0;
+            renderSongListVirtual();
+            scrollSongIntoView(0, false);
+        } else {
+            app.playlists = filtered;
+            app.selectedPlaylist = 0;
+            renderPlaylistListVirtual();
+            scrollPlaylistIntoView(0, false);
+            if (!app.add2listPanelOpen) scheduleSongsFetchForSelectedPlaylist();
+        }
+    }
+
+    function openPlaylistFind() {
+        closePlaylistFind();
+        app.playlistFindOpen = true;
+        app.playlistFindQuery = "";
+        app.playlistFindSource = app.activePane === "song" ? (app.playlistSongs || []).slice() : (app.playlists || []).slice();
+        const el = document.getElementById("spotui-playlist-find");
+        if (!el) return;
+        el.hidden = false;
+        el.classList.toggle("songs", app.activePane === "song");
+        el.value = "";
+        el.focus();
+        if (!el.dataset.bound) {
+            el.dataset.bound = "1";
+            el.addEventListener("input", () => {
+                app.playlistFindQuery = el.value;
+                applyPlaylistFind();
+            });
+            el.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" || e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closePlaylistFind();
+                }
+            });
+        }
+    }
 
 
     function ensurePlaylistListScaffold() {
-        const container = document.getElementById("spotui-playlist-list");
-        if (!container || document.getElementById("spotui-playlist-list-spacer")) return;
-        container.innerHTML = '<legend>Playlists</legend><div id="spotui-playlist-list-spacer" style="position:relative;"><div id="spotui-playlist-list-viewport" style="position:absolute;top:0;left:0;right:0;"></div></div>';
+        const id = app.add2listPanelOpen ? "spotui-add2list-list" : "spotui-playlist-list";
+        const container = document.getElementById(id);
+        if (!container || document.getElementById(id + "-spacer")) return;
+        container.innerHTML = '<legend>Playlists</legend><div id="' + id + '-spacer" style="position:relative;"><div id="' + id + '-viewport" style="position:absolute;top:0;left:0;right:0;"></div></div>';
         container.addEventListener("scroll", () => {
             if (app.playlistListScrollRaf) return;
             app.playlistListScrollRaf = requestAnimationFrame(() => {
@@ -1766,11 +1858,12 @@
 
     // Render visible playlist items using virtual scrolling
     function renderPlaylistListVirtual() {
-        const container = document.getElementById("spotui-playlist-list");
+        const id = app.add2listPanelOpen ? "spotui-add2list-list" : "spotui-playlist-list";
+        const container = document.getElementById(id);
         if (!container) return;
         ensurePlaylistListScaffold();
-        const spacer = document.getElementById("spotui-playlist-list-spacer");
-        const viewport = document.getElementById("spotui-playlist-list-viewport");
+        const spacer = document.getElementById(id + "-spacer");
+        const viewport = document.getElementById(id + "-viewport");
         if (!spacer || !viewport) return;
 
         const total = app.playlists.length;
@@ -1790,7 +1883,7 @@
             const idx = startIdx + i;
             const p = app.playlists[idx];
             const item = viewport.childNodes[i];
-            const className = "playlist-item" + (idx === app.selectedPlaylist && app.activePane === "playlist" ? " selected" : "");
+            const className = "playlist-item" + (idx === app.selectedPlaylist && (app.activePane === "playlist" || app.add2listPanelOpen) ? " selected" : "");
             const text = p.name;
             if (item.className !== className) item.className = className;
             if (item.textContent !== text) item.textContent = text;
@@ -1798,7 +1891,7 @@
     }
 
     function scrollPlaylistIntoView(idx, smooth = true) {
-        const container = document.getElementById("spotui-playlist-list");
+        const container = document.getElementById(app.add2listPanelOpen ? "spotui-add2list-list" : "spotui-playlist-list");
         if (!container) return;
         const itemTop = idx * PLAYLIST_ROW_HEIGHT;
         const itemCenter = itemTop + PLAYLIST_ROW_HEIGHT / 2;
@@ -1926,9 +2019,64 @@
 
     // Handle keyboard navigation in playlist panel
     async function handlePlaylistPanelKeydown(e) {
+        if (app.playlistSortOpen) {
+            if (e.key === "Escape" || e.key === "o" || e.key === "O") {
+                e.preventDefault();
+                app.playlistSortOpen = false;
+                renderPlaylistSortMenu();
+                return;
+            }
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                e.preventDefault();
+                const dir = e.key === "ArrowDown" ? 1 : -1;
+                app.playlistSortIndex = (app.playlistSortIndex + dir + PLAYLIST_SORT_OPTS.length) % PLAYLIST_SORT_OPTS.length;
+                renderPlaylistSortMenu();
+                return;
+            }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const sortSongs = app.activePane === "song";
+                const list = (sortSongs ? app.playlistSongsDefault || app.playlistSongs : app.playlistsDefault || app.playlists).slice();
+                if (app.playlistSortIndex === 1) list.sort((a, b) => a.name.localeCompare(b.name));
+                else if (app.playlistSortIndex === 2) list.sort((a, b) => b.name.localeCompare(a.name));
+                app.playlistSortOpen = false;
+                renderPlaylistSortMenu();
+                if (sortSongs) {
+                    app.playlistSongs = list;
+                    app.playlistSongsTotal = list.length;
+                    if (app.selectedSong >= list.length) app.selectedSong = Math.max(0, list.length - 1);
+                    renderSongListVirtual();
+                    scrollSongIntoView(app.selectedSong, false);
+                } else {
+                    app.playlists = list;
+                    if (app.selectedPlaylist >= list.length) app.selectedPlaylist = Math.max(0, list.length - 1);
+                    renderPlaylistListVirtual();
+                    scrollPlaylistIntoView(app.selectedPlaylist, false);
+                    scheduleSongsFetchForSelectedPlaylist();
+                }
+                return;
+            }
+            return;
+        }
+
+        if (!app.add2listPanelOpen && !app.playlistFindOpen && (e.key === "o" || e.key === "O") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            app.playlistSortOpen = true;
+            app.playlistSortIndex = 0;
+            renderPlaylistSortMenu();
+            return;
+        }
+
+        if (!app.add2listPanelOpen && !app.playlistFindOpen && (e.key === "s" || e.key === "S") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            openPlaylistFind();
+            return;
+        }
+
         if (e.key === "Escape") {
             e.preventDefault();
-            closePlaylistPanel();
+            if (app.add2listPanelOpen) closeAdd2listPanel();
+            else closePlaylistPanel();
             return;
         }
 
@@ -1954,7 +2102,7 @@
                     scrollPlaylistIntoView(app.selectedPlaylist, !app.playlistNavFast);
                 });
 
-                scheduleSongsFetchForSelectedPlaylist();
+                if (!app.add2listPanelOpen) scheduleSongsFetchForSelectedPlaylist();
                 return;
             }
 
@@ -1980,6 +2128,25 @@
                     commitSongNav(!app.playlistNavFast);
                 }
             });
+            return;
+        }
+
+        if (app.add2listPanelOpen) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                const p = app.playlists[app.selectedPlaylist];
+                const uri = Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
+                if (!uri) { jamSay("Nothing playing"); return; }
+                if (!p) return;
+                try {
+                    await Spicetify.Platform.PlaylistAPI.add(p.uri, [uri], { after: "end" });
+                    jamSay("Added to " + p.name);
+                    closeAdd2listPanel();
+                } catch (err) {
+                    jamSay("Add error: " + (err.message || err));
+                }
+            }
             return;
         }
 
@@ -2210,6 +2377,7 @@
         if (app.aboutPanelOpen) setPanelState("spotui-about-panel", "spotui-about-panel", "aboutPanelOpen", false);
         if (app.lyricsPanelOpen) closeLyricsPanel();
         if (app.playlistPanelOpen) closePlaylistPanel();
+        if (app.add2listPanelOpen) closeAdd2listPanel();
         if (app.themePanelOpen) closeThemePanel();
         if (app.searchPanelOpen) closeSearchPanel();
         if (app.onboardingPanelOpen) closeOnboardingPanel();
@@ -2285,7 +2453,16 @@
     function closePlaylistPanel() {
         const wasOpen = app.playlistPanelOpen;
         app.playlistPanelOpen = false;
+        app.playlistSortOpen = false;
+        app.playlistFindOpen = false;
+        app.playlistFindQuery = "";
         document.body.classList.remove("spotui-playlist-panel");
+        const sortMenu = document.getElementById("spotui-playlist-sort");
+        if (sortMenu) sortMenu.hidden = true;
+        const findInput = document.getElementById("spotui-playlist-find");
+        if (findInput) { findInput.hidden = true; findInput.value = ""; }
+        const infoPopup = document.getElementById("spotui-playlist-info-popup");
+        if (infoPopup) infoPopup.hidden = true;
         const panel = document.getElementById("spotui-playlist-panel");
         if (panel) panel.hidden = true;
         const input = document.getElementById("spotui-input");
@@ -2301,6 +2478,7 @@
 
         try {
             app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ");
+            app.playlistsDefault = app.playlists.slice();
         } catch (err) {
             print("Playlist error: " + err.message);
             return;
@@ -2319,6 +2497,44 @@
         app.activePane = 'playlist';
 
         await renderPlaylistPanel();
+        document.addEventListener("keydown", handlePlaylistPanelKeydown);
+    }
+
+    function closeAdd2listPanel() {
+        const wasOpen = app.add2listPanelOpen;
+        app.add2listPanelOpen = false;
+        document.body.classList.remove("spotui-add2list-panel");
+        const panel = document.getElementById("spotui-add2list-panel");
+        if (panel) panel.hidden = true;
+        const input = document.getElementById("spotui-input");
+        if (input) input.focus();
+        document.removeEventListener("keydown", handlePlaylistPanelKeydown);
+        if (wasOpen) emitPaneClose("add2list");
+    }
+
+    async function openAdd2listPanel() {
+        if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
+        closeActivePanel();
+
+        try {
+            app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ" && !p.isLikedSongs);
+        } catch (err) {
+            print("Playlist error: " + err.message);
+            return;
+        }
+
+        app.add2listPanelOpen = true;
+        document.body.classList.add("spotui-add2list-panel");
+        const panel = document.getElementById("spotui-add2list-panel");
+        if (panel) panel.hidden = false;
+
+        const input = document.getElementById("spotui-input");
+        if (input) input.blur();
+
+        app.selectedPlaylist = 0;
+        app.activePane = 'playlist';
+
+        renderPlaylistListVirtual();
         document.addEventListener("keydown", handlePlaylistPanelKeydown);
     }
 
@@ -2421,7 +2637,7 @@
         const panel = document.getElementById("spotui-onboarding-panel");
         if (panel) panel.hidden = false;
         const input = document.getElementById("spotui-input");
-        if (input) input.blur();
+        if (input) input.focus();
         document.addEventListener("keydown", handleGlobalEsc);
     }
 
@@ -3108,6 +3324,7 @@
 
             openPlaylistPanel(); return; 
         }
+        if (command === "add2list") { openAdd2listPanel(); return; }
         if (command === "theme") { openThemePanel(); return; }
         if (command === "discord") {
             storageRemove(UPDATE_BANNER_KEY);
@@ -4576,6 +4793,7 @@
 body.spotui-lyrics-panel #spotui-logo,
 body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
+body.spotui-add2list-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
 body.spotui-search-panel #spotui-logo,
@@ -4728,6 +4946,7 @@ body.spotui-onboarding-panel #spotui-onboarding-panel {
 body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-dj-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-playlist-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-add2list-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-help-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-theme-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
@@ -4771,6 +4990,7 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 
 body.spotui-command-mode #spotui-output,
 body.spotui-playlist-panel #spotui-output,
+body.spotui-add2list-panel #spotui-output,
 body.spotui-help-panel #spotui-output,
 body.spotui-about-panel #spotui-output,
 body.spotui-theme-panel #spotui-output,
@@ -4788,6 +5008,7 @@ body.spotui-cli-mode #spotui-output {
 #spotui-about-panel::-webkit-scrollbar,
 #spotui-theme-panel::-webkit-scrollbar,
 #spotui-playlist-list::-webkit-scrollbar,
+#spotui-add2list-list::-webkit-scrollbar,
 #spotui-song-list::-webkit-scrollbar,
 .spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
@@ -5088,6 +5309,118 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition-delay: 0.6s;
 }
 
+#spotui-playlist-sort {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    min-width: 180px;
+    padding: 10px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+}
+
+#spotui-playlist-sort.songs {
+    left: auto;
+    right: 12px;
+}
+
+#spotui-playlist-find {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+    color: #ddd;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    outline: none;
+}
+
+#spotui-playlist-find.songs {
+    left: auto;
+    right: 12px;
+}
+
+#spotui-playlist-info {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 7;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--panel-text-color, #ff8c42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.7;
+}
+
+#spotui-playlist-info:hover {
+    opacity: 1;
+}
+
+#spotui-playlist-info svg {
+    display: block;
+}
+
+#spotui-playlist-info-popup {
+    position: absolute;
+    bottom: 36px;
+    right: 10px;
+    z-index: 7;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    background: #000;
+    color: #ddd;
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: auto;
+}
+
+#spotui-playlist-info-popup span {
+    color: var(--panel-text-color, #ff8c42);
+}
+
+#spotui-add2list-panel {
+    display: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: row;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    margin: 33vh auto 8px;
+    height: 60vh;
+    width: 40vw;
+    max-width: calc(100% - 4px);
+    border: none;
+    background: transparent;
+    overflow: visible;
+    box-sizing: border-box;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.spotui-add2list-panel #spotui-add2list-panel {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0.6s;
+}
+
 #spotui-help-panel, #spotui-about-panel, #spotui-theme-panel {
     display: none;
     flex: 1 1 auto;
@@ -5216,7 +5549,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     color: #b3b3b3;
 }
 
-#spotui-playlist-list, #spotui-song-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
     width: 50%;
     overflow-y: auto;
     scroll-behavior: auto;
@@ -5228,7 +5561,13 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--panel-bg-color, transparent);
 }
 
-#spotui-playlist-list legend, #spotui-song-list legend {
+#spotui-add2list-list {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend {
     color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
@@ -5246,7 +5585,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     white-space: nowrap;
 }
 
-#spotui-playlist-list, #spotui-song-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
     position: relative;
 }
 
