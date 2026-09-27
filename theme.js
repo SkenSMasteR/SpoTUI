@@ -4547,11 +4547,17 @@
             handleLyricsCommand();
         });
 
+        const placeBackBtn = () => {
+            const nav = document.querySelector(".main-globalNav-historyButtonsWrapper");
+            if (nav && backBtn.parentElement !== nav) nav.appendChild(backBtn);
+        };
+
         const spotifyBtn = createButton("enable-spotify-btn", "spotui-control-btn", "Enable Spotify", () => {
             const enabled = document.body.classList.toggle("spotui-spotify-enabled");
             if (enabled) {
                 document.body.classList.add("spotui-tui-hidden");
                 spotifyBtn.textContent = "Disable Spotify";
+                placeBackBtn();
             } else {
                 spotifyBtn.textContent = "Enable Spotify";
                 document.body.classList.remove("spotui-tui-hidden");
@@ -4576,6 +4582,7 @@
             spotifyBtn.textContent = "Enable Spotify";
             syncLyricsState();
         });
+        backBtn.type = "button";
         document.body.appendChild(backBtn);
     }
     // Toggle ASCII logo visibility
