@@ -1139,4 +1139,8 @@ body.spotui-spotify-enabled .marketplace-footer button {
 .queue-queuePage-header, .n6LsTkKvpO88xeRyRTdw {
     margin: 50px 0;
 }
+
+body.spotui-spotify-enabled .playlist-playlist-playlistContent {
+    padding-bottom: 120px !important;
+}
 /* --- */
