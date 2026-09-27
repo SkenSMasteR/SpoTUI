@@ -71,10 +71,7 @@ body.spotui-spotify-enabled .Root__globalNav .main-topBar-withBackgroundBlur {
 
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchSection,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputSection,
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputWrapper,
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsContainer,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-historyButtonsWrapper,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-contentRight {
@@ -108,29 +105,38 @@ body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer [ro
     color: color-mix(in srgb, var(--spotui-accent, #ff8c42) 72%, white) !important;
 }
 
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchContainer,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer {
     background: #000 !important;
     border: 1px solid var(--spotui-accent, #ff8c42) !important;
     border-radius: 0 !important;
     box-shadow: inset 0 1px 0 rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.15) !important;
+    flex: 1 1 auto !important;
+    min-width: 180px !important;
 }
 
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer input,
+body.spotui-spotify-enabled .Root__globalNav form[role="search"] input,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText,
-body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput,
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper input {
+body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput {
     color: var(--spotui-accent, #ff8c42) !important;
+    -webkit-text-fill-color: var(--spotui-accent, #ff8c42) !important;
     background: transparent !important;
     border: none !important;
     outline: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
+    font-size: 14px !important;
     caret-color: var(--spotui-accent, #ff8c42) !important;
 }
 
+body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputContainer input::placeholder,
+body.spotui-spotify-enabled .Root__globalNav form[role="search"] input::placeholder,
 body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputText::placeholder,
-body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput::placeholder,
-body.spotui-spotify-enabled .Root__globalNav .main-globalNav-searchInputTextWrapper input::placeholder {
+body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput::placeholder {
     color: #777 !important;
+    -webkit-text-fill-color: #777 !important;
+    opacity: 1 !important;
 }
 
 .main-connectBar-connectBar,
@@ -494,19 +500,28 @@ body.spotui-spotify-enabled .search-modal-searchBar {
 
 body.spotui-spotify-enabled .x-searchInput-searchInputInput,
 body.spotui-spotify-enabled .main-globalNav-searchInputText,
+body.spotui-spotify-enabled .main-globalNav-searchInputContainer input,
+body.spotui-spotify-enabled form[role="search"] input,
 body.spotui-spotify-enabled .search-modal-searchBar input {
     color: var(--spotui-accent, #ff8c42) !important;
+    -webkit-text-fill-color: var(--spotui-accent, #ff8c42) !important;
     background: transparent !important;
     border: none !important;
     outline: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
     caret-color: var(--spotui-accent, #ff8c42) !important;
 }
 
 body.spotui-spotify-enabled .x-searchInput-searchInputInput::placeholder,
 body.spotui-spotify-enabled .main-globalNav-searchInputText::placeholder,
+body.spotui-spotify-enabled .main-globalNav-searchInputContainer input::placeholder,
+body.spotui-spotify-enabled form[role="search"] input::placeholder,
 body.spotui-spotify-enabled .search-modal-searchBar input::placeholder {
     color: #777 !important;
+    -webkit-text-fill-color: #777 !important;
+    opacity: 1 !important;
 }
 
 body.spotui-spotify-enabled .x-searchInput-searchInputSearchIcon,
