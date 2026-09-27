@@ -882,13 +882,52 @@ body.spotui-spotify-enabled .main-shelf-shelfGrid.main-gridContainer-gridContain
     width: 100% !important;
 }
 
-body.spotui-spotify-enabled .main-shelf-shelfGrid.main-gridContainer-gridContainer > * {
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .main-gridContainer-gridContainer {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+body.spotui-spotify-enabled .main-shelf-shelfGrid.main-gridContainer-gridContainer > *,
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .main-gridContainer-gridContainer > * {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     flex: none !important;
     box-sizing: border-box !important;
     margin: 0 !important;
+}
+
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist ul[role="treegrid"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .main-gridContainer-gridContainer > [role="row"] {
+    display: block !important;
+    height: auto !important;
+}
+
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist [data-encore-id="card"] {
+    background: #000 !important;
+    border: 1px solid var(--spotui-accent, #ff8c42) !important;
+    box-shadow: inset 0 0 0 1px rgb(var(--spotui-accent-rgb, 255, 140, 66) / 0.18) !important;
+    border-radius: 0 !important;
+    height: 100% !important;
+    padding: 6px !important;
+}
+
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .main-cardImage-imageWrapper,
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .main-cardImage-image {
+    width: 100% !important;
+    border-radius: 0 !important;
+}
+
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist [data-encore-id="text"],
+body.spotui-spotify-enabled .main-yourLibraryX-libraryRootlist .e-10860-card-title {
+    font-size: 12px !important;
+    line-height: 1.2 !important;
 }
 
 body.spotui-spotify-enabled .marketplace-grid.main-gridContainer-gridContainer.main-gridContainer-fixedWidth > .main-card-card {
