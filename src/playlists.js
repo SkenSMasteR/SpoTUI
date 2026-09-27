@@ -73,7 +73,7 @@ export async function renderPlaylistPanel() {
 // Virtual scrolling constants for performance with large playlists
 export const SONG_ROW_HEIGHT = 26; // px
 export const PLAYLIST_ROW_HEIGHT = 26; // px
-const PLAYLIST_SORT_OPTS = ["Default", "Alphabetical", "Recently played"];
+const PLAYLIST_SORT_OPTS = ["Default", "Alphabetical", "Z-A"];
 
 export function renderPlaylistSortMenu() {
     const el = document.getElementById("spotui-playlist-sort");
@@ -334,7 +334,7 @@ export async function handlePlaylistPanelKeydown(e) {
             const sortSongs = app.activePane === "song";
             const list = (sortSongs ? app.playlistSongsDefault || app.playlistSongs : app.playlistsDefault || app.playlists).slice();
             if (app.playlistSortIndex === 1) list.sort((a, b) => a.name.localeCompare(b.name));
-            else if (app.playlistSortIndex === 2) list.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+            else if (app.playlistSortIndex === 2) list.sort((a, b) => b.name.localeCompare(a.name));
             app.playlistSortOpen = false;
             renderPlaylistSortMenu();
             if (sortSongs) {
@@ -498,7 +498,6 @@ export function normalizeTrackItem(track, index = 0) {
         uri,
         name: getTrackTitle(track, index),
         artist: getTrackArtist(track),
-        addedAt: typeof track?.addedAt === "number" ? track.addedAt : Date.parse(track?.addedAt || track?.added_at || "") || 0,
     };
 }
 
@@ -512,7 +511,7 @@ export async function getPlaylists() {
     function flatten(items) {
         for (const item of items) {
             if (item.type === "playlist") {
-                list.push({ name: item.name, uri: item.uri, addedAt: typeof item.addedAt === "number" ? item.addedAt : Date.parse(item.addedAt || item.added_at || "") || 0 });
+                list.push({ name: item.name, uri: item.uri });
             } else if (item.type === "folder" && item.items) {
                 flatten(item.items);
             }
