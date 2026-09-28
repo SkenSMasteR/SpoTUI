@@ -36,7 +36,7 @@ namespace fs = std::filesystem;
 namespace {
 
 const char* THEME_NAME = "SpoTUI";
-const char* APP_VERSION = "v3.1.1";
+const char* APP_VERSION = "v3.1.2";
 const char* RELEASES_API =
     "https://api.github.com/repos/SkenSMasteR/SpoTUI/releases";
 const char* VERSION_PREFIX = "spotui@";
@@ -418,7 +418,7 @@ std::string http_get(const std::string& url) {
     std::string body = run_capture(cmd);
     if (!trim(body).empty()) return body;
     cmd = "powershell -NoProfile -Command "
-          "\"(Invoke-WebRequest -UseBasicParsing -Uri " +
+          "\"$ProgressPreference='SilentlyContinue'; (Invoke-WebRequest -UseBasicParsing -Uri " +
           ps_quote(url) + ").Content\"";
     return run_capture(cmd);
 #else
@@ -434,7 +434,7 @@ bool download_file(const std::string& url, const std::string& dest) {
     std::string cmd =
         "curl.exe -fsSL -L -A SpoTUI -o " + quote(dest) + " " + quote(url);
     if (run_cmd(cmd) == 0 && path_exists(dest)) return true;
-    cmd = "powershell -NoProfile -Command \"Invoke-WebRequest -UseBasicParsing -Uri " +
+    cmd = "powershell -NoProfile -Command \"$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri " +
           ps_quote(url) + " -OutFile " + ps_quote(dest) + "\"";
     return run_cmd(cmd) == 0 && path_exists(dest);
 #else
@@ -447,7 +447,7 @@ bool download_file(const std::string& url, const std::string& dest) {
 bool extract_zip(const std::string& zip, const std::string& dest) {
 #ifdef _WIN32
     std::string cmd =
-        "powershell -NoProfile -Command \"Expand-Archive -Force -LiteralPath " +
+        "powershell -NoProfile -Command \"$ProgressPreference='SilentlyContinue'; Expand-Archive -Force -LiteralPath " +
         ps_quote(zip) + " -DestinationPath " + ps_quote(dest) + "\"";
     return run_cmd(cmd) == 0;
 #else
