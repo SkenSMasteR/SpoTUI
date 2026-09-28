@@ -36,6 +36,7 @@ namespace fs = std::filesystem;
 namespace {
 
 const char* THEME_NAME = "SpoTUI";
+const char* APP_VERSION = "v3.1.0";
 const char* RELEASES_API =
     "https://api.github.com/repos/SkenSMasteR/SpoTUI/releases";
 const char* VERSION_PREFIX = "spotui@";
@@ -590,7 +591,10 @@ Element frame(const Elements& body, const std::string& hint) {
     rows.push_back(separator() | color(kOrangeDark));
     rows.insert(rows.end(), body.begin(), body.end());
     rows.push_back(separator() | color(kOrangeDark));
-    rows.push_back(text(hint) | color(kGray) | hcenter);
+    rows.push_back(dbox({
+        text(hint) | color(kGray) | hcenter,
+        hbox({filler(), text(APP_VERSION) | color(kGray)}),
+    }));
     return vbox(std::move(rows)) | border | color(kOrangeDark) | flex;
 }
 
