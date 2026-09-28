@@ -132,10 +132,11 @@ std::string ps_quote(const std::string& s) {
 #endif
 
 int run_cmd(const std::string& cmd) {
-    int rc = std::system(cmd.c_str());
 #ifdef _WIN32
+    int rc = std::system((cmd + " >nul 2>nul").c_str());
     return rc;
 #else
+    int rc = std::system((cmd + " >/dev/null 2>&1").c_str());
     return rc == -1 ? -1 : WEXITSTATUS(rc);
 #endif
 }
