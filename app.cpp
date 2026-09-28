@@ -36,7 +36,7 @@ namespace fs = std::filesystem;
 namespace {
 
 const char* THEME_NAME = "SpoTUI";
-const char* APP_VERSION = "v3.1.0";
+const char* APP_VERSION = "v3.1.1";
 const char* RELEASES_API =
     "https://api.github.com/repos/SkenSMasteR/SpoTUI/releases";
 const char* VERSION_PREFIX = "spotui@";
