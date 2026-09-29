@@ -144,8 +144,15 @@ export async function execute(cmd, opts = {}) {
         }
         if (argsLower.includes("-ly") && argsLower.includes("-spacing")) {
         	const idx = argsLower.indexOf("-spacing");
-        	const value = args[idx + 1];
-        	storageSet(LYRICS_LINE_SPACING, value);
+        	let value = args[idx + 1];
+        	if ((value || "").toLowerCase() === "off") {
+        		storageRemove(LYRICS_LINE_SPACING);
+        	} else {
+				if (!isNaN(value)) {
+					value = value + "px";	
+				}
+        		storageSet(LYRICS_LINE_SPACING, value);
+        	}
         	applyLyricLineSpacing();
         	return;
         }

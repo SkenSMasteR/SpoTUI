@@ -406,6 +406,9 @@ export function resetAllSettings() {
     storageRemove(LYRICS_COLOR_LIGHT_INACTIVE);
     applyLyricColors();
 
+    storageRemove(LYRICS_LINE_SPACING);
+    applyLyricLineSpacing();
+
     storageRemove(VISUALIZER_COLOR);
     applyVisualizerColor();
 

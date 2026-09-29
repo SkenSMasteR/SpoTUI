@@ -124,6 +124,7 @@ export const COMMAND_LIST = [
     { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
     { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
     { cmd: "tui -ly -spacing &lt;value&gt;", desc: "Controls vertical spacing between lines in lyrics" },
+    { cmd: "tui -ly -spacing off", desc: "Resets line spacing in lyrics" },
     { cmd: "tui -viz -color &lt;#hex&gt;", desc: "Set visualizer bar color" },
     { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
     { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
