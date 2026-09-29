@@ -67,6 +67,18 @@ Toggles an animation during instrumental sections instead of showing the last ly
 
 Reset: `tui -ly -animation off`
 
+### Lyrics Spacing
+```bash
+tui -ly -spacing <value>
+```
+
+| Flag | What it sets | CSS Variable |
+|---|---|---|
+| `-spacing` | Spacing between all lyric lines | `--lyrics-line-spacing` | 
+
+Reset: `tui -ly -spacing off`
+
+
 ### Wallpaper
 ```bash
 tui -wp <url> -o <opacity>
