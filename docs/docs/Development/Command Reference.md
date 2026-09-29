@@ -59,6 +59,14 @@ tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>
 
 Reset: `tui -ly -cp off`
 
+### Lyrics Animation
+```bash
+tui -ly -animation <on/off>
+```
+Toggles an animation during instrumental sections instead of showing the last lyric that was played 
+
+Reset: `tui -ly -animation off`
+
 ### Wallpaper
 ```bash
 tui -wp <url> -o <opacity>
@@ -92,3 +100,14 @@ tui -panel -bg <#hex> -border <#hex> -text <#hex>
 > **Note:** Panel colors apply to the help, playlist, theme, and about panels.
 
 Reset: `tui -panel off`
+
+### Visualizer
+```bash
+tui -viz -color <#hex>		# Set visualizer bar color
+```
+
+| Flag    | What it sets     | 
+| ------- | ---------------- |
+| `-color`  | Visualizer color |
+
+Reset: `tui -viz off`
