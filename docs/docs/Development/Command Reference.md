@@ -78,6 +78,7 @@ tui -ly -spacing <value>
 
 Reset: `tui -ly -spacing off`
 
+
 ### Wallpaper
 ```bash
 tui -wp <url> -o <opacity>
