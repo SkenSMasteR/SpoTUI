@@ -470,7 +470,7 @@ body.spotui-dj-mode .dj-button svg {
     color: var(--lyrics-color-inactive, #777);
     font-size: 17px;
     line-height: 1.45;
-    padding: 10px 8px;
+    padding: var(--lyrics-line-spacing, 10px) 8px;
     opacity: 0.45;
     transform: scale(0.96);
     transition:
