@@ -13,6 +13,7 @@
     const LYRICS_COLOR_ACTIVE = "spotui:lyrics-color-active";
     const LYRICS_COLOR_INACTIVE = "spotui:lyrics-color-inactive";
     const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
+    const LYRICS_LINE_SPACING = "spotui:lyrics-line-spacing";
     const VISUALIZER_STORAGE_KEY = "spotui:visualizer-open";
     const VISUALIZER_COLOR = "spotui:visualizer-color";
     const PLAYER_BAR_BG = "spotui:player-bar-bg";
@@ -123,6 +124,8 @@
         { cmd: "tui -ly -cp -active &lt;#hex&gt; -inactive &lt;#hex&gt; -near &lt;#hex&gt;", desc: "Set lyrics colors" },
         { cmd: "tui -ly -cp off", desc: "Reset lyrics colors" },
         { cmd: "tui -ly -animation &lt;on/off&gt;", desc: "Toggle lyrics loader animation" },
+        { cmd: "tui -ly -spacing &lt;value&gt;", desc: "Controls vertical spacing between lines in lyrics" },
+        { cmd: "tui -ly -spacing off", desc: "Resets line spacing in lyrics" },
         { cmd: "tui -viz -color &lt;#hex&gt;", desc: "Set visualizer bar color" },
         { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
         { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
@@ -3192,6 +3195,20 @@
                 }
                 return;
             }
+            if (argsLower.includes("-ly") && argsLower.includes("-spacing")) {
+            	const idx = argsLower.indexOf("-spacing");
+            	let value = args[idx + 1];
+            	if ((value || "").toLowerCase() === "off") {
+            		storageRemove(LYRICS_LINE_SPACING);
+            	} else {
+    				if (!isNaN(value)) {
+    					value = value + "px";	
+    				}
+            		storageSet(LYRICS_LINE_SPACING, value);
+            	}
+            	applyLyricLineSpacing();
+            	return;
+            }
             if (argsLower.includes("-bar")) {
                 if (argsLower.includes("-v")) {
                     const idx = argsLower.indexOf("-v");
@@ -4260,6 +4277,14 @@
         }
     }
 
+    function applyLyricLineSpacing() {
+    	try {
+    		applyCssVar(LYRICS_LINE_SPACING, "--lyrics-line-spacing");
+    	} catch (e) {
+    		console.error("SpoTUI: Failed to apply line spacing", e);
+    	}
+    }
+
     function applyVisualizerColor() {
         applyCssVar(VISUALIZER_COLOR, "--visualizer-color");
     }
@@ -4615,6 +4640,9 @@
         storageRemove(LYRICS_COLOR_INACTIVE);
         storageRemove(LYRICS_COLOR_LIGHT_INACTIVE);
         applyLyricColors();
+
+        storageRemove(LYRICS_LINE_SPACING);
+        applyLyricLineSpacing();
 
         storageRemove(VISUALIZER_COLOR);
         applyVisualizerColor();
@@ -5230,7 +5258,7 @@ body.spotui-dj-mode .dj-button svg {
     color: var(--lyrics-color-inactive, #777);
     font-size: 17px;
     line-height: 1.45;
-    padding: 10px 8px;
+    padding: var(--lyrics-line-spacing, 10px) 8px;
     opacity: 0.45;
     transform: scale(0.96);
     transition:
@@ -6397,6 +6425,7 @@ body.spotui-standby .Root__now-playing-bar {
             setTimeout(() => setWallpaper(storageGet(WP_URL_KEY), storageGet(WP_OPACITY_KEY) || "1", false), 1500);
         }
         applyLyricColors();
+        applyLyricLineSpacing();
         applyVisualizerColor();
         restoreVisualizer();
         applyPlayerBarColors();
