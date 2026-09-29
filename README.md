@@ -12,6 +12,7 @@
 
   <h1>SpoTUI</h1>
 
+
   <p>
     SpoTUI is a terminal-inspired theme for Spotify that overlays a custom,<br>
     keyboard-driven interface directly inside the Spotify client.<br>
