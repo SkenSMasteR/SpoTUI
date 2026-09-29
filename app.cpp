@@ -318,6 +318,12 @@ std::vector<int> version_parts(const std::string& name) {
     std::vector<int> parts;
     size_t at = name.find('@');
     std::string v = at == std::string::npos ? name : name.substr(at + 1);
+
+    size_t start = 0;
+    while (start < v.size() && !std::isdigit(static_cast<unsigned char>(v[start])))
+        start++;
+    v = v.substr(start);
+
     std::string cur;
     for (char c : v) {
         if (std::isdigit(static_cast<unsigned char>(c))) {
@@ -343,6 +349,12 @@ int compare_versions(const std::string& a, const std::string& b) {
         if (av != bv) return av > bv ? 1 : -1;
     }
     return 0;
+}
+
+bool same_version(const std::string& a, const std::string& b) {
+    if (a == b) return true;
+    if (version_parts(a).empty() || version_parts(b).empty()) return false;
+    return compare_versions(a, b) == 0;
 }
 
 struct Release {
@@ -670,7 +682,7 @@ int main() {
                 return;
             }
             std::string current = read_installed_version();
-            if (current == rels.front().name) {
+            if (same_version(current, rels.front().name)) {
                 show_info("Already on the latest version (" + current + ").", kGreen);
                 return;
             }
@@ -696,7 +708,7 @@ int main() {
             std::string current = read_installed_version();
             for (const auto& r : releases) {
                 std::string label = r.name;
-                if (r.name == current) label += "  (current)";
+                if (same_version(r.name, current)) label += "  (current)";
                 if (&r == &releases.front()) label += "  (newest)";
                 down_entries.push_back(label);
             }
@@ -704,7 +716,7 @@ int main() {
             down_selected = 0;
             if (!current.empty() && current != "unknown") {
                 for (size_t i = 0; i < releases.size(); i++) {
-                    if (releases[i].name == current) {
+                    if (same_version(releases[i].name, current)) {
                         down_selected = static_cast<int>(i);
                         break;
                     }
@@ -725,7 +737,7 @@ int main() {
                 return;
             }
             std::string current = read_installed_version();
-            if (current == rels.front().name) {
+            if (same_version(current, rels.front().name)) {
                 show_info("Status: up to date (" + current + ").", kGreen);
             } else {
                 show_info("Status: outdated.\nInstalled: " + current +
