@@ -143,7 +143,7 @@ export async function execute(cmd, opts = {}) {
             return;
         }
         if (argsLower.includes("-ly") && argsLower.includes("-spacing")) {
-        	const idx =argsLower.indexOf("-spacing");
+        	const idx = argsLower.indexOf("-spacing");
         	const value = args[idx + 1];
         	storageSet(LYRICS_LINE_SPACING, value);
         	applyLyricLineSpacing();
