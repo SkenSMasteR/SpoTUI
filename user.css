@@ -1110,7 +1110,14 @@ body.spotui-spotify-enabled .marketplace-footer button {
     font-family: "JetBrains Mono", "Fira Code", monospace !important;
 }
 
-/* Credit: darkthemer */
+body.spotui-spotify-enabled .marketplace-footer {
+    padding-bottom: 120px !important;
+}
+
+body.spotui-spotify-enabled.spotui-custom-bar-on .marketplace-footer {
+    padding-bottom: 176px !important;
+}
+
 .main-home-content::before, .uFQUpbITgGovaKRr6I_g h1, #searchPage::before, .collection-collection-header h1, .marketplace-header::before, .x-settings-headerContainer h1, .queue-queuePage-header, .n6LsTkKvpO88xeRyRTdw {
     display: block;
     width: fit-content;
@@ -1179,4 +1186,3 @@ body.spotui-spotify-enabled .marketplace-footer button {
 body.spotui-spotify-enabled .playlist-playlist-playlistContent {
     padding-bottom: 120px !important;
 }
-/* --- */
