@@ -157,6 +157,11 @@ div:has(> .notistack-SnackbarContainer) {
     display: none !important;
 }
 
+.encore-announcement-set,
+div:has(> .encore-announcement-set) {
+    display: none !important;
+}
+
 .Root__now-playing-bar {
     display: flex !important;
     position: fixed !important;
