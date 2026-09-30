@@ -150,6 +150,13 @@ body.spotui-spotify-enabled .Root__globalNav .x-searchInput-searchInputInput::pl
     display: none !important;
 }
 
+.notistack-SnackbarContainer,
+.notistack-CollapseWrapper,
+.notistack-Snackbar,
+div:has(> .notistack-SnackbarContainer) {
+    display: none !important;
+}
+
 .Root__now-playing-bar {
     display: flex !important;
     position: fixed !important;
