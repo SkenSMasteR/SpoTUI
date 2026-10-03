@@ -84,7 +84,7 @@ export function createTerminal() {
         input.focus();
     });
 
-    let tabPrefix = null;
+    let tabState = null;
     let tabIndex = -1;
 
     input.addEventListener("keydown", async (e) => {
@@ -94,18 +94,29 @@ export function createTerminal() {
         }
         if (e.key === "Tab") {
             e.preventDefault();
-            const slash = /^[/.]/.test(input.value) ? input.value[0] : "";
-            if (tabPrefix === null) {
-                tabPrefix = slash ? input.value.slice(1).toLowerCase() : input.value.toLowerCase();
+            if (!tabState) {
+                const slash = /^[/.]/.test(input.value) ? input.value[0] : "";
+                const body = slash ? input.value.slice(1) : input.value;
+                const partial = (/\S+$/.exec(body) || [""])[0];
+                if (!partial) return;
+                const head = body.slice(0, body.length - partial.length);
+                const words = head.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                tabState = { slash, head, words, partial: partial.toLowerCase() };
                 tabIndex = -1;
             }
-            const matches = COMMAND_NAMES.filter((cmd) => cmd.startsWith(tabPrefix));
+            const { slash, head, words, partial } = tabState;
+            const matches = [...new Set(COMMAND_NAMES
+                .map((name) => name.split(/\s+/))
+                .filter((cmd) => cmd.length > words.length
+                    && words.every((word, i) => cmd[i] === word)
+                    && cmd[words.length].startsWith(partial))
+                .map((cmd) => cmd[words.length]))];
             if (!matches.length) return;
             tabIndex = (tabIndex + 1) % matches.length;
-            input.value = slash + matches[tabIndex];
+            input.value = slash + head + matches[tabIndex];
             return;
         }
-        tabPrefix = null;
+        tabState = null;
         if (e.key === "Enter") {
             const cmd = input.value.trim();
             if (cmd) {
