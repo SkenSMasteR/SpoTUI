@@ -1,5 +1,6 @@
 import { initAsciiAnimation } from "./ascii.js";
 import { execute } from "./commands.js";
+import { COMMAND_NAMES } from "./constants.js";
 import { initSearchPanel } from "./search.js";
 import { app, isAnyPanelOpen } from "./state.js";
 
@@ -83,11 +84,28 @@ export function createTerminal() {
         input.focus();
     });
 
+    let tabPrefix = null;
+    let tabIndex = -1;
+
     input.addEventListener("keydown", async (e) => {
         if (isAnyPanelOpen() && !app.onboardingPanelOpen) {
             e.stopImmediatePropagation();
             return;
         }
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const slash = /^[/.]/.test(input.value) ? input.value[0] : "";
+            if (tabPrefix === null) {
+                tabPrefix = slash ? input.value.slice(1).toLowerCase() : input.value.toLowerCase();
+                tabIndex = -1;
+            }
+            const matches = COMMAND_NAMES.filter((cmd) => cmd.startsWith(tabPrefix));
+            if (!matches.length) return;
+            tabIndex = (tabIndex + 1) % matches.length;
+            input.value = slash + matches[tabIndex];
+            return;
+        }
+        tabPrefix = null;
         if (e.key === "Enter") {
             const cmd = input.value.trim();
             if (cmd) {
