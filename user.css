@@ -244,15 +244,33 @@ div:has(> .encore-announcement-set) {
     opacity: 0.8;
 }
 
-.Root__now-playing-bar .x-progressBar-progressBarBg,
-.Root__now-playing-bar .x-progressBar-progressBar {
+.Root__now-playing-bar .x-progressBar-progressBarBg {
     background: var(--progress-bar-background, #202020) !important;
+}
+
+.Root__now-playing-bar .x-progressBar-progressBar {
+    background: transparent !important;
 }
 
 .Root__now-playing-bar .x-progressBar-progressFillColor,
 .Root__now-playing-bar .x-progressBar-fillColor,
 .Root__now-playing-bar .x-progressBar-handle {
     background: var(--progress-bar-foreground, var(--spotui-accent, #ff8c42)) !important;
+}
+
+.Root__now-playing-bar [data-testid="playback-progressbar"] .progress-bar {
+    --progress-bar-height: 2px;
+    --spotui-fill-height: 4px;
+}
+
+.Root__now-playing-bar [data-testid="playback-progressbar"] .x-progressBar-sliderArea {
+    height: var(--spotui-fill-height);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.Root__now-playing-bar [data-testid="playback-progressbar"] .x-progressBar-sliderArea > * {
+    height: 100%;
 }
 
 .Root__now-playing-bar .volume-bar {

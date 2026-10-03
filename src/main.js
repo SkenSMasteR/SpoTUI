@@ -6,6 +6,7 @@ import { handleKeybindKeydown } from "./keybinds.js";
 import { initDjBridge } from "./dj.js";
 import { initLyricsBridge, openLyricsPanel, waitForPlayerReadyThen } from "./lyrics.js";
 import { isFirstBoot, launchFirstBootIfNeeded } from "./onboarding.js";
+import { initClassMap } from "./smvs.js";
 import { storageGet } from "./storage.js";
 import { injectStyle } from "./styles.js";
 import { initSync } from "./sync.js";
@@ -14,6 +15,7 @@ import { restoreVisualizer } from "./visualizer.js";
 import { setWallpaper } from "./wallpaper.js";
 
 // Inject styles, set up event listeners, and restore saved state
+initClassMap();
 injectStyle();
 document.addEventListener("keydown", handleKeybindKeydown, true);
 setTimeout(createControlButtons, 500);
