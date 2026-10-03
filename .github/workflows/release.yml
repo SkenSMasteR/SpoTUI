@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   version:
@@ -47,6 +49,11 @@ jobs:
 
       - name: Rename binary
         run: mv build/spotui build/spotui-linux-amd64
+
+      - name: attest linux binary
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: build/spotui-linux-amd64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -109,6 +116,11 @@ jobs:
 
       - name: Rename binary
         run: mv build/spotui.exe build/${{ matrix.out }}
+
+      - name: attest windows binary
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: build/${{ matrix.out }}
 
       - uses: actions/upload-artifact@v4
         with:
