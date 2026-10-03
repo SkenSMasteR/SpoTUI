@@ -1,5 +1,6 @@
 import { initAsciiAnimation } from "./ascii.js";
 import { execute } from "./commands.js";
+import { COMMAND_NAMES } from "./constants.js";
 import { initSearchPanel } from "./search.js";
 import { app, isAnyPanelOpen } from "./state.js";
 
@@ -83,11 +84,39 @@ export function createTerminal() {
         input.focus();
     });
 
+    let tabState = null;
+    let tabIndex = -1;
+
     input.addEventListener("keydown", async (e) => {
         if (isAnyPanelOpen() && !app.onboardingPanelOpen) {
             e.stopImmediatePropagation();
             return;
         }
+        if (e.key === "Tab") {
+            e.preventDefault();
+            if (!tabState) {
+                const slash = /^[/.]/.test(input.value) ? input.value[0] : "";
+                const body = slash ? input.value.slice(1) : input.value;
+                const partial = (/\S+$/.exec(body) || [""])[0];
+                if (!partial) return;
+                const head = body.slice(0, body.length - partial.length);
+                const words = head.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                tabState = { slash, head, words, partial: partial.toLowerCase() };
+                tabIndex = -1;
+            }
+            const { slash, head, words, partial } = tabState;
+            const matches = [...new Set(COMMAND_NAMES
+                .map((name) => name.split(/\s+/))
+                .filter((cmd) => cmd.length > words.length
+                    && words.every((word, i) => cmd[i] === word)
+                    && cmd[words.length].startsWith(partial))
+                .map((cmd) => cmd[words.length]))];
+            if (!matches.length) return;
+            tabIndex = (tabIndex + 1) % matches.length;
+            input.value = slash + head + matches[tabIndex];
+            return;
+        }
+        tabState = null;
         if (e.key === "Enter") {
             const cmd = input.value.trim();
             if (cmd) {

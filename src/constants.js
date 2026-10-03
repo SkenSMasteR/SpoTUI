@@ -163,3 +163,7 @@ export const COMMAND_LIST = [
     { cmd: "jam leave", desc: "Leave the current jam" },
     { cmd: "help", desc: "Show this panel" },
 ];
+
+export const COMMAND_NAMES = [...new Set(COMMAND_LIST.flatMap(({ cmd }) =>
+    cmd.replace(/(?:&lt;|<).*$/, "").split(" / ").map((name) => name.replace(/[\["\s]+$/, ""))
+))].filter(Boolean).sort();
