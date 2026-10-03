@@ -1,6 +1,7 @@
 name: build sposync
 
 on:
+    workflow_dispatch:
     push:
         branches:
             - master
@@ -11,6 +12,8 @@ on:
 permissions:
     contents: write
     pull-requests: write
+    id-token: write
+    attestations: write
 
 jobs:
     build-linux:
@@ -34,6 +37,11 @@ jobs:
                   mkdir -p sposync/bin
                   mv dist/sposync-linux-amd64 sposync/bin/sposync-linux-amd64
                   chmod +x sposync/bin/sposync-linux-amd64
+
+            - name: attest linux binary
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-path: sposync/bin/sposync-linux-amd64
 
             - uses: actions/upload-artifact@v4
               with:
@@ -60,6 +68,11 @@ jobs:
                   pyinstaller --noconfirm --onefile --name sposync-win64 --collect-all textual --collect-all rich --collect-all soundcard --collect-all numpy --collect-all websockets sposync/app.py
                   New-Item -ItemType Directory -Force -Path sposync/bin | Out-Null
                   Move-Item -Force dist/sposync-win64.exe sposync/bin/sposync-win64.exe
+
+            - name: attest windows binary
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-path: sposync/bin/sposync-win64.exe
 
             - uses: actions/upload-artifact@v4
               with:
