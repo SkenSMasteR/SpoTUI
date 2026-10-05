@@ -43,6 +43,11 @@ export function createTerminal() {
         <legend>Playlists</legend>
     </fieldset>
 </div>
+<div id="spotui-queue-panel" hidden>
+    <fieldset id="spotui-queue-list">
+        <legend>Queue</legend>
+    </fieldset>
+</div>
 <div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
 <div id="spotui-search-panel" hidden>

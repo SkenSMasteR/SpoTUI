@@ -141,6 +141,7 @@ export const COMMAND_LIST = [
     { cmd: "tui -panel off", desc: "Reset panel colors" },
     { cmd: "playlist / list &lt;playlist-name&gt;", desc: "Open playlist viewer or play a specific playlist" },
     { cmd: "add2list", desc: "Add the current song to a playlist" },
+    { cmd: "queue", desc: "View and reorder the play queue" },
     { cmd: "play / pause / p", desc: "Toggle playback" },
     { cmd: "skip", desc: "Next track" },
     { cmd: "back", desc: "Previous track" },

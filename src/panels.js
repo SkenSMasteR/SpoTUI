@@ -6,6 +6,7 @@ import { isRestrictedThemeCommand } from "./keybinds.js";
 import { closeLyricsPanel } from "./lyrics.js";
 import { closeOnboardingPanel } from "./onboarding.js";
 import { getPlaylists, handlePlaylistPanelKeydown, renderPlaylistListVirtual, renderPlaylistPanel } from "./playlists.js";
+import { closeQueuePanel } from "./queue.js";
 import { closeSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
@@ -35,6 +36,7 @@ export function closeActivePanel() {
     if (app.lyricsPanelOpen) closeLyricsPanel();
     if (app.playlistPanelOpen) closePlaylistPanel();
     if (app.add2listPanelOpen) closeAdd2listPanel();
+    if (app.queuePanelOpen) closeQueuePanel();
     if (app.themePanelOpen) closeThemePanel();
     if (app.searchPanelOpen) closeSearchPanel();
     if (app.onboardingPanelOpen) closeOnboardingPanel();
