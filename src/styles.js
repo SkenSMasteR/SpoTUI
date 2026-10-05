@@ -598,7 +598,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
-#spotui-playlist-info {
+#spotui-playlist-info, #spotui-queue-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
@@ -617,15 +617,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     opacity: 0.7;
 }
 
-#spotui-playlist-info:hover {
+#spotui-playlist-info:hover, #spotui-queue-info:hover {
     opacity: 1;
 }
 
-#spotui-playlist-info svg {
+#spotui-playlist-info svg, #spotui-queue-info svg {
     display: block;
 }
 
-#spotui-playlist-info-popup {
+#spotui-playlist-info-popup, #spotui-queue-info-popup {
     position: absolute;
     bottom: 36px;
     right: 10px;
@@ -640,7 +640,11 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     pointer-events: auto;
 }
 
-#spotui-playlist-info-popup span {
+#spotui-queue-info-popup {
+    white-space: normal;
+}
+
+#spotui-playlist-info-popup span, #spotui-queue-info-popup span {
     color: var(--panel-text-color, #ff8c42);
 }
 
