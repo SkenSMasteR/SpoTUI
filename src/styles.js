@@ -833,6 +833,14 @@ body.spotui-theme-panel #spotui-theme-panel {
     cursor: pointer;
 }
 
+.playlist-item.queue-end {
+    text-align: center;
+    border: 1px solid var(--panel-text-color, #ff8c42);
+    border-radius: 4px;
+    margin-top: 8px;
+    opacity: 0.85;
+}
+
 .playlist-item, .song-item {
     height: 26px;
     box-sizing: border-box;

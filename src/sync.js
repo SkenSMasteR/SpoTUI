@@ -5,6 +5,7 @@ import { getPlaylists, normalizeTrackItem } from "./playlists.js";
 import { searchSpotify } from "./search.js";
 import { app } from "./state.js";
 import { storageGet } from "./storage.js";
+import { playFresh } from "./utils.js";
 import { setVisualizerBars } from "./visualizer.js";
 
 const WS_URL = "ws://localhost:8765";
@@ -158,7 +159,7 @@ async function handleTuiPlaylist(argText) {
         const q = argText.toLowerCase();
         const match = slim.filter((p) => p.name.toLowerCase().includes(q));
         if (match.length === 1) {
-            Spicetify.Player.playUri(match[0].uri);
+            playFresh(match[0].uri);
             return;
         }
         if (match.length > 1) {
@@ -173,8 +174,7 @@ async function handleTuiPlaylist(argText) {
 
 function playUri(uri, context) {
     if (!uri) return;
-    if (context) Spicetify.Player.playUri(context, {}, { skipTo: { uri } });
-    else Spicetify.Player.playUri(uri);
+    playFresh(uri, context);
 }
 
 function syncTip(show) {

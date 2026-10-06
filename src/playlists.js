@@ -2,6 +2,7 @@ import { jamSay } from "./jam.js";
 import { closeAdd2listPanel, closePlaylistPanel } from "./panels.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
+import { playFresh } from "./utils.js";
 
 export const PLAYLIST_SONGS_FETCH_DELAY = 150;
 
@@ -459,7 +460,7 @@ export async function handlePlaylistPanelKeydown(e) {
         if (isPlaylist) {
             const p = app.playlists[app.selectedPlaylist];
             if (p) {
-                Spicetify.Player.playUri(p.uri);
+                await playFresh(p.uri);
                 print("Playing playlist: " + p.name);
                 closePlaylistPanel();
             }
@@ -467,7 +468,7 @@ export async function handlePlaylistPanelKeydown(e) {
             const song = app.playlistSongs[app.selectedSong];
             const context = app.playlists[app.selectedPlaylist];
             if (song && context) {
-                Spicetify.Player.playUri(context.uri, {}, { skipTo: { uri: song.uri } });
+                await playFresh(song.uri, context.uri);
                 print(`Playing: ${song.name} from ${context.name}`);
                 closePlaylistPanel();
             }

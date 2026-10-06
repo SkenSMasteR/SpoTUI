@@ -16,6 +16,7 @@ import { app } from "./state.js";
 import { storageClear, storageGet, storageRemove, storageSet } from "./storage.js";
 import { applyThemeByName } from "./themes.js";
 import { enterStandby } from "./standby.js";
+import { playFresh } from "./utils.js";
 import { setWallpaper } from "./wallpaper.js";
 
 export async function execute(cmd, opts = {}) {
@@ -279,7 +280,7 @@ export async function execute(cmd, opts = {}) {
 
             const match = app.playlists.filter(p => p.name.toLowerCase().includes(argText.toLowerCase()));
             if (match.length === 1) {
-                Spicetify.Player.playUri(match[0].uri);
+                await playFresh(match[0].uri);
                 return;
             } else if (match.length > 1) {
                 jamSay("Multiple matches: " + match.map(p => p.name).join(", "));
@@ -359,7 +360,7 @@ export async function execute(cmd, opts = {}) {
                 jamSay("Spotify DJ isn’t available for your account yet.");
                 return;
             }
-            Spicetify.Player.playUri(match.uri);
+            await playFresh(match.uri);
         } catch (err) {
             jamSay("Spotify DJ isn’t available for your account yet.");
         }

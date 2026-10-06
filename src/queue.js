@@ -2,12 +2,30 @@ import { emitPaneClose } from "./actions.js";
 import { normalizeTrackItem } from "./playlists.js";
 import { app } from "./state.js";
 
+function isQueueEndMarker(item) {
+    if (item.artist) return false;
+    return /^Track\s+\d+$/i.test(item.name || "");
+}
+
 function loadQueue() {
     const q = Spicetify.Queue || {};
     const cur = q.track;
     const tracks = [];
-    if (cur) tracks.push({ ...normalizeTrackItem(cur, 0), uid: cur.uid, current: true });
-    (q.nextTracks || []).forEach((t, i) => tracks.push({ ...normalizeTrackItem(t, i + 1), uid: t.uid, current: false }));
+    if (cur) {
+        const item = { ...normalizeTrackItem(cur, 0), uid: cur.uid, current: true };
+        if (!isQueueEndMarker(item)) tracks.push(item);
+    }
+    let ended = false;
+    (q.nextTracks || []).forEach((t, i) => {
+        if (ended) return;
+        const item = { ...normalizeTrackItem(t, i + 1), uid: t.uid, current: false };
+        if (isQueueEndMarker(item)) {
+            tracks.push({ uri: "", uid: "", name: "End of queue", artist: "", current: false, endOfQueue: true });
+            ended = true;
+            return;
+        }
+        tracks.push(item);
+    });
     app.queueTracks = tracks;
     app.selectedQueue = 0;
 }
@@ -30,8 +48,10 @@ function renderQueueList() {
     legend.textContent = "Queue";
     const nodes = app.queueTracks.map((t, i) => {
         const d = document.createElement("div");
-        d.className = "playlist-item" + (i === app.selectedQueue ? " selected" : "");
-        d.textContent = (app.queueGrab === i ? "> " : "") + (t.current ? "\u25B6 " : "") + t.name + (t.artist ? " - " + t.artist : "");
+        d.className = "playlist-item" + (t.endOfQueue ? " queue-end" : "") + (i === app.selectedQueue ? " selected" : "");
+        d.textContent = t.endOfQueue
+            ? (app.queueGrab === i ? "> " : "") + "End of queue"
+            : (app.queueGrab === i ? "> " : "") + (t.current ? "\u25B6 " : "") + t.name + (t.artist ? " - " + t.artist : "");
         return d;
     });
     el.replaceChildren(legend, ...nodes);
@@ -40,7 +60,7 @@ function renderQueueList() {
 
 async function applyQueueOrder() {
     const i = app.queueTracks.findIndex((t) => t.current);
-    const next = app.queueTracks.slice(i < 0 ? 0 : i + 1).map((t) => ({ uri: t.uri, uid: t.uid }));
+    const next = app.queueTracks.slice(i < 0 ? 0 : i + 1).filter((t) => !t.endOfQueue && t.uri).map((t) => ({ uri: t.uri, uid: t.uid }));
     await Spicetify.Platform.PlayerAPI.clearQueue();
     if (next.length) await Spicetify.addToQueue(next);
 }
@@ -55,7 +75,10 @@ function handleQueueKeydown(e) {
     }
     if (e.key === "Tab") {
         e.preventDefault();
-        if (app.queueGrab < 0) { if (app.selectedQueue) app.queueGrab = app.selectedQueue; }
+        if (app.queueGrab < 0) {
+            const t = app.queueTracks[app.selectedQueue];
+            if (app.selectedQueue && t && !t.endOfQueue) app.queueGrab = app.selectedQueue;
+        }
         else {
             app.queueGrab = -1;
             applyQueueOrder();
@@ -72,6 +95,7 @@ function handleQueueKeydown(e) {
         if (to < 0 || to >= n) return;
         if (app.queueGrab >= 0) {
             if (!to) return;
+            if (app.queueTracks[to]?.endOfQueue || app.queueTracks[app.selectedQueue]?.endOfQueue) return;
             const a = app.queueTracks;
             [a[app.selectedQueue], a[to]] = [a[to], a[app.selectedQueue]];
             app.selectedQueue = app.queueGrab = to;
@@ -81,9 +105,21 @@ function handleQueueKeydown(e) {
     }
     if (e.key === "Enter") {
         e.preventDefault();
-        if (!app.selectedQueue) return;
+        const t = app.queueTracks[app.selectedQueue];
+        if (!app.selectedQueue || !t || t.endOfQueue) return;
         for (let i = app.selectedQueue; i--;) Spicetify.Player.next();
         closeQueuePanel();
+        return;
+    }
+    if ((e.key === "r" || e.key === "R") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        const t = app.queueTracks[app.selectedQueue];
+        if (!t || t.current || t.endOfQueue) return;
+        app.queueGrab = -1;
+        app.queueTracks.splice(app.selectedQueue, 1);
+        if (app.selectedQueue >= app.queueTracks.length) app.selectedQueue = Math.max(0, app.queueTracks.length - 1);
+        applyQueueOrder();
+        renderQueueList();
     }
 }
 
