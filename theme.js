@@ -142,6 +142,7 @@
         { cmd: "tui -panel off", desc: "Reset panel colors" },
         { cmd: "playlist / list &lt;playlist-name&gt;", desc: "Open playlist viewer or play a specific playlist" },
         { cmd: "add2list", desc: "Add the current song to a playlist" },
+        { cmd: "queue", desc: "View and reorder the play queue" },
         { cmd: "play / pause / p", desc: "Toggle playback" },
         { cmd: "skip", desc: "Next track" },
         { cmd: "back", desc: "Previous track" },
@@ -188,6 +189,10 @@
         commandHistoryIndex: -1,
         playlistPanelOpen: false,
         add2listPanelOpen: false,
+        queuePanelOpen: false,
+        queueTracks: [],
+        selectedQueue: 0,
+        queueGrab: -1,
         playlists: [],
         playlistSongs: [],
         playlistSongsTotal: 0,
@@ -1622,6 +1627,13 @@
         <legend>Playlists</legend>
     </fieldset>
 </div>
+<div id="spotui-queue-panel" hidden>
+    <fieldset id="spotui-queue-list">
+        <legend>Queue</legend>
+    </fieldset>
+    <button id="spotui-queue-info" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+    <div id="spotui-queue-info-popup" hidden>Play: press <span>Enter</span><br>Reorder: press <span>Tab</span></div>
+</div>
 <div id="spotui-help-panel" hidden><fieldset class="spotui-help-fieldset"><legend class="spotui-help-legend">Exit - Esc</legend><div class="spotui-help-content"></div></fieldset></div>
 <div id="spotui-about-panel" hidden></div>
 <div id="spotui-search-panel" hidden>
@@ -1642,15 +1654,11 @@
         document.body.appendChild(box);
         initAsciiAnimation();
         initSearchPanel();
-        const playlistInfo = document.getElementById("spotui-playlist-info");
-        const playlistInfoPopup = document.getElementById("spotui-playlist-info-popup");
-        if (playlistInfo && playlistInfoPopup) {
-            playlistInfo.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                playlistInfoPopup.hidden = !playlistInfoPopup.hidden;
-            });
-        }
+        [["spotui-playlist-info", "spotui-playlist-info-popup"], ["spotui-queue-info", "spotui-queue-info-popup"]].forEach(([btnId, popId]) => {
+            const btn = document.getElementById(btnId);
+            const pop = document.getElementById(popId);
+            if (btn && pop) btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); pop.hidden = !pop.hidden; });
+        });
 
         const input = document.getElementById("spotui-input");
 
@@ -2260,6 +2268,119 @@
         return list;
     }
 
+    function loadQueue() {
+        const q = Spicetify.Queue || {};
+        const cur = q.track;
+        const tracks = [];
+        if (cur) tracks.push({ ...normalizeTrackItem(cur, 0), uid: cur.uid, current: true });
+        (q.nextTracks || []).forEach((t, i) => tracks.push({ ...normalizeTrackItem(t, i + 1), uid: t.uid, current: false }));
+        app.queueTracks = tracks;
+        app.selectedQueue = 0;
+    }
+
+    function onSongChange() {
+        if (!app.queuePanelOpen || app.queueGrab >= 0) return;
+        const sel = app.queueTracks[app.selectedQueue];
+        loadQueue();
+        if (sel) {
+            const i = app.queueTracks.findIndex((t) => (sel.uid && t.uid === sel.uid) || t.uri === sel.uri);
+            if (i >= 0) app.selectedQueue = i;
+        }
+        renderQueueList();
+    }
+
+    function renderQueueList() {
+        const el = document.getElementById("spotui-queue-list");
+        if (!el) return;
+        const legend = document.createElement("legend");
+        legend.textContent = "Queue";
+        const nodes = app.queueTracks.map((t, i) => {
+            const d = document.createElement("div");
+            d.className = "playlist-item" + (i === app.selectedQueue ? " selected" : "");
+            d.textContent = (app.queueGrab === i ? "> " : "") + (t.current ? "\u25B6 " : "") + t.name + (t.artist ? " - " + t.artist : "");
+            return d;
+        });
+        el.replaceChildren(legend, ...nodes);
+        el.children[app.selectedQueue + 1]?.scrollIntoView({ block: "nearest" });
+    }
+
+    async function applyQueueOrder() {
+        const i = app.queueTracks.findIndex((t) => t.current);
+        const next = app.queueTracks.slice(i < 0 ? 0 : i + 1).map((t) => ({ uri: t.uri, uid: t.uid }));
+        await Spicetify.Platform.PlayerAPI.clearQueue();
+        if (next.length) await Spicetify.addToQueue(next);
+    }
+
+    function handleQueueKeydown(e) {
+        if (!app.queuePanelOpen) return;
+        e.stopPropagation();
+        if (e.key === "Escape") {
+            e.preventDefault();
+            closeQueuePanel();
+            return;
+        }
+        if (e.key === "Tab") {
+            e.preventDefault();
+            if (app.queueGrab < 0) { if (app.selectedQueue) app.queueGrab = app.selectedQueue; }
+            else {
+                app.queueGrab = -1;
+                applyQueueOrder();
+            }
+            renderQueueList();
+            return;
+        }
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const dir = e.key === "ArrowUp" ? -1 : 1;
+            const n = app.queueTracks.length;
+            if (!n) return;
+            const to = app.selectedQueue + dir;
+            if (to < 0 || to >= n) return;
+            if (app.queueGrab >= 0) {
+                if (!to) return;
+                const a = app.queueTracks;
+                [a[app.selectedQueue], a[to]] = [a[to], a[app.selectedQueue]];
+                app.selectedQueue = app.queueGrab = to;
+            } else app.selectedQueue = to;
+            renderQueueList();
+            return;
+        }
+        if (e.key === "Enter") {
+            e.preventDefault();
+            if (!app.selectedQueue) return;
+            for (let i = app.selectedQueue; i--;) Spicetify.Player.next();
+            closeQueuePanel();
+        }
+    }
+
+    function closeQueuePanel() {
+        const wasOpen = app.queuePanelOpen;
+        app.queuePanelOpen = false;
+        app.queueGrab = -1;
+        document.body.classList.remove("spotui-queue-panel");
+        const panel = document.getElementById("spotui-queue-panel");
+        if (panel) panel.hidden = true;
+        const input = document.getElementById("spotui-input");
+        if (input) input.focus();
+        document.removeEventListener("keydown", handleQueueKeydown, true);
+        Spicetify.Player.removeEventListener("songchange", onSongChange);
+        if (wasOpen) emitPaneClose("queue");
+    }
+
+    function openQueuePanel() {
+        loadQueue();
+        app.queueGrab = -1;
+        app.queuePanelOpen = true;
+        document.body.classList.add("spotui-queue-panel");
+        const panel = document.getElementById("spotui-queue-panel");
+        if (panel) panel.hidden = false;
+        const input = document.getElementById("spotui-input");
+        if (input) input.blur();
+        renderQueueList();
+        document.addEventListener("keydown", handleQueueKeydown, true);
+        Spicetify.Player.addEventListener("songchange", onSongChange);
+    }
+
     // Singleton promise for theme feed
 
     // Load theme catalog from remote server
@@ -2413,6 +2534,7 @@
         if (app.lyricsPanelOpen) closeLyricsPanel();
         if (app.playlistPanelOpen) closePlaylistPanel();
         if (app.add2listPanelOpen) closeAdd2listPanel();
+        if (app.queuePanelOpen) closeQueuePanel();
         if (app.themePanelOpen) closeThemePanel();
         if (app.searchPanelOpen) closeSearchPanel();
         if (app.onboardingPanelOpen) closeOnboardingPanel();
@@ -3374,6 +3496,12 @@
             openPlaylistPanel(); return; 
         }
         if (command === "add2list") { openAdd2listPanel(); return; }
+        if (command === "queue") {
+            if (app.queuePanelOpen) { closeQueuePanel(); return; }
+            closeActivePanel();
+            openQueuePanel();
+            return;
+        }
         if (command === "theme") { openThemePanel(); return; }
         if (command === "discord") {
             storageRemove(UPDATE_BANNER_KEY);
@@ -5086,6 +5214,7 @@ body.spotui-lyrics-panel #spotui-logo,
 body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
 body.spotui-add2list-panel #spotui-logo,
+body.spotui-queue-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
 body.spotui-search-panel #spotui-logo,
@@ -5239,6 +5368,7 @@ body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-dj-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-playlist-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-add2list-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-queue-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-help-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-theme-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
@@ -5283,6 +5413,7 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 body.spotui-command-mode #spotui-output,
 body.spotui-playlist-panel #spotui-output,
 body.spotui-add2list-panel #spotui-output,
+body.spotui-queue-panel #spotui-output,
 body.spotui-help-panel #spotui-output,
 body.spotui-about-panel #spotui-output,
 body.spotui-theme-panel #spotui-output,
@@ -5301,6 +5432,7 @@ body.spotui-cli-mode #spotui-output {
 #spotui-theme-panel::-webkit-scrollbar,
 #spotui-playlist-list::-webkit-scrollbar,
 #spotui-add2list-list::-webkit-scrollbar,
+#spotui-queue-list::-webkit-scrollbar,
 #spotui-song-list::-webkit-scrollbar,
 .spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
@@ -5639,7 +5771,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
-#spotui-playlist-info {
+#spotui-playlist-info, #spotui-queue-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
@@ -5658,15 +5790,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     opacity: 0.7;
 }
 
-#spotui-playlist-info:hover {
+#spotui-playlist-info:hover, #spotui-queue-info:hover {
     opacity: 1;
 }
 
-#spotui-playlist-info svg {
+#spotui-playlist-info svg, #spotui-queue-info svg {
     display: block;
 }
 
-#spotui-playlist-info-popup {
+#spotui-playlist-info-popup, #spotui-queue-info-popup {
     position: absolute;
     bottom: 36px;
     right: 10px;
@@ -5681,11 +5813,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     pointer-events: auto;
 }
 
-#spotui-playlist-info-popup span {
+#spotui-queue-info-popup {
+    white-space: normal;
+}
+
+#spotui-playlist-info-popup span, #spotui-queue-info-popup span {
     color: var(--panel-text-color, #ff8c42);
 }
 
-#spotui-add2list-panel {
+#spotui-add2list-panel, #spotui-queue-panel {
     display: none;
     flex: 1 1 auto;
     min-height: 0;
@@ -5706,7 +5842,8 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.spotui-add2list-panel #spotui-add2list-panel {
+body.spotui-add2list-panel #spotui-add2list-panel,
+body.spotui-queue-panel #spotui-queue-panel {
     display: flex;
     opacity: 1;
     transform: translateY(0);
@@ -5841,7 +5978,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     color: #b3b3b3;
 }
 
-#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list, #spotui-queue-list {
     width: 50%;
     overflow-y: auto;
     scroll-behavior: auto;
@@ -5853,13 +5990,13 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--panel-bg-color, transparent);
 }
 
-#spotui-add2list-list {
+#spotui-add2list-list, #spotui-queue-list {
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
 }
 
-#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend {
+#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend, #spotui-queue-list legend {
     color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
@@ -5877,7 +6014,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     white-space: nowrap;
 }
 
-#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list, #spotui-queue-list {
     position: relative;
 }
 
