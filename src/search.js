@@ -1,5 +1,6 @@
 import { emitPaneClose } from "./actions.js";
 import { app } from "./state.js";
+import { playFresh } from "./utils.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -209,10 +210,10 @@ function setSearchFocus(mode) {
     updateSearchBarFocus();
 }
 
-function playSearchResult(idx) {
+async function playSearchResult(idx) {
     const item = app.searchResults[idx];
     if (!item || !item.uri) return;
-    Spicetify.Player.playUri(item.uri);
+    await playFresh(item.uri);
     closeSearchPanel();
 }
 

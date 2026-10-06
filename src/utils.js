@@ -2,6 +2,15 @@ export function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export async function playFresh(uri, context) {
+    if (!uri && !context) return;
+    try {
+        await Spicetify.Platform.PlayerAPI.clearQueue();
+    } catch {}
+    if (context) Spicetify.Player.playUri(context, {}, { skipTo: { uri } });
+    else Spicetify.Player.playUri(uri);
+}
+
 // randomizing animation sequences - fisher-yates
 export function shuffleArray(array) {
     for (let index = array.length - 1; index > 0; index -= 1) {

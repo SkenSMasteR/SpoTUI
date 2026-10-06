@@ -84,6 +84,17 @@ function handleQueueKeydown(e) {
         if (!app.selectedQueue) return;
         for (let i = app.selectedQueue; i--;) Spicetify.Player.next();
         closeQueuePanel();
+        return;
+    }
+    if ((e.key === "r" || e.key === "R") && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        const t = app.queueTracks[app.selectedQueue];
+        if (!t || t.current) return;
+        app.queueGrab = -1;
+        app.queueTracks.splice(app.selectedQueue, 1);
+        if (app.selectedQueue >= app.queueTracks.length) app.selectedQueue = Math.max(0, app.queueTracks.length - 1);
+        applyQueueOrder();
+        renderQueueList();
     }
 }
 
