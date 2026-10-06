@@ -41,6 +41,7 @@ body.spotui-lyrics-panel #spotui-logo,
 body.spotui-dj-panel #spotui-logo,
 body.spotui-playlist-panel #spotui-logo,
 body.spotui-add2list-panel #spotui-logo,
+body.spotui-queue-panel #spotui-logo,
 body.spotui-help-panel #spotui-logo,
 body.spotui-theme-panel #spotui-logo,
 body.spotui-search-panel #spotui-logo,
@@ -194,6 +195,7 @@ body:has(#spotui-wallpaper) body.spotui-lyrics-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-dj-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-playlist-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-add2list-panel #spotui-logo,
+body:has(#spotui-wallpaper) body.spotui-queue-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-help-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-theme-panel #spotui-logo,
 body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
@@ -238,6 +240,7 @@ body:has(#spotui-wallpaper) body.spotui-about-panel #spotui-logo {
 body.spotui-command-mode #spotui-output,
 body.spotui-playlist-panel #spotui-output,
 body.spotui-add2list-panel #spotui-output,
+body.spotui-queue-panel #spotui-output,
 body.spotui-help-panel #spotui-output,
 body.spotui-about-panel #spotui-output,
 body.spotui-theme-panel #spotui-output,
@@ -256,6 +259,7 @@ body.spotui-cli-mode #spotui-output {
 #spotui-theme-panel::-webkit-scrollbar,
 #spotui-playlist-list::-webkit-scrollbar,
 #spotui-add2list-list::-webkit-scrollbar,
+#spotui-queue-list::-webkit-scrollbar,
 #spotui-song-list::-webkit-scrollbar,
 .spotui-lyrics-lines::-webkit-scrollbar {
     width: 0;
@@ -594,7 +598,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
-#spotui-playlist-info {
+#spotui-playlist-info, #spotui-queue-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
@@ -613,15 +617,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     opacity: 0.7;
 }
 
-#spotui-playlist-info:hover {
+#spotui-playlist-info:hover, #spotui-queue-info:hover {
     opacity: 1;
 }
 
-#spotui-playlist-info svg {
+#spotui-playlist-info svg, #spotui-queue-info svg {
     display: block;
 }
 
-#spotui-playlist-info-popup {
+#spotui-playlist-info-popup, #spotui-queue-info-popup {
     position: absolute;
     bottom: 36px;
     right: 10px;
@@ -636,11 +640,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     pointer-events: auto;
 }
 
-#spotui-playlist-info-popup span {
+#spotui-queue-info-popup {
+    white-space: normal;
+}
+
+#spotui-playlist-info-popup span, #spotui-queue-info-popup span {
     color: var(--panel-text-color, #ff8c42);
 }
 
-#spotui-add2list-panel {
+#spotui-add2list-panel, #spotui-queue-panel {
     display: none;
     flex: 1 1 auto;
     min-height: 0;
@@ -661,7 +669,8 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.spotui-add2list-panel #spotui-add2list-panel {
+body.spotui-add2list-panel #spotui-add2list-panel,
+body.spotui-queue-panel #spotui-queue-panel {
     display: flex;
     opacity: 1;
     transform: translateY(0);
@@ -796,7 +805,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     color: #b3b3b3;
 }
 
-#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list, #spotui-queue-list {
     width: 50%;
     overflow-y: auto;
     scroll-behavior: auto;
@@ -808,13 +817,13 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--panel-bg-color, transparent);
 }
 
-#spotui-add2list-list {
+#spotui-add2list-list, #spotui-queue-list {
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
 }
 
-#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend {
+#spotui-playlist-list legend, #spotui-song-list legend, #spotui-add2list-list legend, #spotui-queue-list legend {
     color: var(--panel-text-color, #ff8c42);
     padding: 0 5px;
 }
@@ -832,7 +841,7 @@ body.spotui-theme-panel #spotui-theme-panel {
     white-space: nowrap;
 }
 
-#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list {
+#spotui-playlist-list, #spotui-song-list, #spotui-add2list-list, #spotui-queue-list {
     position: relative;
 }
 
