@@ -2,23 +2,15 @@ name: build sposync
 
 on:
     workflow_dispatch:
-    push:
-        branches:
-            - master
-        paths:
-            - 'sposync/app.py'
-            - 'sposync/requirements.txt'
 
 permissions:
     contents: write
-    pull-requests: write
     id-token: write
     attestations: write
 
 jobs:
     build-linux:
         runs-on: ubuntu-latest
-        if: github.actor != 'github-actions[bot]'
         steps:
             - uses: actions/checkout@v4
 
@@ -50,7 +42,6 @@ jobs:
 
     build-windows:
         runs-on: windows-latest
-        if: github.actor != 'github-actions[bot]'
         steps:
             - uses: actions/checkout@v4
 
@@ -79,56 +70,79 @@ jobs:
                   name: sposync-win64
                   path: sposync/bin/sposync-win64.exe
 
-    pr:
+    publish:
         needs: [build-linux, build-windows]
         runs-on: ubuntu-latest
-        if: github.actor != 'github-actions[bot]'
         steps:
             - uses: actions/checkout@v4
-              with:
-                  ref: master
-                  fetch-depth: 0
 
             - uses: actions/download-artifact@v4
               with:
                   name: sposync-linux-amd64
-                  path: sposync/bin
+                  path: out
 
             - uses: actions/download-artifact@v4
               with:
                   name: sposync-win64
-                  path: sposync/bin
+                  path: out
 
-            - name: check for binary changes
-              id: check
+            - name: fetch aux branch
               run: |
-                  chmod +x sposync/bin/sposync-linux-amd64
-                  git add -f sposync/bin/sposync-linux-amd64 sposync/bin/sposync-win64.exe
-                  if git diff --cached --exit-code --quiet; then
-                      echo "binaries are up to date"
-                      echo "has_changes=false" >> "$GITHUB_OUTPUT"
+                  git fetch origin aux || true
+                  if git ls-remote --exit-code --heads origin aux >/dev/null 2>&1; then
+                      git checkout aux
                   else
-                      echo "has_changes=true" >> "$GITHUB_OUTPUT"
+                      git checkout --orphan aux
+                      git rm -rf . || true
                   fi
 
-            - name: push branch and open PR
-              if: steps.check.outputs.has_changes == 'true'
-              env:
-                  GH_TOKEN: ${{ github.token }}
+            - name: update latest binaries and versions.json
               run: |
-                  BRANCH="auto/sposync-bin-${{ github.sha }}"
-                  if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-                      echo "Branch $BRANCH already exists, nothing to push"
-                      exit 0
-                  fi
-                  git checkout -b "$BRANCH"
+                  mkdir -p sposync/bin/latest
+                  cp out/sposync-linux-amd64 sposync/bin/latest/sposync-linux-amd64
+                  cp out/sposync-win64.exe sposync/bin/latest/sposync-win64.exe
+                  chmod +x sposync/bin/latest/sposync-linux-amd64
+
+                  python - <<'EOF'
+                  import hashlib, json, os
+                  from datetime import datetime, timezone
+
+                  def sha256(path):
+                      h = hashlib.sha256()
+                      with open(path, "rb") as f:
+                          for chunk in iter(lambda: f.read(1 << 20), b""):
+                              h.update(chunk)
+                      return h.hexdigest()
+
+                  entry = {
+                      "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                      "triggered_by": os.environ["GITHUB_ACTOR"],
+                      "commit": os.environ["GITHUB_SHA"],
+                      "sha256": {
+                          "sposync-linux-amd64": sha256("sposync/bin/latest/sposync-linux-amd64"),
+                          "sposync-win64.exe": sha256("sposync/bin/latest/sposync-win64.exe"),
+                      },
+                  }
+
+                  path = "sposync/bin/versions.json"
+                  try:
+                      with open(path) as f:
+                          data = json.load(f)
+                      if not isinstance(data, list):
+                          data = [data]
+                  except (FileNotFoundError, json.JSONDecodeError):
+                      data = []
+
+                  data.append(entry)
+                  with open(path, "w", newline="\n") as f:
+                      json.dump(data, f, indent=2)
+                      f.write("\n")
+                  EOF
+
+            - name: commit and push to aux
+              run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git commit -m "chore: update sposync binaries"
-                  git push -u origin "$BRANCH"
-
-                  gh pr create \
-                      --base master \
-                      --head "$BRANCH" \
-                      --title "chore: update sposync binaries" \
-                      --body "Auto-generated by the build workflow from commit ${{ github.sha }}."
+                  git add -f sposync/bin/latest/sposync-linux-amd64 sposync/bin/latest/sposync-win64.exe sposync/bin/versions.json
+                  git commit -m "chore(sposync): publish build ${GITHUB_SHA::7} (triggered by ${GITHUB_ACTOR})"
+                  git push origin aux
