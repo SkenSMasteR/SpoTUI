@@ -1,0 +1,11 @@
+[
+  {
+    "built_at": "2026-10-07T15:31:18Z",
+    "triggered_by": "SkenSMasteR",
+    "commit": "10e730e339048aee2ba7bb0f783073fa8849bf5f",
+    "sha256": {
+      "sposync-linux-amd64": "67b4496654793dc4339061fcb2834c91b1a6c35538b980475dfb32aacd9d741a",
+      "sposync-win64.exe": "443b1281c20546d8c7eba8fa31e163670bedae38f3e74972ef21025478c95d94"
+    }
+  }
+]
