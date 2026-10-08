@@ -132,10 +132,10 @@ const CLASS_MAP = {
     "notistack-SnackbarContainer": [],
     "os-viewport": [],
     "playlist-playlist-playlistContent": [],
-    "progress-bar": ["Nd6cUzZDlHX30QzhnExg"], // If the play/pause button clips out of the playbar, this mapping needs to be updated
+    "progress-bar": ["Nd6cUzZDlHX30QzhnExg"],
     "queue-queuePage-header": [],
     "Root": [],
-    "Root__now-playing-bar": ["z0qdvwslOFVOAihShLIq", "L5dM7nzQpMJtRkvZZBZL"],
+    "Root__now-playing-bar": ["z0qdvwslOFVOAihShLIq", "L5dM7nzQpMJtRkvZZBZL"], // If the play/pause button clips out of the playbar, this mapping needs to be updated
     "Root__top-container": [],
     "search-modal-searchBar": [],
     "searchbar-bar": [],
