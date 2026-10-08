@@ -14,6 +14,8 @@ const SPOTUI_HIDDEN_UI = [
     "main-card-card",
     "main-gridContainer-gridContainer",
     "main-entityHeader-container",
+    "xg2bGi5tcuelbx14UC28",
+    "Clgyk1V8iQGkU1G6m5Lo",
 ];
 
 const HIDDEN_UI_MARKER = "spotui-hidden-ui";
@@ -130,7 +132,7 @@ const CLASS_MAP = {
     "notistack-SnackbarContainer": [],
     "os-viewport": [],
     "playlist-playlist-playlistContent": [],
-    "progress-bar": ["Nd6cUzZDlHX30QzhnExg"], // re-added: user.css:261 sets --spotui-fill-height on it
+    "progress-bar": ["Nd6cUzZDlHX30QzhnExg"], // If the play/pause button clips out of the playbar, this mapping needs to be updated
     "queue-queuePage-header": [],
     "Root": [],
     "Root__now-playing-bar": ["z0qdvwslOFVOAihShLIq", "L5dM7nzQpMJtRkvZZBZL"],
