@@ -1,4 +1,4 @@
-// these are hiden when spotui pane is on and shown when its off.
+// these are hidden when spotui pane is on and shown when its off.
 const SPOTUI_HIDDEN_UI = [
     "Root__main-view",
     "main-view-container",
@@ -64,8 +64,10 @@ const CLASS_MAP = {
     "main-entityHeader-background": [],
     "main-entityHeader-overlay": [],
     "main-globalNav-browseButtonWrapper": [],
-    "main-globalNav-historyButtons": [],
-    "main-globalNav-navLink": [],
+    "main-globalNav-contentRight": ["J69QIsElFMg5kJWeEOxw"],
+    "main-globalNav-historyButtons": ["ie2Qo9PCf8p3rBbip9Hv"],
+    "main-globalNav-historyButtonsWrapper": ["AwxHJjdqrlr_clQipYln"],
+    "main-globalNav-navLink": ["oGrojYscaY3uU8Hy86FD", "T_cPbNTFfdOMoMku2Wc_"],
     "main-globalNav-searchInputContainer": [],
     "main-globalNav-searchInputText": [],
     "main-globalNav-searchInputWrapper": [],
