@@ -5012,8 +5012,7 @@
         "Clgyk1V8iQGkU1G6m5Lo",
         "zLbWoHarv2xIIoERVTb9",
         "uf2x5WzM1lLLCLSQdMFB",
-        "VcWsGHoYggFHIgkGBb63",
-        "YQpukOWit96yddbc2JnI",
+        "tDwxpCRHu3TEG0d_5KfE",
     ];
 
     const HIDDEN_UI_MARKER = "spotui-hidden-ui";
