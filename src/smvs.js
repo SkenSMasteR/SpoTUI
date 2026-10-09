@@ -14,6 +14,8 @@ const SPOTUI_HIDDEN_UI = [
     "main-card-card",
     "main-gridContainer-gridContainer",
     "main-entityHeader-container",
+    "Zh3rQRncNEHrT9Zvp61n",
+    "xg2bGi5tcuelbx14UC28",
 ];
 
 const HIDDEN_UI_MARKER = "spotui-hidden-ui";
