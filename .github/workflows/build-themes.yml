@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "Themes/themes.json"
+  workflow_dispatch:
 
 jobs:
   build:
