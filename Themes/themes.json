@@ -783,26 +783,6 @@
     "created_at": 1791168784.5998201
   },
   {
-    "id": "dmlubGFuZCBzYWdh",
-    "name": "vinland saga",
-    "screenshot_url": "https://cdn.discordapp.com/attachments/1558122144100130936/1558147525217751120/Screenshot_2026-10-09_110052.png?ex=6aca6176&is=6ac90ff6&hm=6eeba44b66f9d8179defd8a7707fd1f24c9332a2b536cb185c34255f5f788378&",
-    "commands": [
-      "[",
-      "tui -bar #6300c7 -bg #000000 -border #6300c7 -text #6300c7",
-      "tui -inputs -bg #000000 -bg-hover #320063 -text #6300c7 -border #6300c7",
-      "tui -ly -cp -active #7f00ff -inactive #320063 -near #320063",
-      "tui -wp https://cdn.discordapp.com/attachments/1558122144100130936/1558141457057976420/Screenshot_2026-10-09_103700.png?ex=6aca5bd0&is=6ac90a50&hm=f9569097bed9ff91159c819bf1c43eebce50de58c46fcfd15ab12bbc380991ae& -o 1.0",
-      "tui -ly -spacing 26px",
-      "tui actions \"autolyrics\" \"actions:spotui@pane_close>!lyrics\" \"lyrics on",
-      "tui actions create autolyrics",
-      "tui -l off",
-      "]"
-    ],
-    "author": "thorfin2007",
-    "author_github": "thorfin2007",
-    "created_at": 1791561764.3655546
-  },
-  {
     "id": "RGlvJ1MgV29ybGQ=",
     "name": "Dio'S World",
     "screenshot_url": "https://img.ge/i/OCgE175.png",
@@ -839,28 +819,5 @@
     "author": "displayname667",
     "author_github": "displayname667",
     "created_at": 1791596013.682263
-  },
-  {
-    "id": "c2lsdmVyIHN1cmZlcg==",
-    "name": "silver surfer",
-    "screenshot_url": "https://cdn.discordapp.com/attachments/1342737670790713355/1558305151524143224/image.png?ex=6acaf444&is=6ac9a2c4&hm=0fbeab278f663ec86ccabfbf47ea90701e027a766d81371989d83c457e66bcae&",
-    "commands": [
-      "[",
-      "tui -bar #ffffff -bg #000000 -border #ffffff -text #ffffff",
-      "tui -inputs -bg #000000 -bg-hover #320063 -text #ffffff -border #ffffff",
-      "tui -ly -cp -active #ffffff -inactive #320063 -near #320063",
-      "tui -viz -color #ffffff",
-      "tui -panel -border #ffffff -text #ffffff",
-      "tui -wp https://cdn.discordapp.com/attachments/1342737670790713355/1558285278131654797/1401469.png?ex=6acae1c1&is=6ac99041&hm=d93261a38d0dc93dae854e4b9fc0c58aef51ad045c23944152c691f1dec225be& -o 1.0",
-      "tui -ly -spacing 26px",
-      "tui actions \"autolyrics\" \"actions:spotui@pane_close>!lyrics\" \"lyrics on",
-      "tui actions create autolyrics",
-      "tui actions create autovisualizer",
-      "tui -l off",
-      "]"
-    ],
-    "author": "thorfin2007",
-    "author_github": "thorfin2007",
-    "created_at": 1791599325.528644
   }
 ]
