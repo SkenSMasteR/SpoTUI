@@ -1,0 +1,41 @@
+name: Build themes.js
+
+on:
+  push:
+    paths:
+      - "Themes/themes.json"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Themes/themes.js from Themes/themes.json
+        run: |
+          node -e '
+            const fs = require("fs");
+            const data = JSON.parse(fs.readFileSync("Themes/themes.json", "utf8"));
+            const themes = Array.isArray(data) ? data : data.themes;
+            if (!Array.isArray(themes)) {
+              console.error("themes.json must be an array of themes or an object with a \"themes\" array");
+              process.exit(1);
+            }
+            fs.writeFileSync("Themes/themes.js", "window.spotuiThemes = " + JSON.stringify(themes) + ";");
+          '
+
+      - name: Commit and push
+        env:
+          HEAD_REF: ${{ github.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Themes/themes.js
+          if git diff --cached --quiet; then
+            echo "themes.js already up to date, nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(themes): regenerate themes.js from themes.json [skip ci]"
+          git push origin "HEAD:${HEAD_REF#refs/heads/}"
