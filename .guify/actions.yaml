@@ -1,0 +1,6 @@
+# Actions run from the footer button!
+
+build: node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('\nLint OK')" && npx rollup src/main.js --file theme.js --format iife
+lint_manifest: node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('\nLint OK')"
+lazygit_windows: start cmd /k "cd /d %cd% && lazygit"
+lazygit_linux: for t in x-terminal-emulator gnome-terminal konsole kitty alacritty xterm; do command -v $t >/dev/null && { case $t in gnome-terminal) $t --working-directory="$PWD" -- lazygit;; konsole) $t --workdir "$PWD" -e lazygit;; kitty) $t --directory "$PWD" lazygit;; alacritty) $t --working-directory "$PWD" -e lazygit;; *) $t -e bash -c "cd '$PWD' && lazygit";; esac & break; }; done
