@@ -5043,7 +5043,7 @@
 
     const CLASS_MAP = {
         "ABsPxBFldURR4hbFY38Y": [], // device-picker control
-        "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H"],
+        "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H", "Nv04LEC5GMu3msfbzG0z"],
         "centered-layout": [],
         "collection-collection-header": [],
         "collection-searchBar-searchBar": [],
