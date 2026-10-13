@@ -174,7 +174,9 @@ export function closeAdd2listPanel() {
 
 export async function openAdd2listPanel(trackUri = null) {
     if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
-    closeActivePanel();
+    // When triggering add2list from search, the panes switch. And we dont want something like autolyrics to trigger at the same time as the add2list pane.
+    if (app.searchPanelOpen) closeSearchPanel({ silent: true });
+    else closeActivePanel();
 
     try {
         app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ" && !p.isLikedSongs);
@@ -203,7 +205,7 @@ export function closeThemePanel() {
     setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", false);
 }
 
-// Open theme browser panel (with search and theme cards)
+// Open theme browser panel
 export async function openThemePanel() {
     if (app.themePanelOpen) { closeThemePanel(); return; }
     closeActivePanel();
