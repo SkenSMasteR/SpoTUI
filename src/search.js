@@ -315,7 +315,7 @@ export async function handleSearchPanelKeydown(e) {
     }
 }
 
-export function closeSearchPanel() {
+export function closeSearchPanel(opts = {}) {
     const wasOpen = app.searchPanelOpen;
     app.searchPanelOpen = false;
     app.searchAutocomplete = "";
@@ -336,7 +336,7 @@ export function closeSearchPanel() {
     }
     const input = document.getElementById("spotui-input");
     if (input) input.focus();
-    if (wasOpen) emitPaneClose("search");
+    if (wasOpen && !opts.silent) emitPaneClose("search");
 }
 
 export function openSearchPanel(query = "") {
