@@ -1573,7 +1573,7 @@
         }
     }
 
-    function closeSearchPanel() {
+    function closeSearchPanel(opts = {}) {
         const wasOpen = app.searchPanelOpen;
         app.searchPanelOpen = false;
         app.searchAutocomplete = "";
@@ -1594,7 +1594,7 @@
         }
         const input = document.getElementById("spotui-input");
         if (input) input.focus();
-        if (wasOpen) emitPaneClose("search");
+        if (wasOpen && !opts.silent) emitPaneClose("search");
     }
 
     function openSearchPanel(query = "") {
@@ -2739,7 +2739,9 @@
 
     async function openAdd2listPanel(trackUri = null) {
         if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
-        closeActivePanel();
+        // When triggering add2list from search, the panes switch. And we dont want something like autolyrics to trigger at the same time as the add2list pane.
+        if (app.searchPanelOpen) closeSearchPanel({ silent: true });
+        else closeActivePanel();
 
         try {
             app.playlists = (await getPlaylists()).filter((p) => p.name !== "DJ" && !p.isLikedSongs);
@@ -2768,7 +2770,7 @@
         setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", false);
     }
 
-    // Open theme browser panel (with search and theme cards)
+    // Open theme browser panel
     async function openThemePanel() {
         if (app.themePanelOpen) { closeThemePanel(); return; }
         closeActivePanel();
