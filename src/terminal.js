@@ -58,6 +58,8 @@ export function createTerminal() {
         <input id="spotui-search-input" autocomplete="off" spellcheck="false" placeholder="type to search...">
     </div>
     <div id="spotui-search-results"></div>
+    <button id="spotui-search-info" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+    <div id="spotui-search-info-popup" hidden>Play: press <span>Enter</span><br>Add to playlist: press <span>a</span><br>Add to queue: press <span>q</span></div>
 </div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
@@ -70,7 +72,7 @@ export function createTerminal() {
     document.body.appendChild(box);
     initAsciiAnimation();
     initSearchPanel();
-    [["spotui-playlist-info", "spotui-playlist-info-popup"], ["spotui-queue-info", "spotui-queue-info-popup"]].forEach(([btnId, popId]) => {
+    [["spotui-playlist-info", "spotui-playlist-info-popup"], ["spotui-queue-info", "spotui-queue-info-popup"], ["spotui-search-info", "spotui-search-info-popup"]].forEach(([btnId, popId]) => {
         const btn = document.getElementById(btnId);
         const pop = document.getElementById(popId);
         if (btn && pop) btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); pop.hidden = !pop.hidden; });

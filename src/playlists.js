@@ -433,7 +433,7 @@ export async function handlePlaylistPanelKeydown(e) {
             e.preventDefault();
             e.stopPropagation();
             const p = app.playlists[app.selectedPlaylist];
-            const uri = Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
+            const uri = app.add2listTrackUri || Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
             if (!uri) { jamSay("Nothing playing"); return; }
             if (!p) return;
             try {
