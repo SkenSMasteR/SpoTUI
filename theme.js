@@ -189,6 +189,7 @@
         commandHistoryIndex: -1,
         playlistPanelOpen: false,
         add2listPanelOpen: false,
+        add2listTrackUri: null,
         queuePanelOpen: false,
         queueTracks: [],
         selectedQueue: 0,
@@ -1502,7 +1503,7 @@
         });
     }
 
-    function handleSearchPanelKeydown(e) {
+    async function handleSearchPanelKeydown(e) {
         if (!app.searchPanelOpen) return;
         if (e.key === "Escape") {
             e.preventDefault();
@@ -1552,6 +1553,23 @@
         if (e.key === "Enter" && app.searchFocus === "results") {
             e.preventDefault();
             playSearchResult(app.searchSelected);
+            return;
+        }
+        if (app.searchFocus !== "results" || e.ctrlKey || e.altKey || e.metaKey) return;
+        const item = app.searchResults[app.searchSelected];
+        if ((e.key === "a" || e.key === "A") && item?.uri) {
+            e.preventDefault();
+            await openAdd2listPanel(item.uri);
+            return;
+        }
+        if ((e.key === "q" || e.key === "Q") && item?.uri) {
+            e.preventDefault();
+            try {
+                await Spicetify.addToQueue([{ uri: item.uri }]);
+                jamSay("Added to queue");
+            } catch (err) {
+                jamSay("Queue error: " + (err.message || err));
+            }
         }
     }
 
@@ -1565,6 +1583,8 @@
             ghost.textContent = "";
         }
         document.body.classList.remove("spotui-search-panel");
+        const infoPopup = document.getElementById("spotui-search-info-popup");
+        if (infoPopup) infoPopup.hidden = true;
         const panel = document.getElementById("spotui-search-panel");
         if (panel) panel.hidden = true;
         document.removeEventListener("keydown", handleSearchPanelKeydown, true);
@@ -1651,6 +1671,8 @@
         <input id="spotui-search-input" autocomplete="off" spellcheck="false" placeholder="type to search...">
     </div>
     <div id="spotui-search-results"></div>
+    <button id="spotui-search-info" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+    <div id="spotui-search-info-popup" hidden>Play: press <span>Enter</span><br>Add to playlist: press <span>a</span><br>Add to queue: press <span>q</span></div>
 </div>
 <div id="spotui-theme-panel" hidden></div>
 <div id="spotui-onboarding-panel" hidden></div>
@@ -1663,7 +1685,7 @@
         document.body.appendChild(box);
         initAsciiAnimation();
         initSearchPanel();
-        [["spotui-playlist-info", "spotui-playlist-info-popup"], ["spotui-queue-info", "spotui-queue-info-popup"]].forEach(([btnId, popId]) => {
+        [["spotui-playlist-info", "spotui-playlist-info-popup"], ["spotui-queue-info", "spotui-queue-info-popup"], ["spotui-search-info", "spotui-search-info-popup"]].forEach(([btnId, popId]) => {
             const btn = document.getElementById(btnId);
             const pop = document.getElementById(popId);
             if (btn && pop) btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); pop.hidden = !pop.hidden; });
@@ -2188,7 +2210,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const p = app.playlists[app.selectedPlaylist];
-                const uri = Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
+                const uri = app.add2listTrackUri || Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
                 if (!uri) { jamSay("Nothing playing"); return; }
                 if (!p) return;
                 try {
@@ -2705,6 +2727,7 @@
     function closeAdd2listPanel() {
         const wasOpen = app.add2listPanelOpen;
         app.add2listPanelOpen = false;
+        app.add2listTrackUri = null;
         document.body.classList.remove("spotui-add2list-panel");
         const panel = document.getElementById("spotui-add2list-panel");
         if (panel) panel.hidden = true;
@@ -2714,7 +2737,7 @@
         if (wasOpen) emitPaneClose("add2list");
     }
 
-    async function openAdd2listPanel() {
+    async function openAdd2listPanel(trackUri = null) {
         if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
         closeActivePanel();
 
@@ -2726,6 +2749,7 @@
         }
 
         app.add2listPanelOpen = true;
+        app.add2listTrackUri = trackUri;
         document.body.classList.add("spotui-add2list-panel");
         const panel = document.getElementById("spotui-add2list-panel");
         if (panel) panel.hidden = false;
@@ -5826,7 +5850,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
-#spotui-playlist-info, #spotui-queue-info {
+#spotui-playlist-info, #spotui-queue-info, #spotui-search-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
@@ -5845,15 +5869,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     opacity: 0.7;
 }
 
-#spotui-playlist-info:hover, #spotui-queue-info:hover {
+#spotui-playlist-info:hover, #spotui-queue-info:hover, #spotui-search-info:hover {
     opacity: 1;
 }
 
-#spotui-playlist-info svg, #spotui-queue-info svg {
+#spotui-playlist-info svg, #spotui-queue-info svg, #spotui-search-info svg {
     display: block;
 }
 
-#spotui-playlist-info-popup, #spotui-queue-info-popup {
+#spotui-playlist-info-popup, #spotui-queue-info-popup, #spotui-search-info-popup {
     position: absolute;
     bottom: 36px;
     right: 10px;
@@ -5868,11 +5892,11 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     pointer-events: auto;
 }
 
-#spotui-queue-info-popup {
+#spotui-queue-info-popup, #spotui-search-info-popup {
     white-space: normal;
 }
 
-#spotui-playlist-info-popup span, #spotui-queue-info-popup span {
+#spotui-playlist-info-popup span, #spotui-queue-info-popup span, #spotui-search-info-popup span {
     color: var(--panel-text-color, #ff8c42);
 }
 
@@ -6374,6 +6398,7 @@ body.spotui-tui-hidden #spotui-tui {
     height: 60vh;
     padding: 20px;
     box-sizing: border-box;
+    position: relative;
     border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
     background: var(--panel-bg-color, transparent);
