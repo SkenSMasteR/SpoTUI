@@ -162,6 +162,7 @@ export async function openPlaylistPanel() {
 export function closeAdd2listPanel() {
     const wasOpen = app.add2listPanelOpen;
     app.add2listPanelOpen = false;
+    app.add2listTrackUri = null;
     document.body.classList.remove("spotui-add2list-panel");
     const panel = document.getElementById("spotui-add2list-panel");
     if (panel) panel.hidden = true;
@@ -171,7 +172,7 @@ export function closeAdd2listPanel() {
     if (wasOpen) emitPaneClose("add2list");
 }
 
-export async function openAdd2listPanel() {
+export async function openAdd2listPanel(trackUri = null) {
     if (app.add2listPanelOpen) { closeAdd2listPanel(); return; }
     closeActivePanel();
 
@@ -183,6 +184,7 @@ export async function openAdd2listPanel() {
     }
 
     app.add2listPanelOpen = true;
+    app.add2listTrackUri = trackUri;
     document.body.classList.add("spotui-add2list-panel");
     const panel = document.getElementById("spotui-add2list-panel");
     if (panel) panel.hidden = false;

@@ -598,7 +598,7 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     right: 12px;
 }
 
-#spotui-playlist-info, #spotui-queue-info {
+#spotui-playlist-info, #spotui-queue-info, #spotui-search-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
@@ -617,15 +617,15 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     opacity: 0.7;
 }
 
-#spotui-playlist-info:hover, #spotui-queue-info:hover {
+#spotui-playlist-info:hover, #spotui-queue-info:hover, #spotui-search-info:hover {
     opacity: 1;
 }
 
-#spotui-playlist-info svg, #spotui-queue-info svg {
+#spotui-playlist-info svg, #spotui-queue-info svg, #spotui-search-info svg {
     display: block;
 }
 
-#spotui-playlist-info-popup, #spotui-queue-info-popup {
+#spotui-playlist-info-popup, #spotui-queue-info-popup, #spotui-search-info-popup {
     position: absolute;
     bottom: 36px;
     right: 10px;
@@ -640,11 +640,11 @@ body.spotui-playlist-panel #spotui-playlist-panel {
     pointer-events: auto;
 }
 
-#spotui-queue-info-popup {
+#spotui-queue-info-popup, #spotui-search-info-popup {
     white-space: normal;
 }
 
-#spotui-playlist-info-popup span, #spotui-queue-info-popup span {
+#spotui-playlist-info-popup span, #spotui-queue-info-popup span, #spotui-search-info-popup span {
     color: var(--panel-text-color, #ff8c42);
 }
 
@@ -1146,6 +1146,7 @@ body.spotui-tui-hidden #spotui-tui {
     height: 60vh;
     padding: 20px;
     box-sizing: border-box;
+    position: relative;
     border: 1px solid var(--panel-border-color, rgba(255, 140, 66, 0.3));
     border-radius: 6px;
     background: var(--panel-bg-color, transparent);

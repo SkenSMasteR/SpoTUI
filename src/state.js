@@ -17,6 +17,7 @@ export const app = {
     commandHistoryIndex: -1,
     playlistPanelOpen: false,
     add2listPanelOpen: false,
+    add2listTrackUri: null,
     queuePanelOpen: false,
     queueTracks: [],
     selectedQueue: 0,
