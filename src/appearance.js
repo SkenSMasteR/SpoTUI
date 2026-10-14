@@ -250,10 +250,6 @@ export function applyCustomBarState() {
         window.addEventListener("resize", updateCustomBarWidth);
     } else {
         document.body.classList.remove("spotui-custom-bar-on");
-        if (window.spotuiCustomBarInterval) {
-            clearInterval(window.spotuiCustomBarInterval);
-            delete window.spotuiCustomBarInterval;
-        }
         window.removeEventListener("resize", updateCustomBarWidth);
     }
 }

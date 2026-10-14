@@ -32,22 +32,23 @@ function toHex(value, fallback) {
     return "#" + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, "0")).join("");
 }
 
-function cssVar(name, fallback) {
-    return toHex(getComputedStyle(document.documentElement).getPropertyValue(name), fallback);
+function cssVar(style, name, fallback) {
+    return toHex(style.getPropertyValue(name), fallback);
 }
 
 function getColors() {
+    const style = getComputedStyle(document.documentElement);
     return {
-        active: cssVar("--lyrics-color-active", "#ff8c42"),
-        inactive: cssVar("--lyrics-color-inactive", "#777777"),
-        near: cssVar("--lyrics-color-light-inactive", "#b3b3b3"),
-        accent: cssVar("--spotui-accent", "#ff8c42"),
-        panel_bg: cssVar("--panel-bg-color", "#000000"),
-        panel_border: cssVar("--panel-border-color", "#ff8c42"),
-        panel_text: cssVar("--panel-text-color", "#ff8c42"),
-        bar_bg: cssVar("--player-bar-background", "#000000"),
-        bar_text: cssVar("--player-bar-text-color", "#ff8c42"),
-        visualizer: cssVar("--visualizer-color", "#ff8c42"),
+        active: cssVar(style, "--lyrics-color-active", "#ff8c42"),
+        inactive: cssVar(style, "--lyrics-color-inactive", "#777777"),
+        near: cssVar(style, "--lyrics-color-light-inactive", "#b3b3b3"),
+        accent: cssVar(style, "--spotui-accent", "#ff8c42"),
+        panel_bg: cssVar(style, "--panel-bg-color", "#000000"),
+        panel_border: cssVar(style, "--panel-border-color", "#ff8c42"),
+        panel_text: cssVar(style, "--panel-text-color", "#ff8c42"),
+        bar_bg: cssVar(style, "--player-bar-background", "#000000"),
+        bar_text: cssVar(style, "--player-bar-text-color", "#ff8c42"),
+        visualizer: cssVar(style, "--visualizer-color", "#ff8c42"),
     };
 }
 
@@ -69,6 +70,7 @@ function getTrackPayload() {
     const data = Spicetify.Player.data;
     const item = data?.item ?? data?.track;
     if (!item) return null;
+    const progressStyle = storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block";
     return {
         type: "update",
         title: item.name ?? item.metadata?.title ?? "",
@@ -81,8 +83,8 @@ function getTrackPayload() {
         timestamp: Date.now(),
         colors: getColors(),
         lyrics: lyricsCache,
-        progress_style: storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block",
-        progress_chars: PROGRESS_STYLES[storageGet(CUSTOM_BAR_PROGRESS_STYLE) || "classic-block"] || PROGRESS_STYLES["classic-block"],
+        progress_style: progressStyle,
+        progress_chars: PROGRESS_STYLES[progressStyle] || PROGRESS_STYLES["classic-block"],
         visualizer: app.visualizerOpen,
     };
 }

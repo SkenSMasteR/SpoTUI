@@ -19,6 +19,16 @@ import { enterStandby } from "./standby.js";
 import { playFresh } from "./utils.js";
 import { setWallpaper } from "./wallpaper.js";
 
+const playerMap = {
+    play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play" },
+    pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause" },
+    p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle" },
+    skip: { fn: () => Spicetify.Player.next(), name: "Skip" },
+    back: { fn: () => Spicetify.Player.back(), name: "Back" },
+    shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle" },
+    like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like" }
+};
+
 export async function execute(cmd, opts = {}) {
     const cleanedCmd = stripCommandPrefix(cmd);
     const [rawCommand, ...args] = cleanedCmd.split(/\s+/);
@@ -278,7 +288,8 @@ export async function execute(cmd, opts = {}) {
                 return;
             }
 
-            const match = app.playlists.filter(p => p.name.toLowerCase().includes(argText.toLowerCase()));
+            const query = argText.toLowerCase();
+            const match = app.playlists.filter(p => p.name.toLowerCase().includes(query));
             if (match.length === 1) {
                 await playFresh(match[0].uri);
                 return;
@@ -305,16 +316,6 @@ export async function execute(cmd, opts = {}) {
         initUpdateBanner();
         return;
     }
-
-    const playerMap = {
-        play: { fn: () => { if (!Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Play" },
-        pause: { fn: () => { if (Spicetify.Player.isPlaying()) Spicetify.Player.togglePlay(); }, name: "Pause" },
-        p: { fn: () => { const p = Spicetify.Player.isPlaying(); Spicetify.Player.togglePlay(); return p; }, name: "Play/PauseToggle" },
-        skip: { fn: () => Spicetify.Player.next(), name: "Skip" },
-        back: { fn: () => Spicetify.Player.back(), name: "Back" },
-        shuffle: { fn: () => { const s = Spicetify.Player.getShuffle(); Spicetify.Player.setShuffle(!s); return s; }, name: "Shuffle" },
-        like: { fn: async () => { const h = await Spicetify.Player.getHeart(); await Spicetify.Player.toggleHeart(); return h; }, name: "Like" }
-    };
 
     if (playerMap[command]) {
         const act = playerMap[command];

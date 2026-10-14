@@ -5,6 +5,7 @@ import { app } from "./state.js";
 import { playFresh } from "./utils.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
+const AUTOCOMPLETE_TYPE_RE = /autocomplete/i;
 
 function resolveName(data) {
     const candidates = [
@@ -34,7 +35,7 @@ function toResult(entry) {
 
 function isAutocompleteEntry(entry, data) {
     const types = [entry?.item?.__typename, data?.__typename, entry?.__typename];
-    return types.some((type) => typeof type === "string" && /autocomplete/i.test(type));
+    return types.some((type) => typeof type === "string" && AUTOCOMPLETE_TYPE_RE.test(type));
 }
 
 function extractResults(searchV2) {

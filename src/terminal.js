@@ -144,14 +144,6 @@ export function createTerminal() {
             input.value = app.commandHistoryIndex >= 0 ? app.commandHistory[app.commandHistoryIndex] || "" : "";
             return;
         }
-        if (e.key === "ArrowDown" && app.results.length) {
-            app.selected = Math.min(app.selected + 1, app.results.length - 1);
-            renderResults();
-        }
-        if (e.key === "ArrowUp" && app.results.length) {
-            app.selected = Math.max(app.selected - 1, 0);
-            renderResults();
-        }
     });
 }
 

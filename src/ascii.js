@@ -89,6 +89,9 @@ function paintAsciiCanvas() {
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fontVariantCaps = "normal";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     const chars = app.asciiCharData;
     for (let i = 0; i < chars.length; i += 1) {
         const { el, row, col } = chars[i];
@@ -97,9 +100,6 @@ function paintAsciiCanvas() {
         const color = el.style.color;
         ctx.fillStyle = color;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
         ctx.fillText(ch, pad + col * asciiDraw.cellW, pad + row * asciiDraw.cellH);
     }
 }
