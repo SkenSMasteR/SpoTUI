@@ -5,6 +5,7 @@ import { resumeJamFromStorage } from "./jam.js";
 import { handleKeybindKeydown } from "./keybinds.js";
 import { initDjBridge } from "./dj.js";
 import { initLyricsBridge, openLyricsPanel, waitForPlayerReadyThen } from "./lyrics.js";
+import { initMarketplaceTabs } from "./marketplace.js";
 import { isFirstBoot, launchFirstBootIfNeeded } from "./onboarding.js";
 import { initClassMap } from "./smvs.js";
 import { storageGet } from "./storage.js";
@@ -22,6 +23,7 @@ setTimeout(createControlButtons, 500);
 setTimeout(initLyricsBridge, 1000);
 setTimeout(initDjBridge, 1000);
 setTimeout(initSync, 1000);
+setTimeout(initMarketplaceTabs, 1000);
 
 // Apply stored logo visibility preference
 if (storageGet("spotui:logo-visible") === "off") {

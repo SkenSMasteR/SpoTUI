@@ -1116,6 +1116,38 @@ body.spotui-spotify-enabled .marketplace-tabBar-headerItemLink.marketplace-tabBa
     color: var(--spotui-accent, #ff8c42) !important;
 }
 
+body.spotui-spotify-enabled #mp-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 24px 0;
+}
+
+body.spotui-spotify-enabled #mp-tabs button {
+    background: transparent;
+    border: 1px solid var(--spotui-accent, #ff8c42);
+    border-radius: 0;
+    color: #777;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 14px;
+    padding: 6px 16px;
+    cursor: pointer;
+    text-transform: lowercase;
+}
+
+body.spotui-spotify-enabled #mp-tabs button:hover {
+    background: var(--spotui-accent, #ff8c42);
+    color: #000;
+}
+
+body.spotui-spotify-enabled #mp-tabs button.active {
+    color: var(--spotui-accent, #ff8c42);
+}
+
+body.spotui-spotify-enabled #mp-tabs button.active:hover {
+    color: #000;
+}
+
 body.spotui-spotify-enabled .marketplace-header,
 body.spotui-spotify-enabled .marketplace-header__label,
 body.spotui-spotify-enabled .marketplace-card-type-heading {
