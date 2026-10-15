@@ -77,7 +77,9 @@ export const app = {
     playlistFindSource: []
 };
 
+const PANEL_OPEN_KEYS = Object.keys(app).filter(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen");
+
 // Returns true if any panel except lyrics or standby is open
 export function isAnyPanelOpen() {
-    return app.standbyOpen || Object.keys(app).some(k => k.endsWith("PanelOpen") && k !== "lyricsPanelOpen" && app[k]);
+    return app.standbyOpen || PANEL_OPEN_KEYS.some(k => app[k]);
 }

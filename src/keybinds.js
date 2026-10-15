@@ -3,6 +3,18 @@ import { BIND_CMD_REGEX, F_KEY_REGEX, KEYBIND_STORAGE_KEY, THEME_SKIP_CMD_REGEX 
 import { app } from "./state.js";
 import { storageGet, storageSet } from "./storage.js";
 
+// Map common key name variations to standard names
+const SPECIAL_KEY_MAP = {
+    esc: "Escape", escape: "Escape",
+    enter: "Enter", return: "Enter",
+    space: " ", spacebar: " ",
+    up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight",
+    tab: "Tab", backspace: "Backspace", delete: "Delete", del: "Delete",
+    home: "Home", end: "End", pageup: "PageUp", pagedown: "PageDown",
+    insert: "Insert",
+};
+const MODIFIER_ORDER = { Ctrl: 0, Alt: 1, Shift: 2, Meta: 3 };
+
 // Retrieve stored keyboard shortcuts
 export function getKeybinds() {
     try {
@@ -61,23 +73,12 @@ export function normalizeKeyCombo(comboStr) {
     if (mainKey.length === 1) {
         keyName = mainKey.toUpperCase();
     } else {
-        // Map common key name variations to standard names
-        const specialMap = {
-            esc: "Escape", escape: "Escape",
-            enter: "Enter", return: "Enter",
-            space: " ", spacebar: " ",
-            up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight",
-            tab: "Tab", backspace: "Backspace", delete: "Delete", del: "Delete",
-            home: "Home", end: "End", pageup: "PageUp", pagedown: "PageDown",
-            insert: "Insert",
-        };
         const lower = mainKey.toLowerCase();
-        if (specialMap[lower]) keyName = specialMap[lower];
+        if (SPECIAL_KEY_MAP[lower]) keyName = SPECIAL_KEY_MAP[lower];
         else if (F_KEY_REGEX.test(mainKey)) keyName = mainKey.toUpperCase();
         else keyName = mainKey;
     }
-    const order = { Ctrl: 0, Alt: 1, Shift: 2, Meta: 3 };
-    mods.sort((a, b) => order[a] - order[b]);
+    mods.sort((a, b) => MODIFIER_ORDER[a] - MODIFIER_ORDER[b]);
     return [...mods, keyName].join("+");
 }
 

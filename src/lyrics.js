@@ -1,5 +1,4 @@
 import { emitPaneClose } from "./actions.js";
-import { execute } from "./commands.js";
 import { LRC_STAMP_REGEX, LRC_STAMP_STRIP_REGEX, LYRICS_STORAGE_KEY } from "./constants.js";
 import { closeActivePanel, handleGlobalEsc } from "./panels.js";
 import { normalizeTrackItem } from "./playlists.js";
@@ -145,9 +144,10 @@ export async function fetchSpotifyColorLyrics(uri) {
 // Tries exact match first, then searches by closest duration
 export async function fetchLrclibLyrics(info) {
     const headers = { "Lrclib-Client": "SpoTUI (https://github.com/SkenS/SpoTUI)" };
+    const artistName = info.artist.split(",")[0].trim();
     const exactParams = new URLSearchParams({
         track_name: info.title,
-        artist_name: info.artist.split(",")[0].trim(),
+        artist_name: artistName,
         album_name: info.album || info.title,
         duration: String(info.durationSec || 0),
     });
@@ -162,7 +162,7 @@ export async function fetchLrclibLyrics(info) {
     try {
         const searchParams = new URLSearchParams({
             track_name: info.title,
-            artist_name: info.artist.split(",")[0].trim(),
+            artist_name: artistName,
         });
         const searchRes = await fetch(`https://lrclib.net/api/search?${searchParams}`, { headers });
         if (!searchRes.ok) return null;
@@ -292,7 +292,7 @@ export function renderLyricsLines(lines, synced = true) {
     const GAP_THRESHOLD = 8000;
     const LYRIC_DURATION_ESTIMATE = 2000;
 
-    if (synced && lines.length > 0 && lines[0].startTime > 3000) {
+    if (synced && lines[0].startTime > 3000) {
         const startLoader = document.createElement("div");
         startLoader.className = "spotui-lyrics-loader";
         startLoader.dataset.gapStart = "0";
@@ -326,7 +326,7 @@ export function renderLyricsLines(lines, synced = true) {
         }
     });
 
-    if (synced && lines.length > 0) {
+    if (synced) {
         const lastLine = lines[lines.length - 1];
         const lastLineEnd = lastLine.startTime + LYRIC_DURATION_ESTIMATE;
         const endLoader = document.createElement("div");
@@ -379,15 +379,15 @@ export function syncLyricsHighlight(force = false) {
     if (!force && next === app.lyricsActiveIndex && !useLoader && !loaderStateChanged) return;
 
     const rows = app.cachedLyricsRows;
-    const allElements = Array.from(els.lines.children);
 
     if (useLoader) {
-        const activeLoader = loaders[activeLoaderIndex];
-        const loaderPosition = allElements.indexOf(activeLoader);
+        const allElements = Array.from(els.lines.children);
+        const elementIndex = new Map(allElements.map((el, i) => [el, i]));
+        const positionOf = (el) => elementIndex.has(el) ? elementIndex.get(el) : -1;
+        const loaderPosition = positionOf(loaders[activeLoaderIndex]);
 
         rows.forEach((row) => {
-            const rowPosition = allElements.indexOf(row);
-            const distance = Math.abs(rowPosition - loaderPosition);
+            const distance = Math.abs(positionOf(row) - loaderPosition);
             row.classList.remove("active");
             row.classList.toggle("near", distance === 1);
         });

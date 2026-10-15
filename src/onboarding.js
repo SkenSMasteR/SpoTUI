@@ -57,9 +57,6 @@ export function onboardingThemeCard(theme) {
 
 // Render current onboarding stage content
 export function renderOnboardingStage(panel) {
-    const themes = getThemeSelectionList(window.spotuiThemes || [], app.onboardingShowAllThemes);
-    const themeCards = themes.map(onboardingThemeCard);
-
     if (app.onboardingStage === "commands") {
         panel.innerHTML = `
             <div class="spotui-onboarding-stage">
@@ -87,6 +84,8 @@ export function renderOnboardingStage(panel) {
             renderOnboardingPanel();
         });
     } else if (app.onboardingStage === "themes") {
+        const themes = getThemeSelectionList(window.spotuiThemes || [], app.onboardingShowAllThemes);
+        const themeCards = themes.map(onboardingThemeCard);
         panel.innerHTML = `
             <div class="spotui-onboarding-stage">
                 <div class="spotui-onboarding-copy">
