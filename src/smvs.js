@@ -20,6 +20,8 @@ const SPOTUI_HIDDEN_UI = [
     "zLbWoHarv2xIIoERVTb9",
     "uf2x5WzM1lLLCLSQdMFB",
     "tDwxpCRHu3TEG0d_5KfE",
+    "SW7Ebfzvld30ve5zrter",
+    "vVF0gCDG9l8RCOK3_2kw",
 ];
 
 const HIDDEN_UI_MARKER = "spotui-hidden-ui";
