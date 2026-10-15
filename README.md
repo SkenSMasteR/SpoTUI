@@ -19,6 +19,12 @@
   </p>
 </div>
 
+<p align="center">
+  <a href="https://ko-fi.com/skens">
+    <img src="https://img.shields.io/badge/Support-SpoTUI-ff8c42?style=for-the-badge&logo=ko-fi&logoColor=white&labelColor=101010" alt="Support SpoTUI on Ko-fi">
+  </a>
+</p>
+
 ![SpoTUI preview](https://img.ge/i/OJuvD46.png)
 
 <table>
@@ -72,6 +78,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -inputs -buttons <on/off>` | Toggle bottom right buttons visibility |
 | `tui -inputs off` | Reset input colors |
 | `playlist` / `list` `<playlist-name>` | Open playlist viewer or play a specific playlist |
+| `add2list` | Add the current song to a playlist |
+| `queue` | View and reorder the play queue |
 | `play` / `pause` / `p` | Toggle playback |
 | `skip` | Next track |
 | `s` / `seek <mm:ss>` | Jump to a specific time |
