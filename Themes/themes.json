@@ -31,24 +31,6 @@
     "created_at": 1787207490.1021814
   },
   {
-    "id": "UmFuZG9tIGFuaW1lIHRoZW1l",
-    "name": "Random anime theme",
-    "screenshot_url": "https://img.ge/i/rOit910.png",
-    "commands": [
-      "tui -wp https://img.ge/i/Cbm1a61.jpg -o 1",
-      "tui -ly -cp -active #F3A5A1 -inactive #6B4A4A -near #C97C7A",
-      "tui -bar -bg #827B68 -border #F3A5A1 -text #F3A5A1",
-      "tui -progress -bg #5F594B -fg #F3A5A1",
-      "tui -inputs -bg #F3A5A1 -bg-hover #E8C0BD -text #000000 -border #F3A5A1",
-      "tui -l off",
-      "lyrics on",
-      "tui -viz -color #F3A5A1"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787207827.912547
-  },
-  {
     "id": "RHJhZ29ucw==",
     "name": "Dragons",
     "screenshot_url": "https://img.ge/i/rJbJ40.png",
