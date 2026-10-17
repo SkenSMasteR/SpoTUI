@@ -87,6 +87,107 @@ def fmt(ms):
     return f"{s // 60:02d}:{s % 60:02d}"
 
 
+def _console_hwnd():
+    try:
+        import ctypes
+        return ctypes.windll.kernel32.GetConsoleWindow()
+    except Exception:
+        return None
+
+
+def _hide_console():
+    hwnd = _console_hwnd()
+    if not hwnd:
+        return False
+    try:
+        import ctypes
+        ctypes.windll.user32.ShowWindow(hwnd, 0)
+        return True
+    except Exception:
+        return False
+
+
+def _show_console():
+    hwnd = _console_hwnd()
+    if not hwnd:
+        return False
+    try:
+        import ctypes
+        ctypes.windll.user32.ShowWindow(hwnd, 5)
+        ctypes.windll.user32.SetForegroundWindow(hwnd)
+        return True
+    except Exception:
+        return False
+
+
+def _hex_rgb(h):
+    v = (h or "").lstrip("#")
+    if len(v) == 3:
+        v = "".join(c * 2 for c in v)
+    try:
+        return tuple(int(v[i:i + 2], 16) for i in (0, 2, 4))
+    except Exception:
+        return (255, 140, 66)
+
+
+def _tray_image(color="#ff8c42"):
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([6, 6, 58, 58], radius=16, fill=_hex_rgb(color) + (255,))
+    return img
+
+
+class Tray:
+    def __init__(self, app):
+        self.app = app
+        self.icon = None
+        self.color = None
+
+    def start(self, color):
+        if self.icon is not None:
+            self.update(color)
+            return True
+        try:
+            import pystray
+        except Exception:
+            return False
+        try:
+            menu = pystray.Menu(
+                pystray.MenuItem("Show", self._on_show, default=True),
+                pystray.MenuItem("Quit", self._on_quit),
+            )
+            self.color = color
+            icon = pystray.Icon("sposync", _tray_image(color), "SpoSync", menu)
+            icon.run_detached()
+            self.icon = icon
+            return True
+        except Exception:
+            return False
+
+    def update(self, color):
+        self.color = color
+        if self.icon is not None:
+            try:
+                self.icon.icon = _tray_image(color)
+            except Exception:
+                pass
+
+    def stop(self):
+        if self.icon is not None:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
+            self.icon = None
+
+    def _on_show(self, icon=None, item=None):
+        self.app.call_from_thread(self.app.restore_from_tray)
+
+    def _on_quit(self, icon=None, item=None):
+        self.app.call_from_thread(self.app.tray_quit)
+
+
 class State:
     def __init__(self):
         self.title = ""
@@ -118,6 +219,8 @@ class State:
         self.progress_chars = {"fg": "█", "bg": "░"}
         self.spectrum = [0.0] * BARS
         self.visualizer = False
+        self.confirm_close = False
+        self.confirm_sel = 0
 
     def pos(self):
         if not self.is_playing:
@@ -308,6 +411,23 @@ class Bar(Static):
         return t
 
 
+class ClosePrompt(Static):
+    OPTIONS = ["Cancel", "Close", "Hide to tray"]
+
+    def render(self):
+        _, inactive, _, accent, text = S.colors_of()
+        t = Text(justify="center")
+        t.append("Close SpoSync?   ", style=text)
+        for i, opt in enumerate(self.OPTIONS):
+            if i == S.confirm_sel:
+                t.append(f" {opt} ", style=f"bold #000000 on {accent}")
+            else:
+                t.append(f" {opt} ", style=inactive)
+            if i < len(self.OPTIONS) - 1:
+                t.append("  ", style=inactive)
+        return t
+
+
 class SpotuiApp(App):
     CSS = """
     Screen { layout: vertical; }
@@ -319,15 +439,18 @@ class SpotuiApp(App):
     #slist { width: 1fr; height: 1fr; }
     #search { width: 1fr; height: 1fr; }
     #bar { width: 1fr; height: 1; content-align: center middle; }
+    #closeprompt { width: 1fr; height: 1; display: none; content-align: center middle; text-align: center; }
     Input { dock: bottom; width: 1fr; }
     """
     BINDINGS = [("escape", "leave", "back")]
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, start_tray=False):
         super().__init__()
         self.host = host
         self.port = port
         self.search_timer = None
+        self.start_tray = start_tray
+        self.tray = Tray(self)
 
     def compose(self) -> ComposeResult:
         with Vertical(id="wrap"):
@@ -338,6 +461,7 @@ class SpotuiApp(App):
                 yield SongCol(id="slist", expand=True)
             yield SearchList(id="search", expand=True)
             yield Bar(id="bar", expand=True)
+            yield ClosePrompt(id="closeprompt")
         yield Input(placeholder="type help for a list of commands")
 
     def on_mount(self):
@@ -347,6 +471,8 @@ class SpotuiApp(App):
         self.run_worker(self.serve, exclusive=True)
         self.run_worker(self.spectrum_pump)
         self.set_interval(0.1, self.tick)
+        if self.start_tray:
+            self.hide_to_tray()
 
     def set_mode(self, mode):
         S.mode = mode
@@ -361,17 +487,63 @@ class SpotuiApp(App):
             inp.blur()
 
     def action_leave(self):
+        if S.confirm_close:
+            return
         if S.mode != "lyrics":
             self.set_mode("lyrics")
 
+    def action_quit(self):
+        if not S.confirm_close:
+            self.open_confirm()
+
+    def open_confirm(self):
+        S.confirm_close = True
+        S.confirm_sel = 0
+        self.query_one(Input).blur()
+        prompt = self.query_one(ClosePrompt)
+        prompt.display = True
+        prompt.refresh()
+
+    def resolve_confirm(self, idx):
+        S.confirm_close = False
+        self.query_one(ClosePrompt).display = False
+        if idx == 1:
+            self.exit()
+            return
+        if idx == 2:
+            self.hide_to_tray()
+            return
+        if S.mode == "lyrics":
+            self.query_one(Input).focus()
+
+    def hide_to_tray(self):
+        if not _console_hwnd():
+            return
+        if not self.tray.start(hx(S.colors["accent"], DEFAULT["accent"])):
+            return
+        _hide_console()
+
+    def restore_from_tray(self):
+        self.tray.stop()
+        _show_console()
+        if S.mode == "lyrics":
+            self.query_one(Input).focus()
+
+    def tray_quit(self):
+        self.tray.stop()
+        self.exit()
+
     def paint_bg(self, bg):
-        for node in (self.screen, self.query_one("#wrap"), self.query_one(Header), self.query_one(Lyrics), self.query_one("#playlist"), self.query_one("#plist"), self.query_one("#slist"), self.query_one("#search"), self.query_one(Bar), self.query_one(Input)):
+        for node in (self.screen, self.query_one("#wrap"), self.query_one(Header), self.query_one(Lyrics), self.query_one("#playlist"), self.query_one("#plist"), self.query_one("#slist"), self.query_one("#search"), self.query_one(Bar), self.query_one(ClosePrompt), self.query_one(Input)):
             node.styles.background = bg
 
     def tick(self):
         bg = hx(S.colors["panel_bg"], DEFAULT["panel_bg"])
         border = hx(S.colors["panel_border"], DEFAULT["panel_border"])
         text = hx(S.colors["bar_text"], DEFAULT["bar_text"])
+        accent = hx(S.colors["accent"], DEFAULT["accent"])
+        if self.tray.icon is not None and accent != self.tray.color:
+            self.tray.update(accent)
         self.paint_bg(bg)
         inp = self.query_one(Input)
         wrap = self.query_one("#wrap")
@@ -389,6 +561,8 @@ class SpotuiApp(App):
         self.query_one(SongCol).refresh()
         self.query_one(SearchList).refresh()
         self.query_one(Bar).refresh()
+        if S.confirm_close:
+            self.query_one(ClosePrompt).refresh()
 
     async def ws_send(self, obj):
         payload = json.dumps(obj)
@@ -419,7 +593,7 @@ class SpotuiApp(App):
             return
         low = cmd.lower()
         if low in {"q", "quit", "exit"}:
-            self.exit()
+            self.open_confirm()
             return
         parts = cmd.split(None, 1)
         name = parts[0].lower()
@@ -445,6 +619,23 @@ class SpotuiApp(App):
         await self.ws_send({"type": "command", "cmd": cmd})
 
     async def on_key(self, event):
+        if S.confirm_close:
+            key = event.key
+            event.prevent_default()
+            event.stop()
+            if key == "escape":
+                self.resolve_confirm(0)
+            elif key in {"left", "shift+tab"}:
+                S.confirm_sel = (S.confirm_sel - 1) % len(ClosePrompt.OPTIONS)
+                self.query_one(ClosePrompt).refresh()
+            elif key in {"right", "tab"}:
+                S.confirm_sel = (S.confirm_sel + 1) % len(ClosePrompt.OPTIONS)
+                self.query_one(ClosePrompt).refresh()
+            elif key == "enter":
+                self.resolve_confirm(S.confirm_sel)
+            elif key in {"1", "2", "3"}:
+                self.resolve_confirm(int(key) - 1)
+            return
         if S.mode == "lyrics":
             return
         key = event.key
@@ -595,8 +786,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--host", default="localhost")
     p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--tray", action="store_true", help="start hidden in the system tray")
     args = p.parse_args()
-    SpotuiApp(args.host, args.port).run()
+    SpotuiApp(args.host, args.port, start_tray=args.tray).run()
 
 
 if __name__ == "__main__":

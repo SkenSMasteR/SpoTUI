@@ -2,3 +2,7 @@ node_modules/
 theme.js
 venv/
 .dev/
+__pycache__
+bin
+build
+dist
