@@ -5022,6 +5022,7 @@
         "tDwxpCRHu3TEG0d_5KfE",
         "SW7Ebfzvld30ve5zrter",
         "vVF0gCDG9l8RCOK3_2kw",
+        "Root__globalNav",
     ];
 
     const HIDDEN_UI_MARKER = "spotui-hidden-ui";
