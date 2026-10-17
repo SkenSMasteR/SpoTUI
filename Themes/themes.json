@@ -31,40 +31,6 @@
     "created_at": 1787207490.1021814
   },
   {
-    "id": "RHJhZ29ucw==",
-    "name": "Dragons",
-    "screenshot_url": "https://img.ge/i/rJbJ40.png",
-    "commands": [
-      "tui -wp https://w.wallhaven.cc/full/ly/wallhaven-lydkg2.jpg -o 0.3",
-      "tui -l off",
-      "lyrics on",
-      "tui -ly -cp -active #ffffff",
-      "tui -bar -bg #090A0B -text #ffffff -border #ffffff",
-      "tui -progress -fg #ffffff",
-      "tui -inputs -bg #090A0B -bg-hover #2d3339 -text #ffffff -border #ffffff",
-      "tui -viz -color #ffffff"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787223807.872284
-  },
-  {
-    "id": "VHV4",
-    "name": "Tux",
-    "screenshot_url": "https://img.ge/i/92hct72.png",
-    "commands": [
-      "tui -wp https://w.wallhaven.cc/full/3k/wallhaven-3kr5y6.png -0 1",
-      "tui -l off",
-      "tui -inputs -bg #a08882 -bg-hover #5b4d49 -text #000000 -border #000000",
-      "tui -ly -cp -active #000000",
-      "tui -bar -border #D7D7D7 -text #949393",
-      "tui -viz -color #a08882"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787245254.7183855
-  },
-  {
     "id": "SGlyb2tpIEthd2FuYWJlIC0gU3RvcmU=",
     "name": "Hiroki Kawanabe - Store",
     "screenshot_url": "https://img.ge/i/45dAS13.png",
@@ -97,79 +63,6 @@
     "author": "SkenSMasteR",
     "author_github": "SkenSMasteR",
     "created_at": 1787246386.782927
-  },
-  {
-    "id": "VHJpZ3Vu",
-    "name": "Trigun",
-    "screenshot_url": "https://img.ge/i/LnWJt90.png",
-    "commands": [
-      "tui -wp https://w.wallhaven.cc/full/og/wallhaven-ogjdy7.png -o 0.3",
-      "tui -ly -cp -active #ff0000 -inactive #330000 -near #800000",
-      "tui -bar -bg ##0a0000 -border #ff0000 -text #ff0000",
-      "tui -progress -bg #1a0000 -fg #ff0000",
-      "tui -inputs -bg #0a0000 -bg-hover #330000 -text #ff0000 -border #800000",
-      "tui -l off",
-      "lyrics on",
-      "tui -viz -color #ff0000"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787246730.5406063
-  },
-  {
-    "id": "QXR0YWNrIG9uIFRpdGFuIFBsdXM=",
-    "name": "Attack on Titan Plus",
-    "screenshot_url": "https://img.ge/i/FKs4O69.png",
-    "commands": [
-      "tui -wp https://i.pinimg.com/736x/90/56/54/905654920d1a6b56505e3b894651402a.jpg -o 0.3",
-      "tui -l off",
-      "lyrics on",
-      "tui -ly -cp -active #ffffff",
-      "tui -bar -bg #090A0B -text #ffffff -border #ffffff",
-      "tui -progress -fg #ffffff",
-      "tui -inputs -bg #090A0B -bg-hover #2d3339 -text #ffffff -border #ffffff",
-      "tui -viz -color #ffffff"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787247579.7646034
-  },
-  {
-    "id": "RHJlYWQgU2VycGVudA==",
-    "name": "Dread Serpent",
-    "screenshot_url": "https://i.imgur.com/QfCMEji.png",
-    "commands": [
-      "tui -bar -bg #1D1A2A -border #C3D9F6 -text #A3C0E5\"",
-      "tui -progress -bg #383452 -fg #C3D9F6\"",
-      "tui -inputs -bg #1D1A2A -bg-hover #383452 -text #A3C0E5 -border #C3D9F6\"",
-      "tui -ly -cp -active #C3D9F6 -inactive #617090 -near #A3C0E5\"",
-      "tui -wp https://pbs.twimg.com/media/GkTBn4iWwAApMZW?format=jpg&name=large -o 0.3",
-      "lyrics on",
-      "tui -viz -color #C3D9F6"
-    ],
-    "author": "diogolopesnunes",
-    "author_github": "diogolopesnunes",
-    "created_at": 1787383934.9619198
-  },
-  {
-    "id": "S0hJSSBQdXJwbGUgVGhlbWU=",
-    "name": "KHII Purple Theme",
-    "screenshot_url": "https://i.imgur.com/YQlQhlZ.jpeg",
-    "commands": [
-      "tui -l off",
-      "tui -l -a off",
-      "tui -ly -cp -active #C018F5 -inactive #8C12B3 -near #A215CF",
-      "tui -wp https://i.imgur.com/YQlQhlZ.jpeg -o .6",
-      "tui -inputs -bg #000000 -bg-hover #4A2277 -text #7F00FF -border #7F00FF",
-      "tui -bar -v off",
-      "tui -bar -c on",
-      "tui -bar -c -progress retro",
-      "tui -bar -bg #000000 -border 35063e -text #7F00FF",
-      "tui -viz -color #C018F5"
-    ],
-    "author": "DeltaaVII",
-    "author_github": "DeltaaVII",
-    "created_at": 1787460343.580675
   },
   {
     "id": "UmVkIEF1dHVtbiBSb25pbiAtIExpdmUgV2FsbHBhcGVy",
@@ -257,44 +150,6 @@
     "created_at": 1787602879.0978475
   },
   {
-    "id": "Q2F0",
-    "name": "Cat",
-    "screenshot_url": "https://img.ge/i/CsDgl50.png",
-    "commands": [
-      "tui -wp https://img.ge/i/HsyjR37.jpg -o 0.1",
-      "tui -ly -cp -active #FFA1EC -inactive #00000 -near #E3A1FF",
-      "tui -inputs -bg #FFA1EC -bg-hover #FFA1EC -text #750653 -border #000000",
-      "tui -inputs -buttons off",
-      "tui -bar -v off",
-      "tui -bar -c off",
-      "tui -l off",
-      "lyrics on",
-      "tui -viz -color #FFA1EC"
-    ],
-    "author": "SkenSMasteR",
-    "author_github": "SkenSMasteR",
-    "created_at": 1787604277.9024165
-  },
-  {
-    "id": "c3VyZmFjZQ==",
-    "name": "surface",
-    "screenshot_url": "https://img.ge/i/rSXzy28.png",
-    "commands": [
-      "tui -bar -c -progress retro",
-      "tui -bar -bg #000000 -border #ED13A7 -text #ffffff",
-      "tui -bar -c on",
-      "tui -inputs -bg #ffffff -bg-hover #ffffff -text #fffff -border #ffffff",
-      "tui -ly -cp -active #FFFFFF -inactive #13031F -near #B700FF",
-      "lyrics",
-      "tui -wp https://raw.githubusercontent.com/AlexandrosLiaskos/Awesome_Wallpapers/main/images/cat_anime-girl.png",
-      "tui -inputs -buttons off",
-      "tui -viz -color #ED13A7"
-    ],
-    "author": "xaisu-lang",
-    "author_github": "xaisu-lang",
-    "created_at": 1787610920.8899775
-  },
-  {
     "id": "Q2F0cHB1Y2NpbiBNb2NoYSDigJQgU29mdA==",
     "name": "Catppuccin Mocha — Soft",
     "screenshot_url": "https://img.ge/i/5y7AT39.webp",
@@ -314,24 +169,6 @@
     "author": "sparke-dev",
     "author_github": "sparke-dev",
     "created_at": 1787712064.9896443
-  },
-  {
-    "id": "YXV0dW1uIGNyZWF0dXJl",
-    "name": "autumn creature",
-    "screenshot_url": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/133ef437-695f-4665-8e48-45c1e7756460/dmppbuo-a4687276-b6f5-4813-91f7-f505ef318e21.png/v1/fill/w_1280,h_679,q_80,strp/screenshot_2026_08_26_200422_by_dracaena53_dmppbuo-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9Njc5IiwicGF0aCI6Ii9mLzEzM2VmNDM3LTY5NWYtNDY2NS04ZTQ4LTQ1YzFlNzc1NjQ2MC9kbXBwYnVvLWE0Njg3Mjc2LWI2ZjUtNDgxMy05MWY3LWY1MDVlZjMxOGUyMS5wbmciLCJ3aWR0aCI6Ijw9MTI4MCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.AEHX99-ZyD9qmRAVINsMxz2Pbt2A6SpntJZtFzroosQ",
-    "commands": [
-      "tui -bar -bg #000000 -border #c13a1f -text #c13a1f",
-      "tui -progress -bg #000000 -fg #c13a1f",
-      "tui -inputs -bg #000000 -bg-hover #350000 -text #c13a1f -border #c13a1f",
-      "tui -ly -cp -active #f09a1f -inactive #c13a1f -near #c13a1f",
-      "tui -wp https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/133ef437-695f-4665-8e48-45c1e7756460/dknovjk-fd624f3c-4e17-4653-8eec-36334691a0f2.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8xMzNlZjQzNy02OTVmLTQ2NjUtOGU0OC00NWMxZTc3NTY0NjAvZGtub3Zqay1mZDYyNGYzYy00ZTE3LTQ2NTMtOGVlYy0zNjMzNDY5MWEwZjIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.j2pIy0pDdK9Wd-dx3w-3C_U3D5x6SIAfG5exOo9Wmcg",
-      "tui -l off",
-      "tui -l -a off",
-      "tui -viz -color #c13a1f"
-    ],
-    "author": "Dracaena53",
-    "author_github": "Dracaena53",
-    "created_at": 1787796484.3679585
   },
   {
     "id": "Qmx1ZSBTYXR1cm4=",
@@ -407,41 +244,6 @@
     "author": "0nTheGrassyHill",
     "author_github": "0nTheGrassyHill",
     "created_at": 1788096533.1231883
-  },
-  {
-    "id": "RXZhMQ==",
-    "name": "Eva1",
-    "screenshot_url": "https://www.image2url.com/r2/default/images/1788177354720-88e2ac3e-265e-4a3e-8e24-74eb627b221e.png",
-    "commands": [
-      "tui -bar -bg #463e56 -border #61785b -text #4b751f",
-      "tui -progress -bg #8ebc59 -fg #517c29,",
-      "tui -input -bg #2f552f -bg-hover #334f2f -text #517637 -border #41223a,",
-      "tui -wp https://www.image2url.com/r2/default/images/1788173997651-afeff533-ba99-4677-b3ee-0cb884c12746.jpg -0 <0.5>,",
-      "tui -panel -bg #453b5a -border #7e9e6f -text #386138",
-      "tui -ly -cp -active #8bc17c -inactive #426a3f -near #6fbb4a",
-      "tui -inputs -bg #463e56 -bg-hover #463e56 -text #90c052 -border #463e56",
-      "tui -viz -color #8bc17c"
-    ],
-    "author": "gamernasher",
-    "author_github": "gamernasher",
-    "created_at": 1788177398.8211417
-  },
-  {
-    "id": "TkdFIEVPRQ==",
-    "name": "NGE EOE",
-    "screenshot_url": "https://i.imgur.com/tXdBT0I.jpeg",
-    "commands": [
-      "tui -wp https://wallpapercave.com/wp/wp14715983.jpg -o .8",
-      "tui -bar -bg #010022 -border #000000 -text #ffffff",
-      "tui -inputs -bg #adada3 -bg-hover #99988c -text #ffffff -border #8c8c8c",
-      "tui -ly -cp -active #ffffff -inactive #606060 -near #7b7b7b",
-      "tui -l off",
-      "tui -panel -bg #191c3d -border #c2b784 -text #c2b784",
-      "tui -viz -color #c2b784"
-    ],
-    "author": "0nTheGrassyHill",
-    "author_github": "0nTheGrassyHill",
-    "created_at": 1788549569.1876948
   },
   {
     "id": "SW50ZXJnYWxhY3RpYyBSZWQ=",
@@ -668,26 +470,6 @@
     "created_at": 1790624996.8453183
   },
   {
-    "id": "VFYgR2lybCAoRml4ZWQp",
-    "name": "TV Girl (Fixed)",
-    "screenshot_url": "https://i.imgur.com/YO8d8NH.png",
-    "commands": [
-      "tui -l off",
-      "tui -bar -v on",
-      "tui -wp https://i.imgur.com/YO8d8NH.png",
-      "tui -ly -cp -active #c34343 -inactive #383534 -near #f33338",
-      "tui -bar -bg #000000 -border #c34343 -text #ffffff",
-      "tui -progress -bg #000000 -fg #c34343",
-      "tui -viz -color #c34343",
-      "tui -inputs -bg #000000 -bg-hover #c34343 -text #ffffff -border #c34343",
-      "lyrics",
-      "visualizer"
-    ],
-    "author": "trggaming2020",
-    "author_github": "trggaming2020",
-    "created_at": 1790656779.7888029
-  },
-  {
     "id": "Qmxpc3MgSGlsbA==",
     "name": "Bliss Hill",
     "screenshot_url": "https://github.com/gloomy-codes/publicAssets/blob/main/Screenshot%202026-09-29%20134045.png?raw=true",
@@ -710,6 +492,7 @@
     "name": "Lilac Currents",
     "screenshot_url": "https://i.imgur.com/kuQXZ7Z.png",
     "commands": [
+      "tui -l off",
       "tui -bar -bg #241E2F -border #C9A7E8 -text #F5EFF9",
       "tui -bar -v off",
       "tui -bar -c on",
@@ -782,24 +565,5 @@
     "author": "displayname667",
     "author_github": "displayname667",
     "created_at": 1791594970.993262
-  },
-  {
-    "id": "Qk1XIE01IHwgU0hBRE9X",
-    "name": "BMW M5 | SHADOW",
-    "screenshot_url": "https://img.ge/i/Y3cnP46.png",
-    "commands": [
-      "tui -bar -v on",
-      "tui -bar -c off",
-      "tui -bar -bg #050505 -border #FFFFFF -text #F2F2F2",
-      "tui -progress -bg #252525 -fg #FFFFFF",
-      "tui -inputs -bg #050505 -bg-hover #202020 -text #F2F2F2 -border #FFFFFF",
-      "tui -inputs -buttons on",
-      "tui -ly -cp -active #FFFFFF -inactive #555555 -near #BDBDBD",
-      "tui -wp https://i.giphy.com/5p2ei832LnlNnf3Qf0.webp -o 0.25",
-      "tui -l off"
-    ],
-    "author": "displayname667",
-    "author_github": "displayname667",
-    "created_at": 1791596013.682263
   }
 ]
