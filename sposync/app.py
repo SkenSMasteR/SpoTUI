@@ -625,10 +625,10 @@ class SpotuiApp(App):
             event.stop()
             if key == "escape":
                 self.resolve_confirm(0)
-            elif key in {"left", "tab"}:
+            elif key in {"left", "shift+tab"}:
                 S.confirm_sel = (S.confirm_sel - 1) % len(ClosePrompt.OPTIONS)
                 self.query_one(ClosePrompt).refresh()
-            elif key in {"right", "shift+tab"}:
+            elif key in {"right", "tab"}:
                 S.confirm_sel = (S.confirm_sel + 1) % len(ClosePrompt.OPTIONS)
                 self.query_one(ClosePrompt).refresh()
             elif key == "enter":
