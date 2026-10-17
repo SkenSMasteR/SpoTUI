@@ -88,9 +88,10 @@ export async function execute(cmd, opts = {}) {
             const tIndex = argsLower.indexOf("-t");
             if (argsLower[tIndex+1] === "pull" && args[tIndex+2]) {
                 const base64Name = args[tIndex+2];
+                const channel = argsLower.includes("-live") ? "live" : "stable";
                 try {
                     const themeName = atob(base64Name);
-                    applyThemeByName(themeName);
+                    applyThemeByName(themeName, { channel });
                 } catch (e) {}
             }
             return;

@@ -1,6 +1,6 @@
 import { resetAllSettings } from "./appearance.js";
 import { execute } from "./commands.js";
-import { FIRST_BOOT_THEME_IDS, THEME_HOST } from "./constants.js";
+import { FIRST_BOOT_THEME_IDS, THEME_CHANNELS, THEME_HOST } from "./constants.js";
 import { isRestrictedThemeCommand } from "./keybinds.js";
 import { app } from "./state.js";
 
@@ -44,6 +44,35 @@ export function loadThemeFeed(onLoad, onError) {
     app.themesFeedPromise.then(onLoad, onError);
 }
 
+export function loadThemeChannel(channel) {
+    const base = THEME_CHANNELS[channel] || THEME_CHANNELS.live;
+    const src = `${base}?_=${Math.floor(Date.now() / 1000)}`;
+    return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => {
+            try {
+                const themes = window.spotuiThemes || [];
+                if (themes.length) {
+                    resolve(themes.slice());
+                } else {
+                    reject(new Error("Theme feed loaded but empty"));
+                }
+            } finally {
+                script.remove();
+            }
+        };
+        script.onerror = () => {
+            try {
+                reject(new Error("Failed to load themes"));
+            } finally {
+                script.remove();
+            }
+        };
+        document.body.appendChild(script);
+    });
+}
+
 export function createAddThemeCard(imgUrl) {
     const card = document.createElement("div");
     card.className = "theme-card";
@@ -77,31 +106,35 @@ export function createThemeCard(theme) {
 // Apply community theme by name
 export function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
+    const apply = async (themes) => {
+        resetAllSettings();
+        const theme = (themes || []).find((t) => t.name === themeName);
+        if (theme && theme.commands) {
+            const pending = [];
+            theme.commands.forEach((cmd, idx) => {
+                const text = String(cmd || "").trim();
+                if (skipNonTui && !text.startsWith("tui")) return;
+                if (isRestrictedThemeCommand(text)) return;
+                pending.push(
+                    new Promise((res, rej) => {
+                        setTimeout(() => {
+                            execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
+                        }, idx * 120);
+                    })
+                );
+            });
+            await Promise.all(pending);
+        }
+        return theme || null;
+    };
+    if (opts.channel) {
+        return loadThemeChannel(opts.channel).then((themes) => apply(themes));
+    }
     return new Promise((resolve, reject) => {
         loadThemeFeed(
             async () => {
                 try {
-                    resetAllSettings();
-                    const themes = window.spotuiThemes || [];
-                    const theme = themes.find((t) => t.name === themeName);
-
-                    if (theme && theme.commands) {
-                        const pending = [];
-                        theme.commands.forEach((cmd, idx) => {
-                            const text = String(cmd || "").trim();
-                            if (skipNonTui && !text.startsWith("tui")) return;
-                            if (isRestrictedThemeCommand(text)) return;
-                            pending.push(
-                                new Promise((res, rej) => {
-                                    setTimeout(() => {
-                                        execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
-                                    }, idx * 120);
-                                })
-                            );
-                        });
-                        await Promise.all(pending);
-                    }
-                    resolve(theme || null);
+                    resolve(await apply(window.spotuiThemes || []));
                 } catch (err) {
                     reject(err);
                 }

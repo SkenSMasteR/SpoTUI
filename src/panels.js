@@ -10,7 +10,7 @@ import { closeQueuePanel } from "./queue.js";
 import { closeSearchPanel } from "./search.js";
 import { app } from "./state.js";
 import { print } from "./terminal.js";
-import { createAddThemeCard, createThemeCard, loadThemeFeed } from "./themes.js";
+import { createAddThemeCard, createThemeCard, loadThemeChannel } from "./themes.js";
 
 const PANE_TARGETS = {
     helpPanelOpen: "help",
@@ -214,57 +214,60 @@ export async function openThemePanel() {
     const panel = document.getElementById("spotui-theme-panel");
     if (!panel) return;
 
-    panel.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
+    panel.innerHTML = `
+        <div class="spotui-theme-controls">
+            <input id="spotui-theme-search" class="spotui-theme-search" placeholder="Search themes...">
+            <select id="spotui-theme-channel" class="spotui-theme-channel">
+                <option value="stable">Stable</option>
+                <option value="live">Live</option>
+            </select>
+        </div>
+        <div class="theme-grid"></div>
+    `;
 
-    loadThemeFeed(
-        () => {
-            const themes = window.spotuiThemes || [];
-                panel.innerHTML = `
-                <div style="margin-bottom: 20px; display: flex;">
-                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
-                </div>
-                <div class="theme-grid"></div>
-            `;
-            const grid = panel.querySelector('.theme-grid');
-            const searchInput = document.getElementById('spotui-theme-search');
+    const grid = panel.querySelector(".theme-grid");
+    const searchInput = panel.querySelector("#spotui-theme-search");
+    const channelSelect = panel.querySelector("#spotui-theme-channel");
 
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const cards = grid.querySelectorAll('.theme-card');
-                cards.forEach(card => {
-                    const title = card.querySelector('h3')?.textContent.toLowerCase();
-                    if (title) {
-                        card.style.display = title.includes(searchTerm) ? '' : 'none';
-                    }
-                });
-            });
+    const applyFilter = () => {
+        const term = searchInput.value.toLowerCase();
+        grid.querySelectorAll(".theme-card").forEach((card) => {
+            const title = card.querySelector("h3")?.textContent.toLowerCase();
+            if (title) card.style.display = title.includes(term) ? "" : "none";
+        });
+    };
 
-            grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK));
+    searchInput.addEventListener("input", applyFilter);
 
-            themes.forEach(theme => {
-                grid.appendChild(createThemeCard(theme));
-            });
-
-            grid.addEventListener('click', e => {
-                if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
-                    resetAllSettings();
-                    const commands = JSON.parse(e.target.dataset.commands);
-                    commands.forEach(cmd => { if (!isRestrictedThemeCommand(cmd)) execute(cmd, { fromTheme: true }); });
-                    closeThemePanel();
-                }
-            });
-        },
-        () => {
-                panel.innerHTML = `
-                <div style="margin-bottom: 20px; display: flex;">
-                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
-                </div>
-                <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
-            `;
-            const grid = document.createElement('div');
-            grid.className = 'theme-grid';
-            grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR));
-            panel.appendChild(grid);
+    grid.addEventListener("click", (e) => {
+        if (e.target.tagName === "BUTTON" && e.target.dataset.commands) {
+            resetAllSettings();
+            const commands = JSON.parse(e.target.dataset.commands);
+            commands.forEach((cmd) => { if (!isRestrictedThemeCommand(cmd)) execute(cmd, { fromTheme: true }); });
+            closeThemePanel();
         }
-    );
+    });
+
+    const load = (channel) => {
+        grid.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
+        loadThemeChannel(channel).then(
+            (themes) => {
+                grid.innerHTML = "";
+                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK));
+                themes.forEach((theme) => grid.appendChild(createThemeCard(theme)));
+                applyFilter();
+            },
+            () => {
+                grid.innerHTML = "";
+                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR));
+                const msg = document.createElement("p");
+                msg.textContent = "Error loading themes. The server may be down or you are rate-limited. Please wait and try again.";
+                grid.appendChild(msg);
+            }
+        );
+    };
+
+    channelSelect.value = "stable";
+    channelSelect.addEventListener("change", () => load(channelSelect.value));
+    load("stable");
 }
