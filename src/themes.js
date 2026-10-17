@@ -44,22 +44,29 @@ export function loadThemeFeed(onLoad, onError) {
     app.themesFeedPromise.then(onLoad, onError);
 }
 
-export function loadThemeChannel(channel) {
-    const base = THEME_CHANNELS[channel] || THEME_CHANNELS.live;
-    const src = `${base}?_=${Math.floor(Date.now() / 1000)}`;
-    return new Promise((resolve, reject) => {
+const channelCache = {};
+const channelInflight = {};
+
+export function loadThemeChannel(channel, force = false) {
+    const key = THEME_CHANNELS[channel] ? channel : "live";
+    if (!force && channelCache[key]) return Promise.resolve(channelCache[key].slice());
+    if (!force && channelInflight[key]) return channelInflight[key];
+    const src = `${THEME_CHANNELS[key]}?_=${Math.floor(Date.now() / 1000)}`;
+    const promise = new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = src;
         script.onload = () => {
             try {
-                const themes = window.spotuiThemes || [];
+                const themes = (window.spotuiThemes || []).slice();
                 if (themes.length) {
+                    channelCache[key] = themes;
                     resolve(themes.slice());
                 } else {
                     reject(new Error("Theme feed loaded but empty"));
                 }
             } finally {
                 script.remove();
+                delete channelInflight[key];
             }
         };
         script.onerror = () => {
@@ -67,10 +74,13 @@ export function loadThemeChannel(channel) {
                 reject(new Error("Failed to load themes"));
             } finally {
                 script.remove();
+                delete channelInflight[key];
             }
         };
         document.body.appendChild(script);
     });
+    channelInflight[key] = promise;
+    return promise;
 }
 
 export function createAddThemeCard(imgUrl) {
