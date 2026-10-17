@@ -29,7 +29,7 @@ const HIDDEN_UI_MARKER = "spotui-hidden-ui";
 
 const CLASS_MAP = {
     "ABsPxBFldURR4hbFY38Y": [], // device-picker control
-    "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H", "Nv04LEC5GMu3msfbzG0z"],
+    "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H", "Nv04LEC5GMu3msfbzG0z", "Gf9V3C4X_WPPfvjwXujC"],
     "centered-layout": [],
     "collection-collection-header": [],
     "collection-searchBar-searchBar": [],
