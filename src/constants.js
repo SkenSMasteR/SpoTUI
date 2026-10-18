@@ -1,6 +1,11 @@
 // Theme feed host for pulling community themes
 export const THEME_HOST = "https://spotui.root.sx/";
 
+export const THEME_CHANNELS = {
+    stable: "https://cdn.jsdelivr.net/gh/SkenSMasteR/SpoTUI@aux/Themes/themes.js",
+    live: `${THEME_HOST}themes.js`,
+};
+
 // LocalStorage keys for user preferences
 export const ANIMATION_KEY = "spotui:ascii-animation";
 export const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
@@ -110,7 +115,7 @@ export const COMMAND_LIST = [
     { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
     { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
     { cmd: "tui -wp off", desc: "Remove wallpaper" },
-    { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
+    { cmd: "tui -t pull &lt;theme_id&gt; [-live]", desc: "Apply a theme by its ID from the stable feed, or the live feed with -live (find IDs on our website)" },
     { cmd: 'tui bind "&lt;Letter&gt;" "&lt;command&gt;"', desc: "Bind Alt+&lt;Letter&gt; to run a TUI command" },
     { cmd: 'tui unbind "&lt;Letter&gt;"', desc: "Remove the Alt+&lt;Letter&gt; keybind" },
     { cmd: "tui bind clear", desc: "Remove all keybinds" },

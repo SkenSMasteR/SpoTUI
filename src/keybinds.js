@@ -112,6 +112,7 @@ export function handleKeybindKeydown(e) {
         activeEl.id === "spotui-input" ||
         activeEl.id === "spotui-theme-search" ||
         activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT" ||
         (activeEl.tagName === "INPUT" && activeEl.type !== "button")
     );
     const hasModifier = e.ctrlKey || e.altKey || e.metaKey;

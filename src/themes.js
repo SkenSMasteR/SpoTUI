@@ -1,6 +1,6 @@
 import { resetAllSettings } from "./appearance.js";
 import { execute } from "./commands.js";
-import { FIRST_BOOT_THEME_IDS, THEME_HOST } from "./constants.js";
+import { FIRST_BOOT_THEME_IDS, THEME_CHANNELS, THEME_HOST } from "./constants.js";
 import { isRestrictedThemeCommand } from "./keybinds.js";
 import { app } from "./state.js";
 
@@ -44,16 +44,58 @@ export function loadThemeFeed(onLoad, onError) {
     app.themesFeedPromise.then(onLoad, onError);
 }
 
-export function createAddThemeCard(imgUrl) {
+const channelCache = {};
+const channelInflight = {};
+
+export function loadThemeChannel(channel, force = false) {
+    const key = THEME_CHANNELS[channel] ? channel : "live";
+    if (!force && channelCache[key]) return Promise.resolve(channelCache[key].slice());
+    if (!force && channelInflight[key]) return channelInflight[key];
+    const src = `${THEME_CHANNELS[key]}?_=${Math.floor(Date.now() / 1000)}`;
+    const promise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => {
+            try {
+                const themes = (window.spotuiThemes || []).slice();
+                if (themes.length) {
+                    channelCache[key] = themes;
+                    resolve(themes.slice());
+                } else {
+                    reject(new Error("Theme feed loaded but empty"));
+                }
+            } finally {
+                script.remove();
+                delete channelInflight[key];
+            }
+        };
+        script.onerror = () => {
+            try {
+                reject(new Error("Failed to load themes"));
+            } finally {
+                script.remove();
+                delete channelInflight[key];
+            }
+        };
+        document.body.appendChild(script);
+    });
+    channelInflight[key] = promise;
+    return promise;
+}
+
+export function createAddThemeCard(imgUrl, channel) {
+    const stable = channel === "stable";
+    const label = stable ? "Contribute" : "Add yours";
+    const url = stable ? "https://github.com/SkenSMasteR/SpoTUI/blob/aux/Themes/themes.json" : THEME_HOST;
     const card = document.createElement("div");
     card.className = "theme-card";
     card.innerHTML = `
-        <h3>Add yours</h3>
-        <img src="${imgUrl}" alt="Add Theme">
-        <button>Add</button>
+        <h3>${label}</h3>
+        <img src="${imgUrl}" alt="${label}">
+        <button>${stable ? "Contribute" : "Add"}</button>
     `;
     card.querySelector("button").addEventListener("click", () => {
-        window.open("https://spotui.root.sx/", "_blank");
+        window.open(url, "_blank");
     });
     return card;
 }
@@ -77,31 +119,35 @@ export function createThemeCard(theme) {
 // Apply community theme by name
 export function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
+    const apply = async (themes) => {
+        resetAllSettings();
+        const theme = (themes || []).find((t) => t.name === themeName);
+        if (theme && theme.commands) {
+            const pending = [];
+            theme.commands.forEach((cmd, idx) => {
+                const text = String(cmd || "").trim();
+                if (skipNonTui && !text.startsWith("tui")) return;
+                if (isRestrictedThemeCommand(text)) return;
+                pending.push(
+                    new Promise((res, rej) => {
+                        setTimeout(() => {
+                            execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
+                        }, idx * 120);
+                    })
+                );
+            });
+            await Promise.all(pending);
+        }
+        return theme || null;
+    };
+    if (opts.channel) {
+        return loadThemeChannel(opts.channel).then((themes) => apply(themes));
+    }
     return new Promise((resolve, reject) => {
         loadThemeFeed(
             async () => {
                 try {
-                    resetAllSettings();
-                    const themes = window.spotuiThemes || [];
-                    const theme = themes.find((t) => t.name === themeName);
-
-                    if (theme && theme.commands) {
-                        const pending = [];
-                        theme.commands.forEach((cmd, idx) => {
-                            const text = String(cmd || "").trim();
-                            if (skipNonTui && !text.startsWith("tui")) return;
-                            if (isRestrictedThemeCommand(text)) return;
-                            pending.push(
-                                new Promise((res, rej) => {
-                                    setTimeout(() => {
-                                        execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
-                                    }, idx * 120);
-                                })
-                            );
-                        });
-                        await Promise.all(pending);
-                    }
-                    resolve(theme || null);
+                    resolve(await apply(window.spotuiThemes || []));
                 } catch (err) {
                     reject(err);
                 }
