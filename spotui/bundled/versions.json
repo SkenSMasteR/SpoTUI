@@ -10,5 +10,17 @@
       "metadata.json": "3504ebb275fd9f9eb6c3bbbf9531965e75708f52e30df747d642bda613255b7d",
       "color.ini": "f5dc6bed6b0ed362f59afa87511b5b4cda0a4bc2a486121608c730947dcda98f"
     }
+  },
+  {
+    "version": "2.5.0",
+    "built_at": "2026-10-18T17:39:47Z",
+    "triggered_by": "SkenSMasteR",
+    "commit": "64455775d3e8c60eb06fcc54bbf5b901e201ecc7",
+    "sha256": {
+      "theme.js": "822be9581916fc9c9db4543f1eb83e0b19a8adff1f2ad6aa5d174e6a4f1c8873",
+      "user.css": "ef3fb1a5f9de4add3ce3b3ccb87e3816ee1b532759e959081f35cc1ffc4f64ba",
+      "metadata.json": "92d87a681d063c0f6f42dc4aa08bc999f3b1aacbd6f1f7adb333694cef5b1ed9",
+      "color.ini": "f5dc6bed6b0ed362f59afa87511b5b4cda0a4bc2a486121608c730947dcda98f"
+    }
   }
 ]

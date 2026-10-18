@@ -4,6 +4,11 @@
     // Theme feed host for pulling community themes
     const THEME_HOST = "https://spotui.root.sx/";
 
+    const THEME_CHANNELS = {
+        stable: "https://cdn.jsdelivr.net/gh/SkenSMasteR/SpoTUI@aux/Themes/themes.js",
+        live: `${THEME_HOST}themes.js`,
+    };
+
     // LocalStorage keys for user preferences
     const ANIMATION_KEY = "spotui:ascii-animation";
     const LYRICS_STORAGE_KEY = "spotui:lyrics-open";
@@ -111,7 +116,7 @@
         { cmd: "tui -l -a &lt;on/off&gt;", desc: "Toggle ASCII animation" },
         { cmd: "tui -wp &lt;url&gt; [-o &lt;opacity&gt;]", desc: "Set wallpaper (opacity 0-1)" },
         { cmd: "tui -wp off", desc: "Remove wallpaper" },
-        { cmd: "tui -t pull &lt;theme_id&gt;", desc: "Apply a theme by its ID (you can find the id on our website)" },
+        { cmd: "tui -t pull &lt;theme_id&gt; [-live]", desc: "Apply a theme by its ID from the stable feed, or the live feed with -live (find IDs on our website)" },
         { cmd: 'tui bind "&lt;Letter&gt;" "&lt;command&gt;"', desc: "Bind Alt+&lt;Letter&gt; to run a TUI command" },
         { cmd: 'tui unbind "&lt;Letter&gt;"', desc: "Remove the Alt+&lt;Letter&gt; keybind" },
         { cmd: "tui bind clear", desc: "Remove all keybinds" },
@@ -1186,6 +1191,7 @@
             activeEl.id === "spotui-input" ||
             activeEl.id === "spotui-theme-search" ||
             activeEl.tagName === "TEXTAREA" ||
+            activeEl.tagName === "SELECT" ||
             (activeEl.tagName === "INPUT" && activeEl.type !== "button")
         );
         const hasModifier = e.ctrlKey || e.altKey || e.metaKey;
@@ -2472,16 +2478,58 @@
         app.themesFeedPromise.then(onLoad, onError);
     }
 
-    function createAddThemeCard(imgUrl) {
+    const channelCache = {};
+    const channelInflight = {};
+
+    function loadThemeChannel(channel, force = false) {
+        const key = THEME_CHANNELS[channel] ? channel : "live";
+        if (!force && channelCache[key]) return Promise.resolve(channelCache[key].slice());
+        if (!force && channelInflight[key]) return channelInflight[key];
+        const src = `${THEME_CHANNELS[key]}?_=${Math.floor(Date.now() / 1000)}`;
+        const promise = new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = () => {
+                try {
+                    const themes = (window.spotuiThemes || []).slice();
+                    if (themes.length) {
+                        channelCache[key] = themes;
+                        resolve(themes.slice());
+                    } else {
+                        reject(new Error("Theme feed loaded but empty"));
+                    }
+                } finally {
+                    script.remove();
+                    delete channelInflight[key];
+                }
+            };
+            script.onerror = () => {
+                try {
+                    reject(new Error("Failed to load themes"));
+                } finally {
+                    script.remove();
+                    delete channelInflight[key];
+                }
+            };
+            document.body.appendChild(script);
+        });
+        channelInflight[key] = promise;
+        return promise;
+    }
+
+    function createAddThemeCard(imgUrl, channel) {
+        const stable = channel === "stable";
+        const label = stable ? "Contribute" : "Add yours";
+        const url = stable ? "https://github.com/SkenSMasteR/SpoTUI/blob/aux/Themes/themes.json" : THEME_HOST;
         const card = document.createElement("div");
         card.className = "theme-card";
         card.innerHTML = `
-        <h3>Add yours</h3>
-        <img src="${imgUrl}" alt="Add Theme">
-        <button>Add</button>
+        <h3>${label}</h3>
+        <img src="${imgUrl}" alt="${label}">
+        <button>${stable ? "Contribute" : "Add"}</button>
     `;
         card.querySelector("button").addEventListener("click", () => {
-            window.open("https://spotui.root.sx/", "_blank");
+            window.open(url, "_blank");
         });
         return card;
     }
@@ -2505,31 +2553,35 @@
     // Apply community theme by name
     function applyThemeByName(themeName, opts = {}) {
         const skipNonTui = Boolean(opts.skipNonTui);
+        const apply = async (themes) => {
+            resetAllSettings();
+            const theme = (themes || []).find((t) => t.name === themeName);
+            if (theme && theme.commands) {
+                const pending = [];
+                theme.commands.forEach((cmd, idx) => {
+                    const text = String(cmd || "").trim();
+                    if (skipNonTui && !text.startsWith("tui")) return;
+                    if (isRestrictedThemeCommand(text)) return;
+                    pending.push(
+                        new Promise((res, rej) => {
+                            setTimeout(() => {
+                                execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
+                            }, idx * 120);
+                        })
+                    );
+                });
+                await Promise.all(pending);
+            }
+            return theme || null;
+        };
+        if (opts.channel) {
+            return loadThemeChannel(opts.channel).then((themes) => apply(themes));
+        }
         return new Promise((resolve, reject) => {
             loadThemeFeed(
                 async () => {
                     try {
-                        resetAllSettings();
-                        const themes = window.spotuiThemes || [];
-                        const theme = themes.find((t) => t.name === themeName);
-
-                        if (theme && theme.commands) {
-                            const pending = [];
-                            theme.commands.forEach((cmd, idx) => {
-                                const text = String(cmd || "").trim();
-                                if (skipNonTui && !text.startsWith("tui")) return;
-                                if (isRestrictedThemeCommand(text)) return;
-                                pending.push(
-                                    new Promise((res, rej) => {
-                                        setTimeout(() => {
-                                            execute(cmd, { bypassOnboarding: skipNonTui, fromTheme: true }).then(res, rej);
-                                        }, idx * 120);
-                                    })
-                                );
-                            });
-                            await Promise.all(pending);
-                        }
-                        resolve(theme || null);
+                        resolve(await apply(window.spotuiThemes || []));
                     } catch (err) {
                         reject(err);
                     }
@@ -2763,59 +2815,77 @@
         const panel = document.getElementById("spotui-theme-panel");
         if (!panel) return;
 
-        panel.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
+        panel.innerHTML = `
+        <div class="spotui-theme-controls">
+            <input id="spotui-theme-search" class="spotui-theme-search" placeholder="Search themes...">
+            <select id="spotui-theme-channel" class="spotui-theme-channel">
+                <option value="stable">Stable</option>
+                <option value="live">Live</option>
+            </select>
+            <button id="spotui-theme-refresh" class="spotui-theme-refresh" title="Refresh" aria-label="Refresh">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                </svg>
+            </button>
+        </div>
+        <div class="theme-grid"></div>
+    `;
 
-        loadThemeFeed(
-            () => {
-                const themes = window.spotuiThemes || [];
-                    panel.innerHTML = `
-                <div style="margin-bottom: 20px; display: flex;">
-                    <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
-                </div>
-                <div class="theme-grid"></div>
-            `;
-                const grid = panel.querySelector('.theme-grid');
-                const searchInput = document.getElementById('spotui-theme-search');
+        const grid = panel.querySelector(".theme-grid");
+        const searchInput = panel.querySelector("#spotui-theme-search");
+        const channelSelect = panel.querySelector("#spotui-theme-channel");
+        const refreshBtn = panel.querySelector("#spotui-theme-refresh");
 
-                searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const cards = grid.querySelectorAll('.theme-card');
-                    cards.forEach(card => {
-                        const title = card.querySelector('h3')?.textContent.toLowerCase();
-                        if (title) {
-                            card.style.display = title.includes(searchTerm) ? '' : 'none';
-                        }
-                    });
-                });
+        const applyFilter = () => {
+            const term = searchInput.value.toLowerCase();
+            grid.querySelectorAll(".theme-card").forEach((card) => {
+                const title = card.querySelector("h3")?.textContent.toLowerCase();
+                if (title) card.style.display = title.includes(term) ? "" : "none";
+            });
+        };
 
-                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK));
+        searchInput.addEventListener("input", applyFilter);
 
-                themes.forEach(theme => {
-                    grid.appendChild(createThemeCard(theme));
-                });
-
-                grid.addEventListener('click', e => {
-                    if (e.target.tagName === 'BUTTON' && e.target.dataset.commands) {
-                        resetAllSettings();
-                        const commands = JSON.parse(e.target.dataset.commands);
-                        commands.forEach(cmd => { if (!isRestrictedThemeCommand(cmd)) execute(cmd, { fromTheme: true }); });
-                        closeThemePanel();
-                    }
-                });
-            },
-            () => {
-                    panel.innerHTML = `
-                <div style="margin-bottom: 20px; display: flex;">
-                     <input id="spotui-theme-search" placeholder="Search themes..." style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border-color, #ff8c42); border-radius: 4px; color: #ddd; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;" disabled>
-                </div>
-                <p>¯\\_(ツ)_/¯</p><p>Error loading themes. The server may be down or you are rate-limited. Please wait and try again.</p>
-            `;
-                const grid = document.createElement('div');
-                grid.className = 'theme-grid';
-                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR));
-                panel.appendChild(grid);
+        grid.addEventListener("click", (e) => {
+            if (e.target.tagName === "BUTTON" && e.target.dataset.commands) {
+                resetAllSettings();
+                const commands = JSON.parse(e.target.dataset.commands);
+                commands.forEach((cmd) => { if (!isRestrictedThemeCommand(cmd)) execute(cmd, { fromTheme: true }); });
+                closeThemePanel();
             }
-        );
+        });
+
+        const load = (channel, force = false) => {
+            grid.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
+            loadThemeChannel(channel, force).then(
+                (themes) => {
+                    grid.innerHTML = "";
+                    grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK, channel));
+                    themes.forEach((theme) => grid.appendChild(createThemeCard(theme)));
+                    applyFilter();
+                },
+                () => {
+                    grid.innerHTML = "";
+                    grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR, channel));
+                    const msg = document.createElement("p");
+                    msg.textContent = "Error loading themes. The server may be down or you are rate-limited. Please wait and try again.";
+                    grid.appendChild(msg);
+                }
+            );
+        };
+
+        channelSelect.value = "stable";
+        channelSelect.addEventListener("change", () => load(channelSelect.value));
+        refreshBtn.addEventListener("click", () => {
+            if (refreshBtn.disabled) return;
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add("spinning");
+            load(channelSelect.value, true);
+            setTimeout(() => { refreshBtn.disabled = false; }, 3000);
+        });
+        refreshBtn.querySelector("svg").addEventListener("animationend", () => refreshBtn.classList.remove("spinning"));
+        load("stable");
     }
 
     // Mark that the user has launched SpoTUI at least once
@@ -3347,9 +3417,10 @@
                 const tIndex = argsLower.indexOf("-t");
                 if (argsLower[tIndex+1] === "pull" && args[tIndex+2]) {
                     const base64Name = args[tIndex+2];
+                    const channel = argsLower.includes("-live") ? "live" : "stable";
                     try {
                         const themeName = atob(base64Name);
-                        applyThemeByName(themeName);
+                        applyThemeByName(themeName, { channel });
                     } catch (e) {}
                 }
                 return;
@@ -5029,7 +5100,7 @@
 
     const CLASS_MAP = {
         "ABsPxBFldURR4hbFY38Y": [], // device-picker control
-        "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H", "Nv04LEC5GMu3msfbzG0z"],
+        "dj-button": ["uddqO1SkevkDEtqc7mQP", "FrqTR9ccUqvGA9UZRf9H", "Nv04LEC5GMu3msfbzG0z", "Gf9V3C4X_WPPfvjwXujC"],
         "centered-layout": [],
         "collection-collection-header": [],
         "collection-searchBar-searchBar": [],
@@ -6026,6 +6097,108 @@ body.spotui-theme-panel #spotui-theme-panel {
 
 .theme-card button:hover {
     background-color: var(--panel-text-hover-color, #e07b39);
+}
+
+.spotui-theme-controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 8px;
+}
+
+.spotui-theme-search,
+.spotui-theme-channel {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    color: var(--panel-text-color, #ff8c42);
+    padding: 8px 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotui-theme-search {
+    flex: 1;
+}
+
+.spotui-theme-search::placeholder {
+    color: var(--panel-text-color, #ff8c42);
+    opacity: 0.5;
+}
+
+.spotui-theme-channel {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 32px;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--panel-text-color, #ff8c42) 50%),
+        linear-gradient(135deg, var(--panel-text-color, #ff8c42) 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) calc(50% + 1px),
+        calc(100% - 13px) calc(50% + 1px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+.spotui-theme-search:hover,
+.spotui-theme-channel:hover {
+    border-color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-theme-search:focus,
+.spotui-theme-channel:focus {
+    outline: none;
+    border-color: var(--panel-text-color, #ff8c42);
+    box-shadow: 0 0 0 1px var(--panel-text-color, #ff8c42);
+}
+
+.spotui-theme-channel option {
+    background: var(--panel-bg-color, #121212);
+    color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-theme-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    color: var(--panel-text-color, #ff8c42);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotui-theme-refresh svg {
+    display: block;
+}
+
+.spotui-theme-refresh.spinning svg {
+    animation: spotui-theme-refresh-spin 0.6s ease;
+}
+
+.spotui-theme-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes spotui-theme-refresh-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spotui-theme-refresh:hover:not(:disabled) {
+    border-color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-theme-refresh:focus:not(:disabled) {
+    outline: none;
+    border-color: var(--panel-text-color, #ff8c42);
+    box-shadow: 0 0 0 1px var(--panel-text-color, #ff8c42);
 }
 .help-item {
     padding: 4px 0;
