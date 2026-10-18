@@ -849,6 +849,48 @@ body.spotui-theme-panel #spotui-theme-panel {
     background: var(--panel-bg-color, #121212);
     color: var(--panel-text-color, #ff8c42);
 }
+
+.spotui-theme-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--panel-border-color, #ff8c42);
+    border-radius: 4px;
+    color: var(--panel-text-color, #ff8c42);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotui-theme-refresh svg {
+    display: block;
+}
+
+.spotui-theme-refresh.spinning svg {
+    animation: spotui-theme-refresh-spin 0.6s ease;
+}
+
+.spotui-theme-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes spotui-theme-refresh-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spotui-theme-refresh:hover:not(:disabled) {
+    border-color: var(--panel-text-color, #ff8c42);
+}
+
+.spotui-theme-refresh:focus:not(:disabled) {
+    outline: none;
+    border-color: var(--panel-text-color, #ff8c42);
+    box-shadow: 0 0 0 1px var(--panel-text-color, #ff8c42);
+}
 .help-item {
     padding: 4px 0;
     display: flex;
