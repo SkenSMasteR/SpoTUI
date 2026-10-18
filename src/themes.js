@@ -83,16 +83,19 @@ export function loadThemeChannel(channel, force = false) {
     return promise;
 }
 
-export function createAddThemeCard(imgUrl) {
+export function createAddThemeCard(imgUrl, channel) {
+    const stable = channel === "stable";
+    const label = stable ? "Contribute" : "Add yours";
+    const url = stable ? "https://github.com/SkenSMasteR/SpoTUI/blob/aux/Themes/themes.json" : THEME_HOST;
     const card = document.createElement("div");
     card.className = "theme-card";
     card.innerHTML = `
-        <h3>Add yours</h3>
-        <img src="${imgUrl}" alt="Add Theme">
-        <button>Add</button>
+        <h3>${label}</h3>
+        <img src="${imgUrl}" alt="${label}">
+        <button>${stable ? "Contribute" : "Add"}</button>
     `;
     card.querySelector("button").addEventListener("click", () => {
-        window.open("https://spotui.root.sx/", "_blank");
+        window.open(url, "_blank");
     });
     return card;
 }

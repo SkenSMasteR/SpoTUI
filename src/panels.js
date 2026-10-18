@@ -260,13 +260,13 @@ export async function openThemePanel() {
         loadThemeChannel(channel, force).then(
             (themes) => {
                 grid.innerHTML = "";
-                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK));
+                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_OK, channel));
                 themes.forEach((theme) => grid.appendChild(createThemeCard(theme)));
                 applyFilter();
             },
             () => {
                 grid.innerHTML = "";
-                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR));
+                grid.appendChild(createAddThemeCard(ADD_THEME_IMG_ERR, channel));
                 const msg = document.createElement("p");
                 msg.textContent = "Error loading themes. The server may be down or you are rate-limited. Please wait and try again.";
                 grid.appendChild(msg);
