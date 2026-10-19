@@ -27,7 +27,6 @@ jobs:
                   cp theme.js user.css metadata.json color.ini /tmp/bundle/
                   VERSION=$(python3 -c "import json; print(json.load(open('metadata.json'))['version'])")
                   echo "version=$VERSION" >> "$GITHUB_ENV"
-                  git checkout -- theme.js
 
             - name: fetch aux branch
               run: |
