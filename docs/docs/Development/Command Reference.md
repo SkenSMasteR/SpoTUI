@@ -43,6 +43,7 @@ tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>
 | `-bg-hover` | Hover state background | `--input-bg-hover-color` |
 | `-text` | Input text | `--input-text-color` |
 | `-border` | Input border | `--input-border-color` |
+| `-buttons` | Toggle bottom-right buttons visibility | `` |
 
 Reset: `tui -inputs off`
 
@@ -118,8 +119,8 @@ Reset: `tui -panel off`
 tui -viz -color <#hex>		# Set visualizer bar color
 ```
 
-| Flag    | What it sets     | 
-| ------- | ---------------- |
-| `-color`  | Visualizer color |
+| Flag    | What it sets     | CSS Variable |
+| ------- | ---------------- | ------------ |
+| `-color`  | Visualizer color | `--visualizer-color` |
 
 Reset: `tui -viz off`
