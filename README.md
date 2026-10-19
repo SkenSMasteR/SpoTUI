@@ -84,18 +84,24 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `queue` | View and reorder the play queue |
 | `play` / `pause` / `p` | Toggle playback |
 | `skip` | Next track |
+| `back` | Previous track |
 | `s` / `seek <mm:ss>` | Jump to a specific time |
 | `v` / `volume <%>` | Set volume (0-100) |
 | `shuffle` | Toggle shuffle |
 | `loop` / `superloop` | Toggle repeat mode |
+| `like` | Like/unlike current song |
 | `lyrics` | Toggle lyrics panel |
 | `visualizer` | Toggle audio visualizer |
 | `dj` | Play the DJ playlist |
 | `echo <text>` | Display a message |
 | `search <query>` | Search Spotify |
+| `about` | Show about panel |
 | `theme` | Browse and apply themes |
 | `discord` | Show the Discord update banner and re-enable it on boot |
 | `standby` | Enter standby mode (any key to exit) |
+| `jam create` | Start a listening jam and get a PIN |
+| `jam join <pin>` | Join a jam by PIN (volume/lyrics only) |
+| `jam leave` | Leave the current jam |
 | `help` | Show the help panel |
 
 ## Action Targets
