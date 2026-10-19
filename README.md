@@ -49,7 +49,7 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -l <on/off>` | Toggle ASCII logo visibility |
 | `tui -l -a <on/off>` | Toggle ASCII animation |
 | `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
-| `tui -t pull <theme_id>` | Apply a theme by its ID (you can find the id on our website) |
+| `tui -t pull <theme_id> [-live]` | Apply a theme by its ID from the stable feed, or the live feed with `-live` (you can find the id on our website) |
 | `tui bind "<Letter>" "<command>"` | Binds Alt+`<Letter>` to run a TUI command |
 | `tui unbind "<Letter>"` | Remove the Alt+<Letter> keybind |
 | `tui bind clear` | Remove all keybinds |
@@ -77,23 +77,31 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>` | Set input colors |
 | `tui -inputs -buttons <on/off>` | Toggle bottom right buttons visibility |
 | `tui -inputs off` | Reset input colors |
+| `tui -panel -bg <#hex> -border <#hex> -text <#hex>` | Set help/playlist/theme/about panel colors |
+| `tui -panel off` | Reset panel colors |
 | `playlist` / `list` `<playlist-name>` | Open playlist viewer or play a specific playlist |
 | `add2list` | Add the current song to a playlist |
 | `queue` | View and reorder the play queue |
 | `play` / `pause` / `p` | Toggle playback |
 | `skip` | Next track |
+| `back` | Previous track |
 | `s` / `seek <mm:ss>` | Jump to a specific time |
 | `v` / `volume <%>` | Set volume (0-100) |
 | `shuffle` | Toggle shuffle |
 | `loop` / `superloop` | Toggle repeat mode |
+| `like` | Like/unlike current song |
 | `lyrics` | Toggle lyrics panel |
 | `visualizer` | Toggle audio visualizer |
 | `dj` | Play the DJ playlist |
 | `echo <text>` | Display a message |
 | `search <query>` | Search Spotify |
+| `about` | Show about panel |
 | `theme` | Browse and apply themes |
 | `discord` | Show the Discord update banner and re-enable it on boot |
 | `standby` | Enter standby mode (any key to exit) |
+| `jam create` | Start a listening jam and get a PIN |
+| `jam join <pin>` | Join a jam by PIN (volume/lyrics only) |
+| `jam leave` | Leave the current jam |
 | `help` | Show the help panel |
 
 ## Action Targets
