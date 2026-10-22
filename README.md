@@ -72,6 +72,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -viz -bars off` | Reset visualizer bar count |
 | `tui -viz -smooth <1-100>` | Set visualizer bar smoothing |
 | `tui -viz -smooth off` | Reset visualizer bar smoothing |
+| `tui -viz -mode <adaptive/global>` | Set visualizer reaction mode |
+| `tui -viz -mode off` | Reset visualizer reaction mode |
 | `tui -viz off` | Reset visualizer bar color |
 | `tui -bar -bg <#hex> -border <#hex> -text <#hex>` | Set player bar colors |
 | `tui -bar -v <on/off>` | Toggle native play bar visibility |

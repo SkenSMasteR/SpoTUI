@@ -21,6 +21,7 @@ export const VISUALIZER_COLOR = "spotui:visualizer-color";
 export const VISUALIZER_GAP = "spotui:visualizer-gap";
 export const VISUALIZER_BARS = "spotui:visualizer-bars";
 export const VISUALIZER_SMOOTH = "spotui:visualizer-smooth";
+export const VISUALIZER_MODE = "spotui:visualizer-mode";
 export const PLAYER_BAR_BG = "spotui:player-bar-bg";
 export const PLAYER_BAR_BORDER = "spotui:player-bar-border";
 export const PLAYER_BAR_TEXT = "spotui:player-bar-text";
@@ -140,6 +141,8 @@ export const COMMAND_LIST = [
     { cmd: "tui -viz -bars off", desc: "Reset visualizer bar count" },
     { cmd: "tui -viz -smooth &lt;1-100&gt;", desc: "Set visualizer bar smoothing" },
     { cmd: "tui -viz -smooth off", desc: "Reset visualizer bar smoothing" },
+    { cmd: "tui -viz -mode &lt;adaptive/global&gt;", desc: "Set visualizer reaction mode" },
+    { cmd: "tui -viz -mode off", desc: "Reset visualizer reaction mode" },
     { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
     { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
     { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },

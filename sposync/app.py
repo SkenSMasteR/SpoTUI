@@ -32,6 +32,8 @@ DEFAULT = {
 BARS = 48
 MAX_BARS = 256
 DEFAULT_SMOOTH = 45
+DEFAULT_NORM = "adaptive"
+PEAK_DECAY = 0.99
 RATE = 44100
 CHUNK = 2048
 
@@ -51,10 +53,18 @@ def _spectrum(samples, bars=BARS):
     mag = np.abs(np.fft.rfft(x * np.hanning(CHUNK)))
     freqs = np.fft.rfftfreq(CHUNK, 1.0 / RATE)
     out = np.interp(np.geomspace(40, 16000, bars), freqs, mag)
-    peak = float(out.max()) or 1.0
-    if peak < 1e-4:
-        return [0.0] * bars
-    return [min(1.0, (v / peak) ** 0.55) for v in out]
+    return [float(v) for v in out]
+
+
+def _normalize(raw, mode, peaks):
+    if mode == "global":
+        peak = max(raw) if raw else 0.0
+        if peak < 1e-4:
+            return [0.0] * len(raw), peaks
+        return [min(1.0, (v / peak) ** 0.55) for v in raw], peaks
+    for i, v in enumerate(raw):
+        peaks[i] = max(v, peaks[i] * PEAK_DECAY)
+    return [min(1.0, (v / peaks[i]) ** 0.55) if peaks[i] > 1e-6 else 0.0 for i, v in enumerate(raw)], peaks
 
 
 def start_capture():
@@ -76,7 +86,10 @@ def start_capture():
                 while True:
                     data = rec.record(numframes=CHUNK)
                     bars = S.bars
-                    nxt = _spectrum(data, bars)
+                    raw = _spectrum(data, bars)
+                    peaks = S.peaks if len(S.peaks) == bars else [0.0] * bars
+                    nxt, peaks = _normalize(raw, S.norm, peaks)
+                    S.peaks = peaks
                     prev = S.spectrum if len(S.spectrum) == bars else [0.0] * bars
                     alpha = _smooth_alpha(S.smooth)
                     S.spectrum = [p + (n - p) * alpha for p, n in zip(prev, nxt)]
@@ -229,6 +242,8 @@ class State:
         self.progress_chars = {"fg": "█", "bg": "░"}
         self.bars = BARS
         self.smooth = DEFAULT_SMOOTH
+        self.norm = DEFAULT_NORM
+        self.peaks = [0.0] * self.bars
         self.spectrum = [0.0] * self.bars
         self.visualizer = False
         self.confirm_close = False
@@ -772,10 +787,15 @@ class SpotuiApp(App):
                     bars = max(1, min(MAX_BARS, int(bars)))
                     if bars != S.bars:
                         S.bars = bars
+                        S.peaks = [0.0] * bars
                         S.spectrum = [0.0] * bars
                 smooth = data.get("visualizer_smoothing")
                 if isinstance(smooth, (int, float)):
                     S.smooth = max(1, min(100, int(smooth)))
+                norm = data.get("visualizer_mode")
+                if norm in ("global", "adaptive") and norm != S.norm:
+                    S.norm = norm
+                    S.peaks = [0.0] * S.bars
                 chars = data.get("progress_chars")
                 if isinstance(chars, dict) and chars.get("fg"):
                     S.progress_chars = chars

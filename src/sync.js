@@ -1,5 +1,5 @@
 import { execute } from "./commands.js";
-import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES, VISUALIZER_BARS, VISUALIZER_SMOOTH } from "./constants.js";
+import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES, VISUALIZER_BARS, VISUALIZER_MODE, VISUALIZER_SMOOTH } from "./constants.js";
 import { getCurrentTrackLyricsInfo, resolveTrackLyrics } from "./lyrics.js";
 import { getPlaylists, normalizeTrackItem } from "./playlists.js";
 import { searchSpotify } from "./search.js";
@@ -80,6 +80,11 @@ function getVisualizerSmooth() {
     return Number.isFinite(value) ? Math.min(100, Math.max(1, Math.floor(value))) : 45;
 }
 
+function getVisualizerMode() {
+    const stored = storageGet(VISUALIZER_MODE);
+    return stored === "global" ? "global" : "adaptive";
+}
+
 function getTrackPayload() {
     const data = Spicetify.Player.data;
     const item = data?.item ?? data?.track;
@@ -102,6 +107,7 @@ function getTrackPayload() {
         visualizer: app.visualizerOpen,
         visualizer_bars: getVisualizerBars(),
         visualizer_smoothing: getVisualizerSmooth(),
+        visualizer_mode: getVisualizerMode(),
     };
 }
 
@@ -113,7 +119,7 @@ function sendJson(obj) {
 function send() {
     const payload = getTrackPayload();
     if (payload) sendJson(payload);
-    else sendJson({ type: "update", visualizer: app.visualizerOpen, visualizer_bars: getVisualizerBars(), visualizer_smoothing: getVisualizerSmooth(), colors: getColors(), lyrics: lyricsCache });
+    else sendJson({ type: "update", visualizer: app.visualizerOpen, visualizer_bars: getVisualizerBars(), visualizer_smoothing: getVisualizerSmooth(), visualizer_mode: getVisualizerMode(), colors: getColors(), lyrics: lyricsCache });
 }
 
 async function refreshLyrics() {
