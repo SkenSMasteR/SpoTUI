@@ -68,6 +68,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -viz -color <#hex>` | Set visualizer bar color |
 | `tui -viz -gap <px>` | Set gap between visualizer bars (0 = touching) |
 | `tui -viz -gap off` | Reset visualizer bar gap |
+| `tui -viz -bars <count>` | Set how many visualizer bars to show |
+| `tui -viz -bars off` | Reset visualizer bar count |
 | `tui -viz off` | Reset visualizer bar color |
 | `tui -bar -bg <#hex> -border <#hex> -text <#hex>` | Set player bar colors |
 | `tui -bar -v <on/off>` | Toggle native play bar visibility |

@@ -30,22 +30,23 @@ DEFAULT = {
 }
 
 BARS = 48
+MAX_BARS = 256
 RATE = 44100
 CHUNK = 2048
 
-def _spectrum(samples):
+def _spectrum(samples, bars=BARS):
     import numpy as np
     x = np.asarray(samples, dtype=np.float32).reshape(-1)
     if x.size < CHUNK:
-        return [0.0] * BARS
+        return [0.0] * bars
     x = x[: x.size - x.size % CHUNK]
     x = x[-CHUNK:]
     mag = np.abs(np.fft.rfft(x * np.hanning(CHUNK)))
     freqs = np.fft.rfftfreq(CHUNK, 1.0 / RATE)
-    out = np.interp(np.geomspace(40, 16000, BARS), freqs, mag)
+    out = np.interp(np.geomspace(40, 16000, bars), freqs, mag)
     peak = float(out.max()) or 1.0
     if peak < 1e-4:
-        return [0.0] * BARS
+        return [0.0] * bars
     return [min(1.0, (v / peak) ** 0.55) for v in out]
 
 
@@ -67,8 +68,9 @@ def start_capture():
             with mic.recorder(samplerate=RATE, channels=1, blocksize=CHUNK) as rec:
                 while True:
                     data = rec.record(numframes=CHUNK)
-                    nxt = _spectrum(data)
-                    prev = S.spectrum or [0.0] * BARS
+                    bars = S.bars
+                    nxt = _spectrum(data, bars)
+                    prev = S.spectrum if len(S.spectrum) == bars else [0.0] * bars
                     S.spectrum = [p * 0.45 + n * 0.55 for p, n in zip(prev, nxt)]
         except Exception:
             return
@@ -217,7 +219,8 @@ class State:
         self.search_focus = "input"
         self.progress_style = "classic-block"
         self.progress_chars = {"fg": "█", "bg": "░"}
-        self.spectrum = [0.0] * BARS
+        self.bars = BARS
+        self.spectrum = [0.0] * self.bars
         self.visualizer = False
         self.confirm_close = False
         self.confirm_sel = 0
@@ -755,6 +758,12 @@ class SpotuiApp(App):
                 S.last_update = time.time()
                 S.connected = True
                 S.visualizer = bool(data.get("visualizer", S.visualizer))
+                bars = data.get("visualizer_bars")
+                if isinstance(bars, (int, float)):
+                    bars = max(1, min(MAX_BARS, int(bars)))
+                    if bars != S.bars:
+                        S.bars = bars
+                        S.spectrum = [0.0] * bars
                 chars = data.get("progress_chars")
                 if isinstance(chars, dict) and chars.get("fg"):
                     S.progress_chars = chars
