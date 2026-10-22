@@ -31,8 +31,15 @@ DEFAULT = {
 
 BARS = 48
 MAX_BARS = 256
+DEFAULT_SMOOTH = 45
 RATE = 44100
 CHUNK = 2048
+
+
+def _smooth_alpha(value):
+    v = max(1, min(100, int(value)))
+    return 0.02 + ((100 - v) / 99) * 0.93
+
 
 def _spectrum(samples, bars=BARS):
     import numpy as np
@@ -71,7 +78,8 @@ def start_capture():
                     bars = S.bars
                     nxt = _spectrum(data, bars)
                     prev = S.spectrum if len(S.spectrum) == bars else [0.0] * bars
-                    S.spectrum = [p * 0.45 + n * 0.55 for p, n in zip(prev, nxt)]
+                    alpha = _smooth_alpha(S.smooth)
+                    S.spectrum = [p + (n - p) * alpha for p, n in zip(prev, nxt)]
         except Exception:
             return
     threading.Thread(target=run, daemon=True).start()
@@ -220,6 +228,7 @@ class State:
         self.progress_style = "classic-block"
         self.progress_chars = {"fg": "█", "bg": "░"}
         self.bars = BARS
+        self.smooth = DEFAULT_SMOOTH
         self.spectrum = [0.0] * self.bars
         self.visualizer = False
         self.confirm_close = False
@@ -764,6 +773,9 @@ class SpotuiApp(App):
                     if bars != S.bars:
                         S.bars = bars
                         S.spectrum = [0.0] * bars
+                smooth = data.get("visualizer_smoothing")
+                if isinstance(smooth, (int, float)):
+                    S.smooth = max(1, min(100, int(smooth)))
                 chars = data.get("progress_chars")
                 if isinstance(chars, dict) and chars.get("fg"):
                     S.progress_chars = chars
