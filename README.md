@@ -66,6 +66,8 @@ Type `help` in the SpoTUI command bar to see a list of available commands.
 | `tui -ly -spacing <value>` | Controls vertical spacing between lines in lyrics |
 | `tui -ly -spacing off` | Resets line spacing in lyrics |
 | `tui -viz -color <#hex>` | Set visualizer bar color |
+| `tui -viz -gap <px>` | Set gap between visualizer bars (0 = touching) |
+| `tui -viz -gap off` | Reset visualizer bar gap |
 | `tui -viz off` | Reset visualizer bar color |
 | `tui -bar -bg <#hex> -border <#hex> -text <#hex>` | Set player bar colors |
 | `tui -bar -v <on/off>` | Toggle native play bar visibility |

@@ -1,5 +1,5 @@
 import { showRestartPopup } from "./banner.js";
-import { DISCORD_INVITE_URL, VISUALIZER_STORAGE_KEY } from "./constants.js";
+import { DISCORD_INVITE_URL, VISUALIZER_GAP, VISUALIZER_STORAGE_KEY } from "./constants.js";
 import { getSpotuiAccentColor } from "./jam.js";
 import { app } from "./state.js";
 import { storageGet, storageSet } from "./storage.js";
@@ -7,6 +7,13 @@ import { createButton } from "./utils.js";
 
 let bars = [];
 let raf = 0;
+
+function getGap() {
+    const stored = storageGet(VISUALIZER_GAP);
+    if (stored === null) return 2;
+    const value = Number(stored);
+    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 2;
+}
 
 function paint() {
     raf = 0;
@@ -20,17 +27,25 @@ function paint() {
     ctx.clearRect(0, 0, w, h);
     const n = bars.length;
     if (!n || !w || !h) return;
-    const gap = 2;
-    const bw = Math.max(1, (w - gap * n) / n);
+    const gap = n > 1 ? Math.min(getGap(), Math.max(0, Math.floor((w - n) / (n - 1)))) : 0;
+    const bw = Math.max(1, (w - gap * (n - 1)) / n);
+    const step = bw + gap;
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--visualizer-color").trim() || "#ff8c42";
     for (let i = 0; i < n; i++) {
         const bh = bars[i] * h;
-        if (bh > 0) ctx.fillRect(i * (bw + gap), h - bh, bw, bh);
+        if (bh <= 0) continue;
+        const left = Math.round(i * step);
+        const right = Math.round(i * step + bw);
+        ctx.fillRect(left, h - bh, Math.max(1, right - left), bh);
     }
 }
 
 export function setVisualizerBars(next) {
     bars = next || [];
+    refreshVisualizer();
+}
+
+export function refreshVisualizer() {
     if (app.visualizerOpen && !raf) raf = requestAnimationFrame(paint);
 }
 

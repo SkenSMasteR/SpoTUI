@@ -1,12 +1,12 @@
 import { handleActionsCommand } from "./actions.js";
-import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, applyLyricLineSpacing, applyVisualizerColor, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
+import { applyCustomBarState, applyInputButtonsVisibility, applyInputColors, applyLyricColors, applyPanelColors, applyPlayerBarColors, applyPlayerBarVisibility, applyProgressBarColors, applyLyricLineSpacing, applyVisualizerColor, applyVisualizerGap, handleColorArgs, toggleLogo, updateCustomBar } from "./appearance.js";
 import { resetGrid } from "./ascii.js";
 import { initUpdateBanner, showRestartPopup } from "./banner.js";
-import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, LYRICS_LINE_SPACING, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, VISUALIZER_COLOR, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
+import { ACTIONS_STORAGE_KEY, ANIMATION_KEY, CUSTOM_BAR_ENABLED, CUSTOM_BAR_PROGRESS_STYLE, INPUT_BG, INPUT_BG_HOVER, INPUT_BORDER, INPUT_BUTTONS, INPUT_TEXT, KEYBIND_STORAGE_KEY, LAUNCHED_KEY, LYRICS_ANIMATION_KEY, LYRICS_COLOR_ACTIVE, LYRICS_COLOR_INACTIVE, LYRICS_COLOR_LIGHT_INACTIVE, LYRICS_LINE_SPACING, PANEL_BG, PANEL_BORDER, PANEL_TEXT, PLAYER_BAR_BG, PLAYER_BAR_BORDER, PLAYER_BAR_TEXT, PLAYER_BAR_VISIBLE, PROGRESS_BAR_BG, PROGRESS_BAR_FG, PROGRESS_STYLES, UPDATE_BANNER_KEY, VISUALIZER_COLOR, VISUALIZER_GAP, WP_OPACITY_KEY, WP_URL_KEY } from "./constants.js";
 import { getAllowedJamGuestCommands, jamCreate, jamJoin, jamLeave, jamSay } from "./jam.js";
 import { getKeybinds, isRestrictedThemeCommand, saveKeybinds, stripCommandPrefix } from "./keybinds.js";
 import { handleLyricsCommand, syncLyricsHighlight } from "./lyrics.js";
-import { handleVisualizerCommand } from "./visualizer.js";
+import { handleVisualizerCommand, refreshVisualizer } from "./visualizer.js";
 import { getAllowedOnboardingCommands } from "./onboarding.js";
 import { openAboutPanel, closeActivePanel, openHelpPanel, openPlaylistPanel, openAdd2listPanel, openThemePanel } from "./panels.js";
 import { closeQueuePanel, openQueuePanel } from "./queue.js";
@@ -136,8 +136,26 @@ export async function execute(cmd, opts = {}) {
             return;
         }
         if (argsLower.includes("-viz")) {
-            handleColorArgs(args, { "-color": VISUALIZER_COLOR });
-            applyVisualizerColor();
+            const filteredArgs = [];
+            for (let i = 0; i < args.length; i++) {
+                if (argsLower[i] === "-gap") {
+                    const value = (args[i + 1] || "").toLowerCase();
+                    if (value === "off") {
+                        storageRemove(VISUALIZER_GAP);
+                    } else if (/^\d+$/.test(value)) {
+                        storageSet(VISUALIZER_GAP, String(Math.min(Number(value), 100)));
+                    }
+                    i++;
+                } else {
+                    filteredArgs.push(args[i]);
+                }
+            }
+            if (filteredArgs.length > 1 || (filteredArgs.length === 1 && filteredArgs[0].toLowerCase() === "off")) {
+                handleColorArgs(filteredArgs, { "-color": VISUALIZER_COLOR });
+                applyVisualizerColor();
+            }
+            applyVisualizerGap();
+            refreshVisualizer();
             return;
         }
         if (argsLower.includes("-ly") && argsLower.includes("-animation")) {
