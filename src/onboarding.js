@@ -3,7 +3,7 @@ import { LAUNCHED_KEY } from "./constants.js";
 import { closeActivePanel, handleGlobalEsc } from "./panels.js";
 import { app } from "./state.js";
 import { storageGet, storageSet } from "./storage.js";
-import { applyThemeByName, getThemeSelectionList, loadThemeFeed } from "./themes.js";
+import { applyThemeByName, getThemeSelectionList, loadThemeChannel } from "./themes.js";
 
 // Mark that the user has launched SpoTUI at least once
 export function markLaunched() {
@@ -217,10 +217,9 @@ export function renderOnboardingPanel() {
 
     panel.innerHTML = "<p>Loading first boot...</p>";
 
-    loadThemeFeed(
-        () => renderOnboardingStage(panel),
-        () => renderOnboardingFeedError(panel)
-    );
+    loadThemeChannel("stable")
+        .then(() => renderOnboardingStage(panel))
+        .catch(() => renderOnboardingFeedError(panel));
 }
 
 // Launch first-boot onboarding if user has never launched before
