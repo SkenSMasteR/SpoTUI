@@ -16,5 +16,14 @@
       "sposync-linux-amd64": "7e5ed65e52755d7973124b3ef798b0fabb6f42f334a1162f86ea532bde15ae5a",
       "sposync-win64.exe": "b026b45bf38dd539990bcfcd70a351638378760a0ce8f90940e999985f2cbc5a"
     }
+  },
+  {
+    "built_at": "2026-10-23T11:24:08Z",
+    "triggered_by": "SkenSMasteR",
+    "commit": "486ae0f6578c10374834320fdb4ae6cdc924948e",
+    "sha256": {
+      "sposync-linux-amd64": "8c65882e8b24475207f93979cd010208a89da3f6951f15ba26293e0ee0063a54",
+      "sposync-win64.exe": "553881032919529aa144df94758cf2a4f85e6da7476c45933f68f98ee1d41e39"
+    }
   }
 ]
