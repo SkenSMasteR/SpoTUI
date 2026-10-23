@@ -34,5 +34,17 @@
       "metadata.json": "2be2ac21dd868e8baeff82b6fb63b05e48786ec1051277237a7a26490cdac5a0",
       "color.ini": "f5dc6bed6b0ed362f59afa87511b5b4cda0a4bc2a486121608c730947dcda98f"
     }
+  },
+  {
+    "version": "2.6.1",
+    "built_at": "2026-10-23T12:12:32Z",
+    "triggered_by": "SkenSMasteR",
+    "commit": "b31525d42d7cecc631b44c676539223877a91766",
+    "sha256": {
+      "theme.js": "e6f17615222760cc7ecad4d4e476753fb82ec1cb203914be476a1cc71b78237d",
+      "user.css": "ef3fb1a5f9de4add3ce3b3ccb87e3816ee1b532759e959081f35cc1ffc4f64ba",
+      "metadata.json": "9772e8a66116b9238f7e27a71bb833b70a4af5f55f83a755866baf2462ddead5",
+      "color.ini": "f5dc6bed6b0ed362f59afa87511b5b4cda0a4bc2a486121608c730947dcda98f"
+    }
   }
 ]

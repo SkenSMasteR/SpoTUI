@@ -3148,10 +3148,9 @@
 
         panel.innerHTML = "<p>Loading first boot...</p>";
 
-        loadThemeFeed(
-            () => renderOnboardingStage(panel),
-            () => renderOnboardingFeedError(panel)
-        );
+        loadThemeChannel("stable")
+            .then(() => renderOnboardingStage(panel))
+            .catch(() => renderOnboardingFeedError(panel));
     }
 
     // Launch first-boot onboarding if user has never launched before
