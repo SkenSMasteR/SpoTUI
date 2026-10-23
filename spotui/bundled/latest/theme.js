@@ -21,6 +21,10 @@
     const LYRICS_LINE_SPACING = "spotui:lyrics-line-spacing";
     const VISUALIZER_STORAGE_KEY = "spotui:visualizer-open";
     const VISUALIZER_COLOR = "spotui:visualizer-color";
+    const VISUALIZER_GAP = "spotui:visualizer-gap";
+    const VISUALIZER_BARS = "spotui:visualizer-bars";
+    const VISUALIZER_SMOOTH = "spotui:visualizer-smooth";
+    const VISUALIZER_MODE = "spotui:visualizer-mode";
     const PLAYER_BAR_BG = "spotui:player-bar-bg";
     const PLAYER_BAR_BORDER = "spotui:player-bar-border";
     const PLAYER_BAR_TEXT = "spotui:player-bar-text";
@@ -132,6 +136,14 @@
         { cmd: "tui -ly -spacing &lt;value&gt;", desc: "Controls vertical spacing between lines in lyrics" },
         { cmd: "tui -ly -spacing off", desc: "Resets line spacing in lyrics" },
         { cmd: "tui -viz -color &lt;#hex&gt;", desc: "Set visualizer bar color" },
+        { cmd: "tui -viz -gap &lt;px&gt;", desc: "Set gap between visualizer bars (0 = touching)" },
+        { cmd: "tui -viz -gap off", desc: "Reset visualizer bar gap" },
+        { cmd: "tui -viz -bars &lt;count&gt;", desc: "Set how many visualizer bars to show" },
+        { cmd: "tui -viz -bars off", desc: "Reset visualizer bar count" },
+        { cmd: "tui -viz -smooth &lt;1-100&gt;", desc: "Set visualizer bar smoothing" },
+        { cmd: "tui -viz -smooth off", desc: "Reset visualizer bar smoothing" },
+        { cmd: "tui -viz -mode &lt;adaptive/global&gt;", desc: "Set visualizer reaction mode" },
+        { cmd: "tui -viz -mode off", desc: "Reset visualizer reaction mode" },
         { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
         { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
         { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },
@@ -1205,6 +1217,33 @@
     let bars = [];
     let raf = 0;
 
+    function getGap() {
+        const stored = storageGet(VISUALIZER_GAP);
+        if (stored === null) return 2;
+        const value = Number(stored);
+        return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 2;
+    }
+
+    function getBarCount() {
+        const stored = storageGet(VISUALIZER_BARS);
+        if (stored === null) return 48;
+        const value = Number(stored);
+        return Number.isFinite(value) ? Math.min(256, Math.max(1, Math.floor(value))) : 48;
+    }
+
+    function resample(source, count) {
+        if (!source.length || count === source.length) return source;
+        const out = new Array(count);
+        for (let i = 0; i < count; i++) {
+            const start = Math.floor((i * source.length) / count);
+            const end = Math.max(start + 1, Math.floor(((i + 1) * source.length) / count));
+            let sum = 0;
+            for (let j = start; j < end && j < source.length; j++) sum += source[j];
+            out[i] = sum / (end - start);
+        }
+        return out;
+    }
+
     function paint() {
         raf = 0;
         const c = document.getElementById("spotui-visualizer");
@@ -1215,19 +1254,28 @@
         if (c.width !== w) c.width = w;
         if (c.height !== h) c.height = h;
         ctx.clearRect(0, 0, w, h);
-        const n = bars.length;
-        if (!n || !w || !h) return;
-        const gap = 2;
-        const bw = Math.max(1, (w - gap * n) / n);
+        if (!bars.length || !w || !h) return;
+        const data = resample(bars, Math.min(getBarCount(), Math.max(1, Math.floor(w))));
+        const n = data.length;
+        const gap = n > 1 ? Math.min(getGap(), Math.max(0, Math.floor((w - n) / (n - 1)))) : 0;
+        const bw = Math.max(1, (w - gap * (n - 1)) / n);
+        const step = bw + gap;
         ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--visualizer-color").trim() || "#ff8c42";
         for (let i = 0; i < n; i++) {
-            const bh = bars[i] * h;
-            if (bh > 0) ctx.fillRect(i * (bw + gap), h - bh, bw, bh);
+            const bh = data[i] * h;
+            if (bh <= 0) continue;
+            const left = Math.round(i * step);
+            const right = Math.round(i * step + bw);
+            ctx.fillRect(left, h - bh, Math.max(1, right - left), bh);
         }
     }
 
     function setVisualizerBars(next) {
         bars = next || [];
+        refreshVisualizer();
+    }
+
+    function refreshVisualizer() {
         if (app.visualizerOpen && !raf) raf = requestAnimationFrame(paint);
     }
 
@@ -3465,8 +3513,50 @@
                 return;
             }
             if (argsLower.includes("-viz")) {
-                handleColorArgs(args, { "-color": VISUALIZER_COLOR });
-                applyVisualizerColor();
+                const filteredArgs = [];
+                for (let i = 0; i < args.length; i++) {
+                    if (argsLower[i] === "-gap") {
+                        const value = (args[i + 1] || "").toLowerCase();
+                        if (value === "off") {
+                            storageRemove(VISUALIZER_GAP);
+                        } else if (/^\d+$/.test(value)) {
+                            storageSet(VISUALIZER_GAP, String(Math.min(Number(value), 100)));
+                        }
+                        i++;
+                    } else if (argsLower[i] === "-bars") {
+                        const value = (args[i + 1] || "").toLowerCase();
+                        if (value === "off") {
+                            storageRemove(VISUALIZER_BARS);
+                        } else if (/^\d+$/.test(value)) {
+                            storageSet(VISUALIZER_BARS, String(Math.min(Math.max(Number(value), 1), 256)));
+                        }
+                        i++;
+                    } else if (argsLower[i] === "-smooth") {
+                        const value = (args[i + 1] || "").toLowerCase();
+                        if (value === "off") {
+                            storageRemove(VISUALIZER_SMOOTH);
+                        } else if (/^\d+$/.test(value)) {
+                            storageSet(VISUALIZER_SMOOTH, String(Math.min(Math.max(Number(value), 1), 100)));
+                        }
+                        i++;
+                    } else if (argsLower[i] === "-mode") {
+                        const value = (args[i + 1] || "").toLowerCase();
+                        if (value === "off") {
+                            storageRemove(VISUALIZER_MODE);
+                        } else if (value === "global" || value === "adaptive") {
+                            storageSet(VISUALIZER_MODE, value);
+                        }
+                        i++;
+                    } else {
+                        filteredArgs.push(args[i]);
+                    }
+                }
+                if (filteredArgs.length > 1 || (filteredArgs.length === 1 && filteredArgs[0].toLowerCase() === "off")) {
+                    handleColorArgs(filteredArgs, { "-color": VISUALIZER_COLOR });
+                    applyVisualizerColor();
+                }
+                applyVisualizerGap();
+                refreshVisualizer();
                 return;
             }
             if (argsLower.includes("-ly") && argsLower.includes("-animation")) {
@@ -4576,6 +4666,10 @@
         applyCssVar(VISUALIZER_COLOR, "--visualizer-color");
     }
 
+    function applyVisualizerGap() {
+        applyCssVar(VISUALIZER_GAP, "--visualizer-gap");
+    }
+
     // Apply stored player bar color preferences from localStorage
     function applyPlayerBarColors() {
         try {
@@ -4929,6 +5023,13 @@
 
         storageRemove(VISUALIZER_COLOR);
         applyVisualizerColor();
+
+        storageRemove(VISUALIZER_GAP);
+        applyVisualizerGap();
+
+        storageRemove(VISUALIZER_BARS);
+        storageRemove(VISUALIZER_SMOOTH);
+        storageRemove(VISUALIZER_MODE);
 
         storageRemove(PLAYER_BAR_BG);
         storageRemove(PLAYER_BAR_BORDER);
@@ -6782,6 +6883,25 @@ body.spotui-standby .Root__now-playing-bar {
         return 0;
     }
 
+    function getVisualizerBars() {
+        const stored = storageGet(VISUALIZER_BARS);
+        if (stored === null) return 48;
+        const value = Number(stored);
+        return Number.isFinite(value) ? Math.min(256, Math.max(1, Math.floor(value))) : 48;
+    }
+
+    function getVisualizerSmooth() {
+        const stored = storageGet(VISUALIZER_SMOOTH);
+        if (stored === null) return 45;
+        const value = Number(stored);
+        return Number.isFinite(value) ? Math.min(100, Math.max(1, Math.floor(value))) : 45;
+    }
+
+    function getVisualizerMode() {
+        const stored = storageGet(VISUALIZER_MODE);
+        return stored === "global" ? "global" : "adaptive";
+    }
+
     function getTrackPayload() {
         const data = Spicetify.Player.data;
         const item = data?.item ?? data?.track;
@@ -6802,6 +6922,9 @@ body.spotui-standby .Root__now-playing-bar {
             progress_style: progressStyle,
             progress_chars: PROGRESS_STYLES[progressStyle] || PROGRESS_STYLES["classic-block"],
             visualizer: app.visualizerOpen,
+            visualizer_bars: getVisualizerBars(),
+            visualizer_smoothing: getVisualizerSmooth(),
+            visualizer_mode: getVisualizerMode(),
         };
     }
 
@@ -6813,7 +6936,7 @@ body.spotui-standby .Root__now-playing-bar {
     function send() {
         const payload = getTrackPayload();
         if (payload) sendJson(payload);
-        else sendJson({ type: "update", visualizer: app.visualizerOpen, colors: getColors(), lyrics: lyricsCache });
+        else sendJson({ type: "update", visualizer: app.visualizerOpen, visualizer_bars: getVisualizerBars(), visualizer_smoothing: getVisualizerSmooth(), visualizer_mode: getVisualizerMode(), colors: getColors(), lyrics: lyricsCache });
     }
 
     async function refreshLyrics() {
