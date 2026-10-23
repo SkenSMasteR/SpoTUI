@@ -18,6 +18,10 @@ export const LYRICS_COLOR_LIGHT_INACTIVE = "spotui:lyrics-color-light-inactive";
 export const LYRICS_LINE_SPACING = "spotui:lyrics-line-spacing";
 export const VISUALIZER_STORAGE_KEY = "spotui:visualizer-open";
 export const VISUALIZER_COLOR = "spotui:visualizer-color";
+export const VISUALIZER_GAP = "spotui:visualizer-gap";
+export const VISUALIZER_BARS = "spotui:visualizer-bars";
+export const VISUALIZER_SMOOTH = "spotui:visualizer-smooth";
+export const VISUALIZER_MODE = "spotui:visualizer-mode";
 export const PLAYER_BAR_BG = "spotui:player-bar-bg";
 export const PLAYER_BAR_BORDER = "spotui:player-bar-border";
 export const PLAYER_BAR_TEXT = "spotui:player-bar-text";
@@ -131,6 +135,14 @@ export const COMMAND_LIST = [
     { cmd: "tui -ly -spacing &lt;value&gt;", desc: "Controls vertical spacing between lines in lyrics" },
     { cmd: "tui -ly -spacing off", desc: "Resets line spacing in lyrics" },
     { cmd: "tui -viz -color &lt;#hex&gt;", desc: "Set visualizer bar color" },
+    { cmd: "tui -viz -gap &lt;px&gt;", desc: "Set gap between visualizer bars (0 = touching)" },
+    { cmd: "tui -viz -gap off", desc: "Reset visualizer bar gap" },
+    { cmd: "tui -viz -bars &lt;count&gt;", desc: "Set how many visualizer bars to show" },
+    { cmd: "tui -viz -bars off", desc: "Reset visualizer bar count" },
+    { cmd: "tui -viz -smooth &lt;1-100&gt;", desc: "Set visualizer bar smoothing" },
+    { cmd: "tui -viz -smooth off", desc: "Reset visualizer bar smoothing" },
+    { cmd: "tui -viz -mode &lt;adaptive/global&gt;", desc: "Set visualizer reaction mode" },
+    { cmd: "tui -viz -mode off", desc: "Reset visualizer reaction mode" },
     { cmd: "tui -viz off", desc: "Reset visualizer bar color" },
     { cmd: "tui -bar -bg &lt;#hex&gt; -border &lt;#hex&gt; -text &lt;#hex&gt;", desc: "Set player bar colors" },
     { cmd: "tui -bar -v &lt;on/off&gt;", desc: "Toggle play bar visibility" },

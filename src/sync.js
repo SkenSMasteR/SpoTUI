@@ -1,5 +1,5 @@
 import { execute } from "./commands.js";
-import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES } from "./constants.js";
+import { CUSTOM_BAR_PROGRESS_STYLE, PROGRESS_STYLES, VISUALIZER_BARS, VISUALIZER_MODE, VISUALIZER_SMOOTH } from "./constants.js";
 import { getCurrentTrackLyricsInfo, resolveTrackLyrics } from "./lyrics.js";
 import { getPlaylists, normalizeTrackItem } from "./playlists.js";
 import { searchSpotify } from "./search.js";
@@ -66,6 +66,25 @@ function getDurationMs(item) {
     return 0;
 }
 
+function getVisualizerBars() {
+    const stored = storageGet(VISUALIZER_BARS);
+    if (stored === null) return 48;
+    const value = Number(stored);
+    return Number.isFinite(value) ? Math.min(256, Math.max(1, Math.floor(value))) : 48;
+}
+
+function getVisualizerSmooth() {
+    const stored = storageGet(VISUALIZER_SMOOTH);
+    if (stored === null) return 45;
+    const value = Number(stored);
+    return Number.isFinite(value) ? Math.min(100, Math.max(1, Math.floor(value))) : 45;
+}
+
+function getVisualizerMode() {
+    const stored = storageGet(VISUALIZER_MODE);
+    return stored === "global" ? "global" : "adaptive";
+}
+
 function getTrackPayload() {
     const data = Spicetify.Player.data;
     const item = data?.item ?? data?.track;
@@ -86,6 +105,9 @@ function getTrackPayload() {
         progress_style: progressStyle,
         progress_chars: PROGRESS_STYLES[progressStyle] || PROGRESS_STYLES["classic-block"],
         visualizer: app.visualizerOpen,
+        visualizer_bars: getVisualizerBars(),
+        visualizer_smoothing: getVisualizerSmooth(),
+        visualizer_mode: getVisualizerMode(),
     };
 }
 
@@ -97,7 +119,7 @@ function sendJson(obj) {
 function send() {
     const payload = getTrackPayload();
     if (payload) sendJson(payload);
-    else sendJson({ type: "update", visualizer: app.visualizerOpen, colors: getColors(), lyrics: lyricsCache });
+    else sendJson({ type: "update", visualizer: app.visualizerOpen, visualizer_bars: getVisualizerBars(), visualizer_smoothing: getVisualizerSmooth(), visualizer_mode: getVisualizerMode(), colors: getColors(), lyrics: lyricsCache });
 }
 
 async function refreshLyrics() {
