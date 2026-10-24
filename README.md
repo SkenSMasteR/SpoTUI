@@ -271,3 +271,7 @@ SkenS - https://github.com/SkenSMasteR
   </table>
   > Note: If you are using Spicetify v3, follow the guide in the "spotui@&lt;version&gt;" release.
 </details>
+
+## License
+
+Copyright (C) 2026 SkenS (SkenSMasteR). SpoTUI is licensed under the GNU General Public License v2 (GPL-2.0). See the [LICENSE](license) file.
