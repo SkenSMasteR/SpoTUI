@@ -38,6 +38,28 @@ jobs:
                       git rm -rf . || true
                   fi
 
+            - name: fail on duplicate version
+              env:
+                  VERSION: ${{ env.version }}
+              run: |
+                  python3 - <<'EOF'
+                  import json, os, sys
+
+                  version = os.environ["VERSION"]
+                  path = "spotui/bundled/versions.json"
+                  try:
+                      with open(path) as f:
+                          data = json.load(f)
+                          if not isinstance(data, list):
+                              data = [data]
+                  except (FileNotFoundError, json.JSONDecodeError):
+                      data = []
+
+                  if any(e.get("version") == version for e in data):
+                      print(f"::error::version {version} already published; bump metadata.json")
+                      sys.exit(1)
+                  EOF
+
             - name: update latest bundle and versions.json
               env:
                   VERSION: ${{ env.version }}
