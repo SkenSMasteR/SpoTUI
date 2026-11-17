@@ -2347,13 +2347,13 @@
         const cur = q.track;
         const tracks = [];
         if (cur) {
-            const item = { ...normalizeTrackItem(cur, 0), uid: cur.uid ?? cur.contextTrack?.uid, current: true };
+            const item = { ...normalizeTrackItem(cur, 0), uid: cur.uid, current: true };
             if (!isQueueEndMarker(item)) tracks.push(item);
         }
         let ended = false;
         (q.nextTracks || []).forEach((t, i) => {
             if (ended) return;
-            const item = { ...normalizeTrackItem(t, i + 1), uid: t.uid ?? t.contextTrack?.uid, current: false };
+            const item = { ...normalizeTrackItem(t, i + 1), uid: t.uid, current: false };
             if (isQueueEndMarker(item)) {
                 tracks.push({ uri: "", uid: "", name: "End of queue", artist: "", current: false, endOfQueue: true });
                 ended = true;
@@ -2442,7 +2442,7 @@
             e.preventDefault();
             const t = app.queueTracks[app.selectedQueue];
             if (!app.selectedQueue || !t || t.endOfQueue) return;
-            Spicetify.Platform.PlayerAPI.skipToNext({ uri: t.uri, uid: t.uid });
+            for (let i = app.selectedQueue; i--;) Spicetify.Player.next();
             closeQueuePanel();
             return;
         }
