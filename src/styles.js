@@ -497,6 +497,16 @@ body.spotui-dj-mode .dj-button svg {
     font-weight: 600;
 }
 
+.spotui-lyrics-line.active .spotui-lyrics-word {
+    opacity: 0.4;
+    transition: opacity 120ms ease;
+}
+
+.spotui-lyrics-line.active .spotui-lyrics-word.sung,
+.spotui-lyrics-line.active .spotui-lyrics-word.singing {
+    opacity: 1;
+}
+
 .spotui-lyrics-loader {
     height: 27px;
     aspect-ratio: 5;
