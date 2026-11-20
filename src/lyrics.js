@@ -198,6 +198,7 @@ export async function fetchSpolyrcLyrics(info) {
     if (info.album) params.set("album", info.album);
     if (info.durationSec) params.set("duration", String(info.durationSec));
     if (info.uri) params.set("spotify_id", info.uri);
+    params.set("karaoke", "true");
     const url = `https://spolyrc-spotui.root.sx/lyrics?${params}`;
     let data = null;
     if (Spicetify.CosmosAsync?.get) {
@@ -217,6 +218,21 @@ export async function fetchSpolyrcLyrics(info) {
     }
     if (!data || typeof data !== "object") return null;
     if (data.instrumental) return { lines: [], synced: false, provider: "spolyrc", instrumental: true };
+    if (Array.isArray(data.karaoke) && data.karaoke.length) {
+        const karaokeLines = data.karaoke
+            .map(line => {
+                const words = (line.words || [])
+                    .map((w, i, arr) => ({
+                        text: String(w.text || ""),
+                        startTime: Number(w.start_ms) || 0,
+                        endTime: Number(arr[i + 1]?.start_ms ?? line.end_ms) || 0,
+                    }))
+                    .filter(w => w.text);
+                return { startTime: Number(line.start_ms) || 0, endTime: Number(line.end_ms) || 0, text: words.map(w => w.text).join("").trim(), words };
+            })
+            .filter(line => line.text && line.text !== "♪");
+        if (karaokeLines.length) return { lines: karaokeLines, synced: true, karaoke: true, provider: "spolyrc", instrumental: false };
+    }
     const syncedLines = Array.isArray(data.synced)
         ? data.synced
             .map(line => ({ startTime: Number(line.start_ms) || 0, text: String(line.text || "").trim() }))
@@ -247,6 +263,8 @@ export function renderLyricsEmpty(message, detail = "") {
     app.lyricsActiveIndex = -1;
     app.cachedLyricsRows = [];
     app.cachedLyricsLoaders = [];
+    app.cachedLyricsWords = [];
+    app.lyricsKaraokeRow = -1;
     els.lines.classList.remove("unsynced");
     els.lines.innerHTML = "";
     const empty = document.createElement("div");
@@ -308,6 +326,8 @@ export function renderLyricsLoading() {
     app.lyricsActiveIndex = -1;
     app.cachedLyricsRows = [];
     app.cachedLyricsLoaders = [];
+    app.cachedLyricsWords = [];
+    app.lyricsKaraokeRow = -1;
     els.lines.classList.remove("unsynced");
     els.lines.innerHTML = "";
     const wrap = document.createElement("div");
@@ -327,6 +347,8 @@ export function renderLyricsLines(lines, synced = true) {
     app.lyricsActiveIndex = -1;
     app.cachedLyricsRows = [];
     app.cachedLyricsLoaders = [];
+    app.cachedLyricsWords = [];
+    app.lyricsKaraokeRow = -1;
     if (!lines.length) { renderLyricsEmpty("¯\\_(ツ)_/¯"); return; }
 
     const GAP_THRESHOLD = 8000;
@@ -345,17 +367,29 @@ export function renderLyricsLines(lines, synced = true) {
         const row = document.createElement("div");
         row.className = "spotui-lyrics-line";
         row.dataset.index = String(idx);
-        row.textContent = line.text;
+        if (line.words?.length) {
+            const wordEls = line.words.map(w => {
+                const span = document.createElement("span");
+                span.className = "spotui-lyrics-word";
+                span.textContent = w.text;
+                row.appendChild(span);
+                return span;
+            });
+            app.cachedLyricsWords.push(wordEls);
+        } else {
+            row.textContent = line.text;
+            app.cachedLyricsWords.push(null);
+        }
         els.lines.appendChild(row);
         app.cachedLyricsRows.push(row);
 
         if (synced && idx < lines.length - 1) {
             const currentLineStart = line.startTime;
             const nextLineStart = lines[idx + 1].startTime;
-            const gap = nextLineStart - currentLineStart;
+            const currentLineEnd = line.endTime || currentLineStart + LYRIC_DURATION_ESTIMATE;
+            const gap = nextLineStart - currentLineEnd;
 
             if (gap >= GAP_THRESHOLD) {
-                const currentLineEnd = currentLineStart + LYRIC_DURATION_ESTIMATE;
                 const loader = document.createElement("div");
                 loader.className = "spotui-lyrics-loader";
                 loader.dataset.gapStart = String(currentLineEnd);
@@ -368,7 +402,7 @@ export function renderLyricsLines(lines, synced = true) {
 
     if (synced) {
         const lastLine = lines[lines.length - 1];
-        const lastLineEnd = lastLine.startTime + LYRIC_DURATION_ESTIMATE;
+        const lastLineEnd = lastLine.endTime || lastLine.startTime + LYRIC_DURATION_ESTIMATE;
         const endLoader = document.createElement("div");
         endLoader.className = "spotui-lyrics-loader";
         endLoader.dataset.gapStart = String(lastLineEnd);
@@ -386,6 +420,22 @@ export function findActiveLyricIndex(lines, progressMs) {
         else break;
     }
     return idx;
+}
+
+function updateKaraokeWords(rowIndex, progress) {
+    const prev = app.lyricsKaraokeRow;
+    if (prev >= 0 && prev !== rowIndex) {
+        app.cachedLyricsWords[prev]?.forEach(el => el.classList.remove("sung", "singing"));
+    }
+    app.lyricsKaraokeRow = rowIndex;
+    if (rowIndex < 0) return;
+    const wordEls = app.cachedLyricsWords[rowIndex];
+    const lineWords = app.lyricsCache.lines[rowIndex]?.words;
+    if (!wordEls || !lineWords) return;
+    wordEls.forEach((el, i) => {
+        el.classList.toggle("sung", progress >= lineWords[i].endTime);
+        el.classList.toggle("singing", progress >= lineWords[i].startTime && progress < lineWords[i].endTime);
+    });
 }
 
 // Update lyric highlight and scroll position based on playback progress
@@ -416,6 +466,7 @@ export function syncLyricsHighlight(force = false) {
 
     const useLoader = activeLoaderIndex !== -1 && animationEnabled;
     const loaderStateChanged = useLoader && activeLoaderIndex !== app.lyricsActiveLoaderIndex;
+    if (app.lyricsCache.karaoke) updateKaraokeWords(useLoader ? -1 : next, progress);
     if (!force && next === app.lyricsActiveIndex && !useLoader && !loaderStateChanged) return;
 
     const rows = app.cachedLyricsRows;
@@ -471,7 +522,7 @@ export async function loadLyricsForCurrentTrack(isTransition = false) {
     }
 
     if (!info) {
-        app.lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+        app.lyricsCache = { uri: "", lines: [], synced: false, karaoke: false, provider: "", instrumental: false, error: "" };
         setLyricsHeader(null, "");
         renderLyricsEmpty("¯\\_(ツ)_/¯");
         if (isTransition) slideLyricsIn();
@@ -479,7 +530,7 @@ export async function loadLyricsForCurrentTrack(isTransition = false) {
     }
 
     if (app.lyricsCache.uri === info.uri && (app.lyricsCache.lines.length || app.lyricsCache.instrumental || app.lyricsCache.error)) {
-        setLyricsHeader(info, app.lyricsCache.instrumental ? "instrumental" : `${app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider || "cache"}`);
+        setLyricsHeader(info, app.lyricsCache.instrumental ? "instrumental" : `${app.lyricsCache.karaoke ? "karaoke" : app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider || "cache"}`);
         if (app.lyricsCache.instrumental) renderLyricsEmpty("Instrumental", "No vocals to show for this track.");
         else if (app.lyricsCache.error) renderLyricsEmpty("No lyrics", app.lyricsCache.error);
         else { renderLyricsLines(app.lyricsCache.lines, app.lyricsCache.synced); syncLyricsHighlight(true); }
@@ -501,6 +552,7 @@ export async function loadLyricsForCurrentTrack(isTransition = false) {
         uri: info.uri,
         lines: result.lines || [],
         synced: Boolean(result.synced),
+        karaoke: Boolean(result.karaoke),
         provider: result.provider || "",
         instrumental: Boolean(result.instrumental),
         error: result.error || "",
@@ -508,7 +560,7 @@ export async function loadLyricsForCurrentTrack(isTransition = false) {
 
     if (app.lyricsCache.instrumental) { setLyricsHeader(info, "instrumental"); renderLyricsEmpty("¯\\_(ツ)_/¯"); if (isTransition) slideLyricsIn(); return; }
     if (!app.lyricsCache.lines.length) { setLyricsHeader(info, "not found"); renderLyricsEmpty("¯\\_(ツ)_/¯"); if (isTransition) slideLyricsIn(); return; }
-    setLyricsHeader(info, `${app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider}`);
+    setLyricsHeader(info, `${app.lyricsCache.karaoke ? "karaoke" : app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider}`);
     renderLyricsLines(app.lyricsCache.lines, app.lyricsCache.synced);
     syncLyricsHighlight(true);
     if (isTransition) slideLyricsIn();
@@ -578,7 +630,7 @@ export function openLyricsPanel() {
     bindLyricsEvents();
     loadLyricsForCurrentTrack();
     if (!app.lyricsSyncInterval) {
-        app.lyricsSyncInterval = setInterval(() => syncLyricsHighlight(), 200);
+        app.lyricsSyncInterval = setInterval(() => syncLyricsHighlight(), 80);
     }
 }
 
@@ -612,7 +664,7 @@ export function bindLyricsEvents() {
     app.lyricsBound = true;
     Spicetify.Player.addEventListener("songchange", () => {
         if (!app.lyricsPanelOpen) return;
-        app.lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+        app.lyricsCache = { uri: "", lines: [], synced: false, karaoke: false, provider: "", instrumental: false, error: "" };
         loadLyricsForCurrentTrack(true);
     });
 }
