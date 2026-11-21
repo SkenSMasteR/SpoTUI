@@ -239,11 +239,13 @@
         searchFetchToken: 0,
         searchDebounce: null,
         searchBound: false,
-        lyricsCache: { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" },
+        lyricsCache: { uri: "", lines: [], synced: false, karaoke: false, provider: "", instrumental: false, error: "" },
         lyricsBound: false,
         lyricsSyncInterval: null,
         cachedLyricsRows: [],
         cachedLyricsLoaders: [],
+        cachedLyricsWords: [],
+        lyricsKaraokeRow: -1,
         jamRole: null,
         jamPin: null,
         jamToken: null,
@@ -4227,6 +4229,7 @@
         if (info.album) params.set("album", info.album);
         if (info.durationSec) params.set("duration", String(info.durationSec));
         if (info.uri) params.set("spotify_id", info.uri);
+        params.set("karaoke", "true");
         const url = `https://spolyrc-spotui.root.sx/lyrics?${params}`;
         let data = null;
         if (Spicetify.CosmosAsync?.get) {
@@ -4246,6 +4249,21 @@
         }
         if (!data || typeof data !== "object") return null;
         if (data.instrumental) return { lines: [], synced: false, provider: "spolyrc", instrumental: true };
+        if (Array.isArray(data.karaoke) && data.karaoke.length) {
+            const karaokeLines = data.karaoke
+                .map(line => {
+                    const words = (line.words || [])
+                        .map((w, i, arr) => ({
+                            text: String(w.text || ""),
+                            startTime: Number(w.start_ms) || 0,
+                            endTime: Number(arr[i + 1]?.start_ms ?? line.end_ms) || 0,
+                        }))
+                        .filter(w => w.text);
+                    return { startTime: Number(line.start_ms) || 0, endTime: Number(line.end_ms) || 0, text: words.map(w => w.text).join("").trim(), words };
+                })
+                .filter(line => line.text && line.text !== "♪");
+            if (karaokeLines.length) return { lines: karaokeLines, synced: true, karaoke: true, provider: "spolyrc", instrumental: false };
+        }
         const syncedLines = Array.isArray(data.synced)
             ? data.synced
                 .map(line => ({ startTime: Number(line.start_ms) || 0, text: String(line.text || "").trim() }))
@@ -4276,6 +4294,8 @@
         app.lyricsActiveIndex = -1;
         app.cachedLyricsRows = [];
         app.cachedLyricsLoaders = [];
+        app.cachedLyricsWords = [];
+        app.lyricsKaraokeRow = -1;
         els.lines.classList.remove("unsynced");
         els.lines.innerHTML = "";
         const empty = document.createElement("div");
@@ -4337,6 +4357,8 @@
         app.lyricsActiveIndex = -1;
         app.cachedLyricsRows = [];
         app.cachedLyricsLoaders = [];
+        app.cachedLyricsWords = [];
+        app.lyricsKaraokeRow = -1;
         els.lines.classList.remove("unsynced");
         els.lines.innerHTML = "";
         const wrap = document.createElement("div");
@@ -4356,6 +4378,8 @@
         app.lyricsActiveIndex = -1;
         app.cachedLyricsRows = [];
         app.cachedLyricsLoaders = [];
+        app.cachedLyricsWords = [];
+        app.lyricsKaraokeRow = -1;
         if (!lines.length) { renderLyricsEmpty(); return; }
 
         const GAP_THRESHOLD = 8000;
@@ -4374,17 +4398,29 @@
             const row = document.createElement("div");
             row.className = "spotui-lyrics-line";
             row.dataset.index = String(idx);
-            row.textContent = line.text;
+            if (line.words?.length) {
+                const wordEls = line.words.map(w => {
+                    const span = document.createElement("span");
+                    span.className = "spotui-lyrics-word";
+                    span.textContent = w.text;
+                    row.appendChild(span);
+                    return span;
+                });
+                app.cachedLyricsWords.push(wordEls);
+            } else {
+                row.textContent = line.text;
+                app.cachedLyricsWords.push(null);
+            }
             els.lines.appendChild(row);
             app.cachedLyricsRows.push(row);
 
             if (synced && idx < lines.length - 1) {
                 const currentLineStart = line.startTime;
                 const nextLineStart = lines[idx + 1].startTime;
-                const gap = nextLineStart - currentLineStart;
+                const currentLineEnd = line.endTime || currentLineStart + LYRIC_DURATION_ESTIMATE;
+                const gap = nextLineStart - currentLineEnd;
 
                 if (gap >= GAP_THRESHOLD) {
-                    const currentLineEnd = currentLineStart + LYRIC_DURATION_ESTIMATE;
                     const loader = document.createElement("div");
                     loader.className = "spotui-lyrics-loader";
                     loader.dataset.gapStart = String(currentLineEnd);
@@ -4397,7 +4433,7 @@
 
         if (synced) {
             const lastLine = lines[lines.length - 1];
-            const lastLineEnd = lastLine.startTime + LYRIC_DURATION_ESTIMATE;
+            const lastLineEnd = lastLine.endTime || lastLine.startTime + LYRIC_DURATION_ESTIMATE;
             const endLoader = document.createElement("div");
             endLoader.className = "spotui-lyrics-loader";
             endLoader.dataset.gapStart = String(lastLineEnd);
@@ -4415,6 +4451,22 @@
             else break;
         }
         return idx;
+    }
+
+    function updateKaraokeWords(rowIndex, progress) {
+        const prev = app.lyricsKaraokeRow;
+        if (prev >= 0 && prev !== rowIndex) {
+            app.cachedLyricsWords[prev]?.forEach(el => el.classList.remove("sung", "singing"));
+        }
+        app.lyricsKaraokeRow = rowIndex;
+        if (rowIndex < 0) return;
+        const wordEls = app.cachedLyricsWords[rowIndex];
+        const lineWords = app.lyricsCache.lines[rowIndex]?.words;
+        if (!wordEls || !lineWords) return;
+        wordEls.forEach((el, i) => {
+            el.classList.toggle("sung", progress >= lineWords[i].endTime);
+            el.classList.toggle("singing", progress >= lineWords[i].startTime && progress < lineWords[i].endTime);
+        });
     }
 
     // Update lyric highlight and scroll position based on playback progress
@@ -4445,6 +4497,7 @@
 
         const useLoader = activeLoaderIndex !== -1 && animationEnabled;
         const loaderStateChanged = useLoader && activeLoaderIndex !== app.lyricsActiveLoaderIndex;
+        if (app.lyricsCache.karaoke) updateKaraokeWords(useLoader ? -1 : next, progress);
         if (!force && next === app.lyricsActiveIndex && !useLoader && !loaderStateChanged) return;
 
         const rows = app.cachedLyricsRows;
@@ -4500,7 +4553,7 @@
         }
 
         if (!info) {
-            app.lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+            app.lyricsCache = { uri: "", lines: [], synced: false, karaoke: false, provider: "", instrumental: false, error: "" };
             setLyricsHeader(null, "");
             renderLyricsEmpty();
             if (isTransition) slideLyricsIn();
@@ -4508,7 +4561,7 @@
         }
 
         if (app.lyricsCache.uri === info.uri && (app.lyricsCache.lines.length || app.lyricsCache.instrumental || app.lyricsCache.error)) {
-            setLyricsHeader(info, app.lyricsCache.instrumental ? "instrumental" : `${app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider || "cache"}`);
+            setLyricsHeader(info, app.lyricsCache.instrumental ? "instrumental" : `${app.lyricsCache.karaoke ? "karaoke" : app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider || "cache"}`);
             if (app.lyricsCache.instrumental) renderLyricsEmpty("Instrumental", "No vocals to show for this track.");
             else if (app.lyricsCache.error) renderLyricsEmpty("No lyrics", app.lyricsCache.error);
             else { renderLyricsLines(app.lyricsCache.lines, app.lyricsCache.synced); syncLyricsHighlight(true); }
@@ -4530,6 +4583,7 @@
             uri: info.uri,
             lines: result.lines || [],
             synced: Boolean(result.synced),
+            karaoke: Boolean(result.karaoke),
             provider: result.provider || "",
             instrumental: Boolean(result.instrumental),
             error: result.error || "",
@@ -4537,7 +4591,7 @@
 
         if (app.lyricsCache.instrumental) { setLyricsHeader(info, "instrumental"); renderLyricsEmpty(); if (isTransition) slideLyricsIn(); return; }
         if (!app.lyricsCache.lines.length) { setLyricsHeader(info, "not found"); renderLyricsEmpty(); if (isTransition) slideLyricsIn(); return; }
-        setLyricsHeader(info, `${app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider}`);
+        setLyricsHeader(info, `${app.lyricsCache.karaoke ? "karaoke" : app.lyricsCache.synced ? "synced" : "unsynced"} · ${app.lyricsCache.provider}`);
         renderLyricsLines(app.lyricsCache.lines, app.lyricsCache.synced);
         syncLyricsHighlight(true);
         if (isTransition) slideLyricsIn();
@@ -4607,7 +4661,7 @@
         bindLyricsEvents();
         loadLyricsForCurrentTrack();
         if (!app.lyricsSyncInterval) {
-            app.lyricsSyncInterval = setInterval(() => syncLyricsHighlight(), 200);
+            app.lyricsSyncInterval = setInterval(() => syncLyricsHighlight(), 80);
         }
     }
 
@@ -4641,7 +4695,7 @@
         app.lyricsBound = true;
         Spicetify.Player.addEventListener("songchange", () => {
             if (!app.lyricsPanelOpen) return;
-            app.lyricsCache = { uri: "", lines: [], synced: false, provider: "", instrumental: false, error: "" };
+            app.lyricsCache = { uri: "", lines: [], synced: false, karaoke: false, provider: "", instrumental: false, error: "" };
             loadLyricsForCurrentTrack(true);
         });
     }
@@ -5283,11 +5337,11 @@
         "main-devicePicker-tooltip": [],
         "main-entityHeader-background": [],
         "main-entityHeader-overlay": [],
-        "main-globalNav-browseButtonWrapper": [],
+        "main-globalNav-browseButtonWrapper": ["IRoFtQPfYybnsl5DpVjw"],
         "main-globalNav-contentRight": ["J69QIsElFMg5kJWeEOxw", "fOO2fIo3u1dllKA1PpsE"],
-        "main-globalNav-historyButtons": ["ie2Qo9PCf8p3rBbip9Hv", "Tpe_EXbFoHioEukq1L3y"],
+        "main-globalNav-historyButtons": ["ie2Qo9PCf8p3rBbip9Hv", "Tpe_EXbFoHioEukq1L3y", "QCRPYyruwIqZoYNEvhDB"],
         "main-globalNav-historyButtonsWrapper": ["AwxHJjdqrlr_clQipYln", "GwGB43JbSV5e0q7q_6sj"],
-        "main-globalNav-navLink": ["oGrojYscaY3uU8Hy86FD", "T_cPbNTFfdOMoMku2Wc_", "tJNs6e3G6zxX78DnJY6T"],
+        "main-globalNav-navLink": ["oGrojYscaY3uU8Hy86FD", "T_cPbNTFfdOMoMku2Wc_", "tJNs6e3G6zxX78DnJY6T", "qxmESh112XlM9plvFzlP"],
         "main-globalNav-searchInputContainer": [],
         "main-globalNav-searchInputText": [],
         "main-globalNav-searchInputWrapper": [],
@@ -5296,28 +5350,28 @@
         "main-home-homeHeader": [],
         "main-lyricsCinema-container": [],
         "main-lyricsCinema-content": [],
-        "main-nowPlayingBar-center": ["rSRNVahRTJPSREItfKbj", "g1JESJMcieNsGs8YA91M"],
-        "main-nowPlayingBar-container": ["main-nowPlayingBar-nowPlayingBar", "cW4mdx7MbdsSDVOh4yFl", "qEDMggbdvFQOvRAwmrIT"],
-        "main-nowPlayingBar-extraControls": ["oqNKUl1wM7vavZeQ2s1V", "vQrn40NmmpeUfmOfgxeo"],
-        "main-nowPlayingBar-left": ["hvPltcX1Of4QRX6ymIPO", "Xaz3TDhhjakUcSaES5TR"],
-        "main-nowPlayingBar-lyricsButton": ["Tc4NZwap8qQOlHonxDWz", "OCDVdnseqXwal5Tk2fM8", "NmfW_y2jYByYTRtCmPaB"],
-        "main-nowPlayingBar-nowPlayingBar": ["cW4mdx7MbdsSDVOh4yFl", "iuUVHEu5S9rRkc0zz0Hq"],
-        "main-nowPlayingBar-right": ["P7V7BLPw5oupbrDHSbT_", "kUn_OZBjLN9zTu7bcgSg"],
+        "main-nowPlayingBar-center": ["rSRNVahRTJPSREItfKbj", "g1JESJMcieNsGs8YA91M", "Fv_NJY1uLWlqyJ8IKpAP"],
+        "main-nowPlayingBar-container": ["main-nowPlayingBar-nowPlayingBar", "cW4mdx7MbdsSDVOh4yFl", "qEDMggbdvFQOvRAwmrIT", "TDRmHQO0LVotUz4Mzi2d", "dhrE1Mg11rVzWEJ5Xy84"],
+        "main-nowPlayingBar-extraControls": ["oqNKUl1wM7vavZeQ2s1V", "vQrn40NmmpeUfmOfgxeo", "Wd77zsAyau4UGFnxn60b"],
+        "main-nowPlayingBar-left": ["hvPltcX1Of4QRX6ymIPO", "Xaz3TDhhjakUcSaES5TR", "GT3btISbKLXrhHILRLON"],
+        "main-nowPlayingBar-lyricsButton": ["Tc4NZwap8qQOlHonxDWz", "OCDVdnseqXwal5Tk2fM8", "NmfW_y2jYByYTRtCmPaB", "T0S3PqxbMCoTtoGLW96t"],
+        "main-nowPlayingBar-nowPlayingBar": ["cW4mdx7MbdsSDVOh4yFl", "iuUVHEu5S9rRkc0zz0Hq", "dhrE1Mg11rVzWEJ5Xy84"],
+        "main-nowPlayingBar-right": ["P7V7BLPw5oupbrDHSbT_", "kUn_OZBjLN9zTu7bcgSg", "_rXd41iaM5t1x5IDLxCJ"],
         "main-nowPlayingView-lyricsContent": [],
         "main-nowPlayingView-lyricsControls": [],
         "main-nowPlayingView-lyricsGradient": [],
         "main-nowPlayingView-lyricsTitle": [],
-        "main-nowPlayingView-section": ["oA2xvck_WSZn6mRFcZ2J","RdD6POf8qaaGutBtUyMh", "iHJ6_yPvPOWhaNcXElNZ"],
+        "main-nowPlayingView-section": ["oA2xvck_WSZn6mRFcZ2J","RdD6POf8qaaGutBtUyMh", "iHJ6_yPvPOWhaNcXElNZ", "nL2a9KOrkvOlg4iyuRDL"],
         "main-shelf-shelfGrid": [],
         "main-topBar-background": [],
         "main-topBar-overlay": [],
-        "main-topBar-searchBar": [],
+        "main-topBar-searchBar": ["RYFwfQTMR9mVodv10kWY"],
         "main-topBar-withBackgroundBlur": [],
-        "main-trackInfo-artists": ["iQ71jAm3u73Al0XZj90v", "yPuQIWyOhCzYrdC7hhfw", "pJWbyyFi7zAnwrlWlNr8"],
-        "main-trackInfo-container": ["main-nowPlayingWidget-nowPlaying", "XQslIrb_llPUT81TqFnT", "nH2R2U626Rdlv05YEt09"],
-        "main-trackInfo-contentContainer": ["_HN_yndimvPzsIkzzSvo", "nuY09VyDMngWeD4AGX2H", "tUoHgXvEUCxKvXSJQmH9"],
-        "main-trackInfo-contentWrapper": ["_HN_yndimvPzsIkzzSvo", "nuY09VyDMngWeD4AGX2H", "tUoHgXvEUCxKvXSJQmH9"],
-        "main-trackInfo-name": ["iSkZ_HES6ks1CnyZfh46", "UxJZcpiOpOv5I0B1Tjdw", "d3jICfEdIPzHv0kyDFHZ"],
+        "main-trackInfo-artists": ["iQ71jAm3u73Al0XZj90v", "yPuQIWyOhCzYrdC7hhfw", "pJWbyyFi7zAnwrlWlNr8", "_yF1Kz7waOQZk6aNlnUI", "KEPa1U4SJx48lR38bc8x", "xWxKc65wzdsgLlhxW_rT"],
+        "main-trackInfo-container": ["main-nowPlayingWidget-nowPlaying", "XQslIrb_llPUT81TqFnT", "nH2R2U626Rdlv05YEt09", "xuYQehnmFtvYl0xKzC6D", "Lbox8s5ddUwuftPuCGyx", "MdpEIIPSdQ14YI4goobR"],
+        "main-trackInfo-contentContainer": ["_HN_yndimvPzsIkzzSvo", "nuY09VyDMngWeD4AGX2H", "tUoHgXvEUCxKvXSJQmH9", "T5aLewckz4uaWaJwdczO", "IBnrNsgqHIWVDw3LDnUh"],
+        "main-trackInfo-contentWrapper": ["_HN_yndimvPzsIkzzSvo", "nuY09VyDMngWeD4AGX2H", "tUoHgXvEUCxKvXSJQmH9", "IBnrNsgqHIWVDw3LDnUh", "VcSlLI0HN6xjW1DS4FNM"],
+        "main-trackInfo-name": ["iSkZ_HES6ks1CnyZfh46", "UxJZcpiOpOv5I0B1Tjdw", "d3jICfEdIPzHv0kyDFHZ", "DwDhZlGKGdBPmtacNjgk", "hvJdEwDFPYnCjweD6tWI"],
         "main-trackList-trackListRow": [],
         "main-view-container__scroll-node": [],
         "main-yourLibraryX-libraryContainer": [],
@@ -5353,14 +5407,18 @@
         "progress-bar": ["Nd6cUzZDlHX30QzhnExg", "f42lbbUT05gjuREF86Hw"],
         "queue-queuePage-header": [],
         "Root": [],
-        "Root__now-playing-bar": ["z0qdvwslOFVOAihShLIq", "L5dM7nzQpMJtRkvZZBZL", "XvuTwlgQRqJ5NnVLN9ZH"], // If the play/pause button clips out of the playbar, this mapping needs to be updated
-        "Root__top-container": [],
+        "Root__now-playing-bar": ["z0qdvwslOFVOAihShLIq", "L5dM7nzQpMJtRkvZZBZL", "XvuTwlgQRqJ5NnVLN9ZH", "G0r21Xb5HbCgpzJwqiev"], // If the play/pause button clips out of the playbar, this mapping needs to be updated
+        "Root__right-sidebar": ["dMf_PkfPVTEuSmc11MZp", "f5tlcSXI2oGz349EzFhI"],
+        "Root__top-container": ["PbMBx95owTmQYYdfnp3j"],
+        "Root__globalNav": ["EmXZMILXH0bP7U461Va6"],
+        "Root__main-view": ["BPRPH_jrStQIw2m2qfDl"],
+        "Root__nav-bar": ["nWqHVdNL4CdxyvxYNFI8"],
         "search-modal-searchBar": [],
         "searchbar-bar": [],
         "uFQUpbITgGovaKRr6I_g": [], // page header
-        "volume-bar": ["main-nowPlayingBar-volumeBar", "VIXZppPJeWhMxFseNCgy", "w6STr1NJYa2jHvg2wfCa"],
-        "volume-bar__icon-button": ["vM_Y7OPWespPewrOb1uN", "w1XCHDijYLIJuVCEkQID", "pBXkugh_Qs4OAeaVaTi9"],
-        "volume-bar__slider-container": ["d2AW7kxQkljoKbqyHvHC", "GN9SlMTfgQeqy7opGRSA", "GRePaldGFb3UeyjULrVd"],
+        "volume-bar": ["main-nowPlayingBar-volumeBar", "VIXZppPJeWhMxFseNCgy", "w6STr1NJYa2jHvg2wfCa", "dsl5x4j2QJRUvU2Fud50", "cIju5NuqJbJYWCA1y_N8"],
+        "volume-bar__icon-button": ["vM_Y7OPWespPewrOb1uN", "w1XCHDijYLIJuVCEkQID", "pBXkugh_Qs4OAeaVaTi9", "vTJTMuDgiz0tGXKYoxK3"],
+        "volume-bar__slider-container": ["d2AW7kxQkljoKbqyHvHC", "GN9SlMTfgQeqy7opGRSA", "GRePaldGFb3UeyjULrVd", "f6qznX9ZxqApiZY21CjR"],
         "x-progressBar-fillColor": ["aZtKYi6r4EG1_WHGpmn9", "ISEJ4fISQcRgNTF5dVAA"],
         "x-progressBar-handle": ["pKZTLhZq37S3mH2TFw4X", "GQiIgNkmZw4cDZnpvnGN", "dvBeolJPafPPVKB6Bj2F"],
         "x-progressBar-progressBar": ["progress-bar", "Nd6cUzZDlHX30QzhnExg", "f42lbbUT05gjuREF86Hw"],
@@ -5944,6 +6002,16 @@ body.spotui-dj-mode .dj-button svg {
     opacity: 1;
     transform: scale(1.06);
     font-weight: 600;
+}
+
+.spotui-lyrics-line.active .spotui-lyrics-word {
+    opacity: 0.4;
+    transition: opacity 120ms ease;
+}
+
+.spotui-lyrics-line.active .spotui-lyrics-word.sung,
+.spotui-lyrics-line.active .spotui-lyrics-word.singing {
+    opacity: 1;
 }
 
 .spotui-lyrics-loader {
