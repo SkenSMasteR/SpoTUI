@@ -1,7 +1,19 @@
 import { execute } from "./commands.js";
 import { BIND_CMD_REGEX, F_KEY_REGEX, KEYBIND_STORAGE_KEY, THEME_SKIP_CMD_REGEX } from "./constants.js";
-import { app } from "./state.js";
+import { app, isAnyPanelOpen } from "./state.js";
 import { storageGet, storageSet } from "./storage.js";
+
+const HJKL_TO_ARROW = { h: "ArrowLeft", j: "ArrowDown", k: "ArrowUp", l: "ArrowRight" };
+
+export function handleHjklKeydown(e) {
+    if (!isAnyPanelOpen()) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const arrow = HJKL_TO_ARROW[e.key];
+    if (!arrow) return;
+    const el = document.activeElement;
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "SELECT" || (el.tagName === "INPUT" && el.type !== "button"))) return;
+    Object.defineProperty(e, "key", { value: arrow, configurable: true });
+}
 
 // Map common key name variations to standard names
 const SPECIAL_KEY_MAP = {
