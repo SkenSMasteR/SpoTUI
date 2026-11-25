@@ -767,6 +767,11 @@ body.spotui-theme-panel #spotui-theme-panel {
     box-shadow: 0 8px 15px rgba(0,0,0,0.2);
 }
 
+.theme-card.spotui-theme-active {
+    border-color: var(--spotui-accent, #ff8c42);
+    box-shadow: 0 0 0 2px var(--spotui-accent, #ff8c42);
+}
+
 .theme-card img {
     width: 100%;
     height: auto;

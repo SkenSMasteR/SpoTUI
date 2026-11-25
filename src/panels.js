@@ -75,12 +75,30 @@ export function setPanelState(panelId, className, openVarName, targetState) {
     if (!targetState && wasOpen) emitPaneClose(PANE_TARGETS[openVarName] || "");
 }
 
+function handleHelpKeydown(e) {
+    if (!app.helpPanelOpen) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const scroller = document.querySelector("#spotui-help-panel .spotui-help-fieldset");
+    if (!scroller) return;
+    const step = Math.max(40, scroller.clientHeight * 0.5);
+    if (e.key === "ArrowDown") scroller.scrollBy({ top: step });
+    else if (e.key === "ArrowUp") scroller.scrollBy({ top: -step });
+    else if (e.key === "PageDown") scroller.scrollBy({ top: scroller.clientHeight });
+    else if (e.key === "PageUp") scroller.scrollBy({ top: -scroller.clientHeight });
+    else if (e.key === "Home") scroller.scrollTo({ top: 0 });
+    else if (e.key === "End") scroller.scrollTo({ top: scroller.scrollHeight });
+    else return;
+    e.preventDefault();
+}
+
 // Open or toggle help panel
 export function openHelpPanel() {
     if (app.helpPanelOpen) { setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", false); return; }
     closeActivePanel();
 
     setPanelState("spotui-help-panel", "spotui-help-panel", "helpPanelOpen", true);
+    document.removeEventListener("keydown", handleHelpKeydown, true);
+    document.addEventListener("keydown", handleHelpKeydown, true);
     const panel = document.getElementById("spotui-help-panel");
     if (panel) {
         const content = panel.querySelector('.spotui-help-content');
@@ -202,7 +220,81 @@ export async function openAdd2listPanel(trackUri = null) {
 }
 
 export function closeThemePanel() {
+    document.removeEventListener("keydown", handleThemeKeydown, true);
+    clearThemeSelection();
     setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", false);
+}
+
+const THEME_ACTIVE_CLASS = "spotui-theme-active";
+let themeSel = -1;
+
+function visibleThemeCards(grid) {
+    return [...grid.querySelectorAll(".theme-card")].filter((c) => c.style.display !== "none");
+}
+
+function themeColumnCount(cards) {
+    if (!cards.length) return 1;
+    const top = cards[0].offsetTop;
+    return cards.filter((c) => c.offsetTop === top).length || 1;
+}
+
+function clearThemeSelection() {
+    themeSel = -1;
+    document.querySelectorAll("." + THEME_ACTIVE_CLASS).forEach((c) => c.classList.remove(THEME_ACTIVE_CLASS));
+}
+
+function selectThemeCard(grid, idx) {
+    const cards = visibleThemeCards(grid);
+    document.querySelectorAll("." + THEME_ACTIVE_CLASS).forEach((c) => c.classList.remove(THEME_ACTIVE_CLASS));
+    if (!cards.length) {
+        themeSel = -1;
+        return;
+    }
+    themeSel = Math.max(0, Math.min(cards.length - 1, idx));
+    const card = cards[themeSel];
+    card.classList.add(THEME_ACTIVE_CLASS);
+    card.scrollIntoView({ block: "nearest" });
+}
+
+function handleThemeKeydown(e) {
+    if (!app.themePanelOpen) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const panel = document.getElementById("spotui-theme-panel");
+    const grid = panel && panel.querySelector(".theme-grid");
+    if (!grid) return;
+    const focused = document.activeElement;
+    const searchInput = panel.querySelector("#spotui-theme-search");
+    if (focused === searchInput) {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            searchInput.blur();
+            selectThemeCard(grid, themeSel);
+        }
+        return;
+    }
+    if (focused?.matches("button, input, select, textarea") || focused?.isContentEditable) return;
+    if (e.key === "Enter") {
+        if (themeSel < 0) return;
+        const card = visibleThemeCards(grid)[themeSel];
+        const btn = card && card.querySelector("button");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        btn.click();
+        return;
+    }
+    let delta = 0;
+    if (e.key === "ArrowRight") delta = 1;
+    else if (e.key === "ArrowLeft") delta = -1;
+    else if (e.key === "ArrowDown") delta = themeColumnCount(visibleThemeCards(grid));
+    else if (e.key === "ArrowUp") delta = -themeColumnCount(visibleThemeCards(grid));
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+    const cards = visibleThemeCards(grid);
+    if (!cards.length) return;
+    const base = themeSel < 0 ? (delta > 0 ? -1 : cards.length) : themeSel;
+    selectThemeCard(grid, base + delta);
 }
 
 // Open theme browser panel
@@ -211,6 +303,9 @@ export async function openThemePanel() {
     closeActivePanel();
 
     setPanelState("spotui-theme-panel", "spotui-theme-panel", "themePanelOpen", true);
+    themeSel = -1;
+    document.removeEventListener("keydown", handleThemeKeydown, true);
+    document.addEventListener("keydown", handleThemeKeydown, true);
     const panel = document.getElementById("spotui-theme-panel");
     if (!panel) return;
 
@@ -237,6 +332,7 @@ export async function openThemePanel() {
     const refreshBtn = panel.querySelector("#spotui-theme-refresh");
 
     const applyFilter = () => {
+        clearThemeSelection();
         const term = searchInput.value.toLowerCase();
         grid.querySelectorAll(".theme-card").forEach((card) => {
             const title = card.querySelector("h3")?.textContent.toLowerCase();
@@ -256,6 +352,7 @@ export async function openThemePanel() {
     });
 
     const load = (channel, force = false) => {
+        clearThemeSelection();
         grid.innerHTML = `<div class="spotui-theme-loading"><div class="spotui-lyrics-loader active"></div></div>`;
         loadThemeChannel(channel, force).then(
             (themes) => {
