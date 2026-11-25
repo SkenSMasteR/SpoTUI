@@ -10,9 +10,10 @@ In panels with directional navigation, `h`, `j`, `k`, and `l` act as Left, Down,
 |---------|-------------|
 | `tui -l <on/off>` | Toggle ASCII logo visibility |
 | `tui -l -a <on/off>` | Toggle ASCII animation |
-| `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0-1) |
-| `tui -t pull <theme_id> [-live]` | Apply a theme using its Base64-encoded name. Use `-live` to look it up in the live feed. The default is Stable. |
-| `tui bind "<Letter>" "<command>"` | Binds Alt+`<Letter>` to run a TUI command |
+| `tui -wp <url> [-o <opacity>]` | Set wallpaper (opacity 0–1) |
+| `tui -wp off` | Remove wallpaper |
+| `tui -t pull <theme_id> [-live]` | Apply a theme using its Base64-encoded name. Use `-live` to look it up in the live feed. The default is Stable. Find theme IDs on [spotui.root.sx](https://spotui.root.sx/). |
+| `tui bind "<Letter>" "<command>"` | Bind Alt+`<Letter>` to run a TUI command |
 | `tui unbind "<Letter>"` | Remove the Alt+`<Letter>` keybind |
 | `tui bind clear` / `tui unbind all` | Remove all keybinds |
 | `tui actions create <name>` | Create a named action |
@@ -21,7 +22,6 @@ In panels with directional navigation, `h`, `j`, `k`, and `l` act as Left, Down,
 | `tui actions enable <name>` | Enable an action |
 | `tui actions disable <name>` | Disable an action |
 | `tui actions delete <name>` | Delete an action |
-| `tui -wp off` | Remove wallpaper |
 | `tui -ly -cp -active <#hex> -inactive <#hex> -near <#hex>` | Set lyrics colors |
 | `tui -ly -cp off` | Reset lyrics colors |
 | `tui -ly -animation <on/off>` | Toggle lyrics loader animation |
@@ -56,7 +56,7 @@ In panels with directional navigation, `h`, `j`, `k`, and `l` act as Left, Down,
 | `skip` | Next track |
 | `back` | Previous track |
 | `s` / `seek <mm:ss>` | Jump to a specific time |
-| `v` / `volume <%>` | Set volume (0-100) |
+| `v` / `volume <%>` | Set volume (0–100) |
 | `shuffle` | Toggle shuffle |
 | `loop [on/off]` / `superloop [on/off]` | Control repeat context or repeat track, respectively. Omit the argument to toggle. |
 | `like` | Like/unlike current song |
@@ -67,7 +67,6 @@ In panels with directional navigation, `h`, `j`, `k`, and `l` act as Left, Down,
 | `search [query]` | Open Spotify search, optionally with an initial query |
 | `about` | Show about panel |
 | `theme` | Browse and apply themes |
-| `discord` | Show the Discord update banner and re-enable it on boot |
 | `standby` | Enter standby mode (any key to exit) |
 | `jam create` | Start a listening jam and get a PIN |
 | `jam join <pin>` | Join a jam by PIN. Guests can use volume, lyrics, visualizer, and jam commands. |

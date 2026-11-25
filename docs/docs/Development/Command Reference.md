@@ -43,6 +43,7 @@ tui -inputs -bg <#hex> -bg-hover <#hex> -text <#hex> -border <#hex>
 | `-bg-hover` | Hover state background | `--input-bg-hover-color` |
 | `-text` | Input text | `--input-text-color` |
 | `-border` | Input border | `--input-border-color` |
+| `-buttons` | Toggle bottom-right buttons visibility | `` |
 
 Reset: `tui -inputs off`
 
@@ -115,7 +116,7 @@ Reset: `tui -panel off`
 
 | Command | What it sets |
 |---|---|
-| `tui -viz -color <#hex>` | Bar color |
+| `tui -viz -color <#hex>` | Bar color (`--visualizer-color`) |
 | `tui -viz -gap <0-100>` | Gap between bars in pixels (0 = touching) |
 | `tui -viz -bars <1-256>` | Number of bars |
 | `tui -viz -smooth <1-100>` | Smoothing |
