@@ -1,6 +1,6 @@
 # Command Reference
 
-These are all the `tui` commands you can use in your theme's `commands` array. All color values are hex codes with the `#` prefix.
+Use these styling commands in your theme's `commands` array. All color values are hex codes with the `#` prefix.
 
 ### Player Bar
 ```bash
@@ -64,9 +64,7 @@ Reset: `tui -ly -cp off`
 ```bash
 tui -ly -animation <on/off>
 ```
-Toggles an animation during instrumental sections instead of showing the last lyric that was played 
-
-Reset: `tui -ly -animation off`
+Shows a loader animation during gaps in synced lyrics. Disable it with `tui -ly -animation off`.
 
 ### Lyrics Spacing
 ```bash
@@ -75,14 +73,14 @@ tui -ly -spacing <value>
 
 | Flag | What it sets | CSS Variable |
 |---|---|---|
-| `-spacing` | Spacing between all lyric lines | `--lyrics-line-spacing` | 
+| `-spacing` | Spacing between lyric lines. A bare number is interpreted as pixels. | `--lyrics-line-spacing` |
 
 Reset: `tui -ly -spacing off`
 
 
 ### Wallpaper
 ```bash
-tui -wp <url> -o <opacity>
+tui -wp <url> [-o <opacity>]
 ```
 
 | Flag | What it sets | Notes |
@@ -115,12 +113,13 @@ tui -panel -bg <#hex> -border <#hex> -text <#hex>
 Reset: `tui -panel off`
 
 ### Visualizer
-```bash
-tui -viz -color <#hex>		# Set visualizer bar color
-```
 
-| Flag    | What it sets     | CSS Variable |
-| ------- | ---------------- | ------------ |
-| `-color`  | Visualizer color | `--visualizer-color` |
+| Command | What it sets |
+|---|---|
+| `tui -viz -color <#hex>` | Bar color (`--visualizer-color`) |
+| `tui -viz -gap <0-100>` | Gap between bars in pixels (0 = touching) |
+| `tui -viz -bars <1-256>` | Number of bars |
+| `tui -viz -smooth <1-100>` | Smoothing |
+| `tui -viz -mode <adaptive/global>` | Reaction mode |
 
-Reset: `tui -viz off`
+Use `off` as the value for `-gap`, `-bars`, `-smooth`, or `-mode` to reset that setting. Use `tui -viz off` to reset the bar color.
