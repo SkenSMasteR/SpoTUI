@@ -262,8 +262,9 @@ function handleThemeKeydown(e) {
     const panel = document.getElementById("spotui-theme-panel");
     const grid = panel && panel.querySelector(".theme-grid");
     if (!grid) return;
+    const focused = document.activeElement;
     const searchInput = panel.querySelector("#spotui-theme-search");
-    if (document.activeElement === searchInput) {
+    if (focused === searchInput) {
         if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
             searchInput.blur();
@@ -271,6 +272,7 @@ function handleThemeKeydown(e) {
         }
         return;
     }
+    if (focused?.matches("button, input, select, textarea") || focused?.isContentEditable) return;
     if (e.key === "Enter") {
         if (themeSel < 0) return;
         const card = visibleThemeCards(grid)[themeSel];
