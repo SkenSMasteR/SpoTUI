@@ -1,0 +1,37 @@
+{
+  "name": "Getting Started",
+  "icon": "fas fa-rocket",
+  "position": 1,
+  "pages": [
+    {
+      "file": "Install.md",
+      "title": "Install",
+      "slug": "install"
+    },
+    {
+      "file": "Usage.md",
+      "title": "Usage",
+      "slug": "usage"
+    },
+    {
+      "file": "Actions.md",
+      "title": "Actions",
+      "slug": "actions"
+    },
+    {
+      "file": "Custom Play Bar.md",
+      "title": "Custom Play Bar",
+      "slug": "custom-play-bar"
+    },
+    {
+      "file": "Updating.md",
+      "title": "Updating",
+      "slug": "updating"
+    },
+    {
+      "file": "Uninstalling Theme.md",
+      "title": "Uninstalling Theme",
+      "slug": "uninstalling-theme"
+    }
+  ]
+}

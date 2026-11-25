@@ -1,6 +1,0 @@
-textual
-websockets
-numpy
-soundcard
-pystray
-pillow
