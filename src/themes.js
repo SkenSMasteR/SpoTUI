@@ -120,14 +120,16 @@ export function createThemeCard(theme) {
 export function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
     const apply = async (themes) => {
-        resetAllSettings();
         const theme = (themes || []).find((t) => t.name === themeName);
-        if (theme && theme.commands) {
-            const pending = [];
-            theme.commands.forEach((cmd, idx) => {
+        if (Array.isArray(theme?.commands) && theme.commands.length) {
+            const commands = theme.commands.filter((cmd) => {
                 const text = String(cmd || "").trim();
-                if (skipNonTui && !text.startsWith("tui")) return;
-                if (isRestrictedThemeCommand(text)) return;
+                return text && (!skipNonTui || text.startsWith("tui")) && !isRestrictedThemeCommand(text);
+            });
+            if (!commands.length) return theme;
+            resetAllSettings();
+            const pending = [];
+            commands.forEach((cmd, idx) => {
                 pending.push(
                     new Promise((res, rej) => {
                         setTimeout(() => {
