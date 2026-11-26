@@ -121,13 +121,13 @@ export function applyThemeByName(themeName, opts = {}) {
     const skipNonTui = Boolean(opts.skipNonTui);
     const apply = async (themes) => {
         const theme = (themes || []).find((t) => t.name === themeName);
-        if (Array.isArray(theme?.commands) && theme.commands.length) {
+        if (!theme) return null;
+        resetAllSettings();
+        if (Array.isArray(theme.commands)) {
             const commands = theme.commands.filter((cmd) => {
                 const text = String(cmd || "").trim();
                 return text && (!skipNonTui || text.startsWith("tui")) && !isRestrictedThemeCommand(text);
             });
-            if (!commands.length) return theme;
-            resetAllSettings();
             const pending = [];
             commands.forEach((cmd, idx) => {
                 pending.push(
@@ -140,7 +140,7 @@ export function applyThemeByName(themeName, opts = {}) {
             });
             await Promise.all(pending);
         }
-        return theme || null;
+        return theme;
     };
     if (opts.channel) {
         return loadThemeChannel(opts.channel).then((themes) => apply(themes));
