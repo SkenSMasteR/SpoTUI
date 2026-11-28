@@ -90,8 +90,9 @@ export async function execute(cmd, opts = {}) {
                 const base64Name = args[tIndex+2];
                 const channel = argsLower.includes("-live") ? "live" : "stable";
                 try {
-                    const themeName = atob(base64Name);
-                    applyThemeByName(themeName, { channel });
+                    const bytes = Uint8Array.from(atob(base64Name), (byte) => byte.charCodeAt(0));
+                    const themeName = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+                    await applyThemeByName(themeName, { channel });
                 } catch (e) {}
             }
             return;

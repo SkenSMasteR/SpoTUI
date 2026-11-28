@@ -293,8 +293,10 @@ function handleThemeKeydown(e) {
     e.stopPropagation();
     const cards = visibleThemeCards(grid);
     if (!cards.length) return;
-    const base = themeSel < 0 ? (delta > 0 ? -1 : cards.length) : themeSel;
-    selectThemeCard(grid, base + delta);
+    const next = themeSel < 0
+        ? (delta > 0 ? 0 : cards.length + delta)
+        : themeSel + delta;
+    selectThemeCard(grid, next);
 }
 
 // Open theme browser panel
